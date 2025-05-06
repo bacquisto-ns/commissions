@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, HomeIcon, Percent, DollarSign, ArrowLeft, Users } from "lucide-react";
+import { CalendarIcon, HomeIcon, Percent, DollarSign, ArrowLeft, Users, PlusCircle, MinusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -27,7 +27,6 @@ const formSchema = z.object({
     city: z.string().min(2, "City must be at least 2 characters"),
     state: z.string().min(2, "State must be at least 2 characters"),
     zipCode: z.string().min(5, "Zip code must be at least 5 characters"),
-    selectedProducts: z.array(z.string()).min(1, "At least one product must be selected"),
     propertyTypeGroup: z.string(),
   }),
   // Global transaction details
@@ -85,7 +84,6 @@ export default function NewCommission() {
         city: "",
         state: "",
         zipCode: "",
-        selectedProducts: ["fsa"],
         propertyTypeGroup: "benefits",
       },
       transaction: {
@@ -152,62 +150,69 @@ export default function NewCommission() {
       });
     },
   });
-  
-  // Handle product selection
-  const handleProductSelection = (productId: string, checked: boolean) => {
-    // Get current selected products
-    const currentProducts = form.getValues("property.selectedProducts") || [];
+
+  // Add a new product to the form
+  const addProduct = (productId: string) => {
     const currentProductDetails = form.getValues("productDetails") || [];
+    
+    // Find if this product is already added
+    const existingProduct = currentProductDetails.find(p => p.productId === productId);
+    if (existingProduct) {
+      toast({
+        title: "Product already added",
+        description: "This product is already in your commission form.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Find the product information
     const productInfo = PRODUCTS.find(p => p.id === productId);
     if (!productInfo) return;
     
-    let updatedProducts;
-    let updatedProductDetails;
-    
-    if (checked) {
-      // Add to selected products if checked
-      updatedProducts = [...currentProducts, productId];
-      
-      // Check if this product is already in the details
-      const existingProductIndex = currentProductDetails.findIndex(p => p.productId === productId);
-      if (existingProductIndex === -1) {
-        // Add new product detail
-        updatedProductDetails = [
-          ...currentProductDetails, 
+    // Add new product detail
+    const updatedProductDetails = [
+      ...currentProductDetails, 
+      {
+        productId: productInfo.id,
+        productName: productInfo.label,
+        participantCount: "100",
+        commissionRate: "2.00",
+        transactionAmount: "200.00",
+        commissions: [
           {
-            productId: productInfo.id,
-            productName: productInfo.label,
-            participantCount: "100",
-            commissionRate: "2.00",
-            transactionAmount: "200.00",
-            commissions: [
-              {
-                brokerId: 1,
-                splitPercentage: "100",
-                status: "pending",
-                notes: "",
-              },
-            ],
-          }
-        ];
-      } else {
-        updatedProductDetails = currentProductDetails;
+            brokerId: 1,
+            splitPercentage: "100",
+            status: "pending",
+            notes: "",
+          },
+        ],
       }
-    } else {
-      // Remove from selected products if unchecked
-      updatedProducts = currentProducts.filter(id => id !== productId);
-      
-      // Remove from product details
-      updatedProductDetails = currentProductDetails.filter(p => p.productId !== productId);
-    }
+    ];
     
     // Update the form
-    form.setValue("property.selectedProducts", updatedProducts);
     form.setValue("productDetails", updatedProductDetails);
-    // All products are in the benefits group
-    form.setValue("property.propertyTypeGroup", "benefits");
+  };
+
+  // Remove a product from the form
+  const removeProduct = (productIndex: number) => {
+    const currentProductDetails = form.getValues("productDetails") || [];
+    
+    // Ensure we always have at least one product
+    if (currentProductDetails.length <= 1) {
+      toast({
+        title: "Cannot remove product",
+        description: "You must have at least one product.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Remove the product at the specified index
+    const updatedProductDetails = currentProductDetails.filter((_, index) => index !== productIndex);
+    
+    // Update the form
+    form.setValue("productDetails", updatedProductDetails);
   };
 
   // Form submission handler
@@ -220,6 +225,15 @@ export default function NewCommission() {
     const count = parseInt(participantCount) || 0;
     const commissionRate = parseFloat(rate) || 0;
     return (count * commissionRate).toFixed(2);
+  };
+
+  // Update the transaction amount when participant count or commission rate changes
+  const updateTransactionAmount = (productIndex: number) => {
+    const participantCount = form.getValues(`productDetails.${productIndex}.participantCount`);
+    const commissionRate = form.getValues(`productDetails.${productIndex}.commissionRate`);
+    const estimatedAmount = calculateEstimatedCommission(participantCount, commissionRate);
+    
+    form.setValue(`productDetails.${productIndex}.transactionAmount`, estimatedAmount);
   };
 
   return (
@@ -239,6 +253,7 @@ export default function NewCommission() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          {/* Employer Details Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -306,118 +321,86 @@ export default function NewCommission() {
                   )}
                 />
               </div>
-              <FormField
-                control={form.control}
-                name="property.selectedProducts"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Products</FormLabel>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {PRODUCTS.map((product) => {
-                        // Get current selected products
-                        const selectedProducts = form.getValues("property.selectedProducts") || [];
-                        const isChecked = selectedProducts.includes(product.id);
-                        
-                        return (
-                          <div key={product.id} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`product-${product.id}`}
-                              checked={isChecked}
-                              onCheckedChange={(checked) => {
-                                handleProductSelection(product.id, checked as boolean);
-                              }}
-                            />
-                            <label
-                              htmlFor={`product-${product.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {product.label}
-                            </label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </CardContent>
           </Card>
 
+          {/* Transaction Details Card */}
           <Card>
             <CardHeader>
               <CardTitle>Transaction Details</CardTitle>
               <CardDescription>
-                Enter the transaction information
+                Enter the global transaction information
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="transaction.transactionType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Transaction Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select transaction type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="enrollment">Enrollment</SelectItem>
-                        <SelectItem value="renewal">Renewal</SelectItem>
-                        <SelectItem value="adjustment">Adjustment</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="transaction.transactionDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Transaction Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="transaction.transactionType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Transaction Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={`w-full pl-3 text-left font-normal ${
-                              !field.value && "text-muted-foreground"
-                            }`}
-                          >
-                            {field.value ? (
-                              format(field.value, "MMMM d, yyyy")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select transaction type" />
+                          </SelectTrigger>
                         </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                        <SelectContent>
+                          <SelectItem value="enrollment">Enrollment</SelectItem>
+                          <SelectItem value="renewal">Renewal</SelectItem>
+                          <SelectItem value="adjustment">Adjustment</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="transaction.transactionDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Transaction Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={`w-full pl-3 text-left font-normal ${
+                                !field.value && "text-muted-foreground"
+                              }`}
+                            >
+                              {field.value ? (
+                                format(field.value, "MMMM d, yyyy")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
@@ -439,17 +422,50 @@ export default function NewCommission() {
             </CardContent>
           </Card>
 
+          {/* Add Product Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Products</CardTitle>
+              <CardDescription>
+                Add the products included in this commission
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select onValueChange={(value) => addProduct(value)}>
+                <SelectTrigger className="w-[240px]">
+                  <SelectValue placeholder="Add a product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRODUCTS.map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      {product.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
           {/* Product Details Sections */}
           {form.getValues("productDetails").map((product, productIndex) => (
             <Card key={product.productId} className="relative overflow-hidden">
-              <div className="absolute top-0 right-0 mt-2 mr-2">
+              <div className="absolute top-0 right-0 mt-2 mr-2 flex items-center gap-2">
                 <Badge variant="outline" className="bg-primary/10 text-primary">
                   {product.productName}
                 </Badge>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  type="button"
+                  onClick={() => removeProduct(productIndex)}
+                  className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                >
+                  <MinusCircle className="h-5 w-5" />
+                </Button>
               </div>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  Product Details: {product.productName}
+                  {product.productName} Details
                 </CardTitle>
                 <CardDescription>
                   Enter the specific details for {product.productName}
@@ -466,7 +482,16 @@ export default function NewCommission() {
                         <FormControl>
                           <div className="relative">
                             <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input className="pl-8" type="number" placeholder="100" {...field} />
+                            <Input 
+                              className="pl-8" 
+                              type="number" 
+                              placeholder="100" 
+                              {...field} 
+                              onChange={(e) => {
+                                field.onChange(e);
+                                updateTransactionAmount(productIndex);
+                              }}
+                            />
                           </div>
                         </FormControl>
                         <FormDescription>
@@ -486,7 +511,15 @@ export default function NewCommission() {
                         <FormControl>
                           <div className="relative">
                             <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input className="pl-8" placeholder="2.00" {...field} />
+                            <Input 
+                              className="pl-8" 
+                              placeholder="2.00" 
+                              {...field} 
+                              onChange={(e) => {
+                                field.onChange(e);
+                                updateTransactionAmount(productIndex);
+                              }}
+                            />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -499,7 +532,7 @@ export default function NewCommission() {
                     name={`productDetails.${productIndex}.transactionAmount`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Transaction Amount</FormLabel>
+                        <FormLabel>Commission Amount</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -507,7 +540,7 @@ export default function NewCommission() {
                           </div>
                         </FormControl>
                         <FormDescription>
-                          Estimated: ${calculateEstimatedCommission(
+                          Calculated: ${calculateEstimatedCommission(
                             form.getValues(`productDetails.${productIndex}.participantCount`),
                             form.getValues(`productDetails.${productIndex}.commissionRate`)
                           )}
