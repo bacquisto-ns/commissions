@@ -179,9 +179,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const programType = productDetail.productId as "hsa" | "fsa" | "cobra" | "dental" | "vision" | "retirement" | "life_insurance" | "disability" | "other";
         
         // Parse string values to numbers for calculations
-        const participantCount = parseInt(productDetail.participantCount);
-        const commissionRate = parseFloat(productDetail.commissionRate);
-        const transactionAmount = parseFloat(productDetail.transactionAmount);
+        // Make sure to handle parsing errors 
+        let participantCount = 0;
+        try {
+          participantCount = typeof productDetail.participantCount === 'string' 
+            ? parseInt(productDetail.participantCount)
+            : productDetail.participantCount;
+        } catch (e) {
+          console.error("Error parsing participantCount:", e);
+          participantCount = 0; // Default to 0 if parsing fails
+        }
+        
+        let commissionRate = 0;
+        try {
+          commissionRate = typeof productDetail.commissionRate === 'string'
+            ? parseFloat(productDetail.commissionRate)
+            : productDetail.commissionRate;
+        } catch (e) {
+          console.error("Error parsing commissionRate:", e);
+          commissionRate = 2.00; // Default to $2 if parsing fails
+        }
+        
+        let transactionAmount = 0;
+        try {
+          transactionAmount = typeof productDetail.transactionAmount === 'string'
+            ? parseFloat(productDetail.transactionAmount)
+            : productDetail.transactionAmount;
+        } catch (e) {
+          console.error("Error parsing transactionAmount:", e);
+          transactionAmount = 0; // Default to 0 if parsing fails
+        }
         
         const benefitProgram = {
           programName: `${productDetail.productName} Program`,
@@ -231,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             transactionType: validatedData.transaction.transactionType,
             transactionDate: validatedData.transaction.transactionDate,
             participantCount: participantCount, // Use the parsed number
-            commissionRate: productDetail.commissionRate, // Already a string
+            commissionRate: commissionRate.toString(), // Convert to string for DB
             notes: validatedData.transaction.notes || null,
             totalCommission: transactionAmount.toString(), // Use the transaction amount as the commission
           },

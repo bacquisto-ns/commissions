@@ -161,16 +161,31 @@ export const storage = {
       const [organization] = await tx.insert(organizations).values(data.organization).returning();
       
       // 2. Create the benefit program
-      const [benefitProgram] = await tx.insert(benefitPrograms).values({
+      // Ensure participant minimum is a number
+      const benefitProgramData = {
         ...data.benefitProgram,
         organizationId: organization.id,
-      }).returning();
+        participantMinimum: parseInt(data.benefitProgram.participantMinimum.toString()),
+      };
+      
+      console.log("Benefit program data:", JSON.stringify(benefitProgramData, null, 2));
+      
+      const [benefitProgram] = await tx.insert(benefitPrograms).values(benefitProgramData).returning();
       
       // 3. Create the transaction
-      const [transaction] = await tx.insert(transactions).values({
+      // Ensure numeric fields are converted properly
+      const transactionData = {
         ...data.transaction,
         benefitProgramId: benefitProgram.id,
-      }).returning();
+        participantCount: parseInt(data.transaction.participantCount.toString()),
+        // For decimal fields, ensure they're properly formatted strings
+        commissionRate: data.transaction.commissionRate,
+        totalCommission: data.transaction.totalCommission,
+      };
+      
+      console.log("Transaction data:", JSON.stringify(transactionData, null, 2));
+      
+      const [transaction] = await tx.insert(transactions).values(transactionData).returning();
       
       // 4. Create the commissions
       const commissionsToInsert = data.commissions.map(commission => ({
