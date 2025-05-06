@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { CardContent, Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -25,7 +26,7 @@ const formSchema = z.object({
     city: z.string().min(2, "City must be at least 2 characters"),
     state: z.string().min(2, "State must be at least 2 characters"),
     zipCode: z.string().min(5, "Zip code must be at least 5 characters"),
-    propertyType: z.string(),
+    selectedProducts: z.array(z.string()).min(1, "At least one product must be selected"),
     propertyTypeGroup: z.string(),
   }),
   transaction: z.object({
@@ -65,7 +66,7 @@ export default function NewCommission() {
         city: "",
         state: "",
         zipCode: "",
-        propertyType: "fsa",
+        selectedProducts: ["fsa"],
         propertyTypeGroup: "benefits",
       },
       transaction: {
@@ -109,13 +110,23 @@ export default function NewCommission() {
     },
   });
 
-  // Handle product type change to set the appropriate group
-  const handlePropertyTypeChange = (value: string) => {
-    // All new types are in the benefits group
-    const group = "benefits";
+  // Handle product selection
+  const handleProductSelection = (productId: string, checked: boolean) => {
+    // Get current selected products
+    const currentProducts = form.getValues("property.selectedProducts") || [];
     
-    form.setValue("property.propertyType", value);
-    form.setValue("property.propertyTypeGroup", group);
+    let updatedProducts;
+    if (checked) {
+      // Add to selected products if checked
+      updatedProducts = [...currentProducts, productId];
+    } else {
+      // Remove from selected products if unchecked
+      updatedProducts = currentProducts.filter(id => id !== productId);
+    }
+    
+    // Update the form
+    form.setValue("property.selectedProducts", updatedProducts);
+    form.setValue("property.propertyTypeGroup", "benefits");
   };
 
   // Form submission handler
@@ -209,27 +220,41 @@ export default function NewCommission() {
               </div>
               <FormField
                 control={form.control}
-                name="property.propertyType"
-                render={({ field }) => (
+                name="property.selectedProducts"
+                render={() => (
                   <FormItem>
-                    <FormLabel>Product</FormLabel>
-                    <Select
-                      onValueChange={handlePropertyTypeChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select product" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="fsa">FSA</SelectItem>
-                        <SelectItem value="hsa">HSA</SelectItem>
-                        <SelectItem value="cobra">COBRA</SelectItem>
-                        <SelectItem value="hra">HRA</SelectItem>
-                        <SelectItem value="consolidated_billing">Consolidated Billing</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Products</FormLabel>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {[
+                        { id: "fsa", label: "FSA" },
+                        { id: "hsa", label: "HSA" },
+                        { id: "cobra", label: "COBRA" },
+                        { id: "hra", label: "HRA" },
+                        { id: "consolidated_billing", label: "Consolidated Billing" }
+                      ].map((product) => {
+                        // Get current selected products
+                        const selectedProducts = form.getValues("property.selectedProducts") || [];
+                        const isChecked = selectedProducts.includes(product.id);
+                        
+                        return (
+                          <div key={product.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`product-${product.id}`}
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                handleProductSelection(product.id, checked as boolean);
+                              }}
+                            />
+                            <label
+                              htmlFor={`product-${product.id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {product.label}
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
