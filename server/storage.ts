@@ -190,19 +190,29 @@ export const storage = {
       // 4. Create the commissions
       const commissionsToInsert = data.commissions.map(commission => {
         // Ensure splitPercentage and amount are properly formatted for PostgreSQL
-        const splitPct = typeof commission.splitPercentage === 'string' 
-          ? commission.splitPercentage 
-          : commission.splitPercentage.toString();
+        let splitPct: string = '';
+        if (commission.splitPercentage !== undefined) {
+          splitPct = typeof commission.splitPercentage === 'string'
+            ? commission.splitPercentage
+            : String(commission.splitPercentage);
+        } else {
+          splitPct = '0';
+        }
           
-        const amount = typeof commission.amount === 'string'
-          ? commission.amount
-          : commission.amount.toString();
+        let amountStr: string = '';
+        if (commission.amount !== undefined) {
+          amountStr = typeof commission.amount === 'string'
+            ? commission.amount
+            : String(commission.amount);
+        } else {
+          amountStr = '0';
+        }
           
         return {
           ...commission,
           transactionId: transaction.id,
           splitPercentage: splitPct,
-          amount: amount
+          amount: amountStr
         };
       });
       

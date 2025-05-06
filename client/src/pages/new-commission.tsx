@@ -84,7 +84,7 @@ export default function NewCommission() {
         city: "",
         state: "",
         zipCode: "",
-        propertyTypeGroup: "benefits",
+        propertyTypeGroup: "health", // Updated to use a valid enum value
       },
       transaction: {
         transactionType: "enrollment",
@@ -352,6 +352,39 @@ export default function NewCommission() {
                       <FormControl>
                         <Input placeholder="62704" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-1">
+                <FormField
+                  control={form.control}
+                  name="property.propertyTypeGroup"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Group Category</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="health">Health</SelectItem>
+                          <SelectItem value="wellness">Wellness</SelectItem>
+                          <SelectItem value="retirement">Retirement</SelectItem>
+                          <SelectItem value="insurance">Insurance</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        The group category of the benefits being managed
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
