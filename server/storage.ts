@@ -292,7 +292,7 @@ export const storage = {
     // Get average commission rate
     const avgRateResult = await db
       .select({
-        avgRate: sql<string>`AVG(${transactions.commissionRate})::numeric(5,2)`
+        avgRate: sql<string>`AVG(CAST(${transactions.commissionRate} AS DECIMAL))::numeric(5,2)`
       })
       .from(transactions)
       .innerJoin(

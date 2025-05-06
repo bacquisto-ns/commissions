@@ -158,7 +158,7 @@ async function seed() {
           programName: "TechCorp HSA Plan",
           programType: schema.benefitProgramTypeEnum.enumValues[0], // "hsa"
           programGroup: schema.benefitProgramGroupEnum.enumValues[0], // "health"
-          commissionPerParticipant: "2.00",
+          participantMinimum: 10,
           startDate: startDates[0],
           endDate: endDates[0],
           notes: "Tech industry HSA plan with high participation",
@@ -168,7 +168,7 @@ async function seed() {
           programName: "TechCorp Dental Plan",
           programType: schema.benefitProgramTypeEnum.enumValues[3], // "dental"
           programGroup: schema.benefitProgramGroupEnum.enumValues[0], // "health"
-          commissionPerParticipant: "2.00",
+          participantMinimum: 5,
           startDate: startDates[0],
           endDate: endDates[0],
           notes: "Comprehensive dental plan for employees",
@@ -178,7 +178,7 @@ async function seed() {
           programName: "Healthcare Partners FSA",
           programType: schema.benefitProgramTypeEnum.enumValues[1], // "fsa"
           programGroup: schema.benefitProgramGroupEnum.enumValues[0], // "health"
-          commissionPerParticipant: "2.00",
+          participantMinimum: 15,
           startDate: startDates[1],
           endDate: endDates[1],
           notes: "Healthcare-focused FSA with dependent care option",
@@ -188,7 +188,7 @@ async function seed() {
           programName: "Retail Solutions COBRA",
           programType: schema.benefitProgramTypeEnum.enumValues[2], // "cobra"
           programGroup: schema.benefitProgramGroupEnum.enumValues[0], // "health"
-          commissionPerParticipant: "2.00",
+          participantMinimum: 8,
           startDate: startDates[2],
           endDate: endDates[2],
           notes: "COBRA administration for retail employees",
@@ -197,8 +197,8 @@ async function seed() {
           organizationId: seededOrganizations[3].id,
           programName: "Financial Services 401k",
           programType: schema.benefitProgramTypeEnum.enumValues[5], // "retirement"
-          programGroup: schema.benefitProgramGroupEnum.enumValues[2], // "retirement"
-          commissionPerParticipant: "2.00",
+          programGroup: schema.benefitProgramGroupEnum.enumValues[1], // "retirement"
+          participantMinimum: 50,
           startDate: startDates[3],
           endDate: endDates[3],
           notes: "Retirement planning for financial sector",
@@ -208,7 +208,7 @@ async function seed() {
           programName: "Education First Vision",
           programType: schema.benefitProgramTypeEnum.enumValues[4], // "vision"
           programGroup: schema.benefitProgramGroupEnum.enumValues[0], // "health"
-          commissionPerParticipant: "2.00",
+          participantMinimum: 25,
           startDate: startDates[4],
           endDate: endDates[4],
           notes: "Vision coverage for education staff",
@@ -218,7 +218,7 @@ async function seed() {
           programName: "Education First Life Insurance",
           programType: schema.benefitProgramTypeEnum.enumValues[6], // "life_insurance"
           programGroup: schema.benefitProgramGroupEnum.enumValues[3], // "insurance"
-          commissionPerParticipant: "2.00",
+          participantMinimum: 30,
           startDate: startDates[4],
           endDate: endDates[4],
           notes: "Life insurance for faculty and staff",

@@ -60,7 +60,7 @@ export const benefitPrograms = pgTable("benefit_programs", {
   programName: text("program_name").notNull(),
   programType: benefitProgramTypeEnum("program_type").notNull(),
   programGroup: benefitProgramGroupEnum("program_group").notNull(),
-  commissionPerParticipant: decimal("commission_per_participant", { precision: 8, scale: 2 }).default("2.00").notNull(),
+  participantMinimum: integer("participant_minimum").default(0).notNull(),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date"),
   notes: text("notes"),
@@ -149,7 +149,7 @@ export const organizationInsertSchema = createInsertSchema(organizations, {
 
 export const benefitProgramInsertSchema = createInsertSchema(benefitPrograms, {
   programName: (schema) => schema.min(2, "Program name must be at least 2 characters"),
-  commissionPerParticipant: (schema) => schema.min(0, "Commission per participant must be greater than or equal to 0"),
+  participantMinimum: (schema) => schema.min(0, "Minimum participants must be greater than or equal to 0"),
 });
 
 export const transactionInsertSchema = createInsertSchema(transactions, {
