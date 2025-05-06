@@ -3,11 +3,13 @@ import { and, asc, count, desc, eq, gt, gte, lte, sql, sum, isNull } from "drizz
 import {
   brokers, 
   commissions, 
-  properties, 
+  benefitPrograms,
+  organizations,
   transactions, 
   type Broker, 
   type Commission, 
-  type Property, 
+  type Organization,
+  type BenefitProgram,
   type Transaction,
   CommissionWithDetails,
   TransactionWithDetails
@@ -47,8 +49,9 @@ type CommissionQueryParams = {
 
 // Type for creating a new commission
 type CreateCommissionData = {
-  property: Omit<Property, 'id' | 'createdAt'>;
-  transaction: Omit<Transaction, 'id' | 'propertyId' | 'createdAt'> & { totalCommission: string };
+  organization: Omit<Organization, 'id' | 'createdAt'>;
+  benefitProgram: Omit<BenefitProgram, 'id' | 'organizationId' | 'createdAt'>;
+  transaction: Omit<Transaction, 'id' | 'benefitProgramId' | 'createdAt'> & { totalCommission: string };
   commissions: Array<Omit<Commission, 'id' | 'transactionId' | 'amount' | 'createdAt' | 'updatedAt' | 'paymentDate'> & { amount: string }>;
 };
 
@@ -73,7 +76,11 @@ export const storage = {
       with: {
         transaction: {
           with: {
-            property: true,
+            benefitProgram: {
+              with: {
+                organization: true
+              }
+            }
           },
         },
         broker: true,
@@ -89,14 +96,18 @@ export const storage = {
         with: {
           transaction: {
             with: {
-              property: true,
-            },
+              benefitProgram: {
+                with: {
+                  organization: true
+                }
+              }
+            }
           },
           broker: true,
         },
         where: and(
           eq(commissions.brokerId, brokerId),
-          eq(commissions.status, params.status)
+          eq(commissions.status, params.status as any)
         ),
         orderBy: [desc(commissions.createdAt)],
         limit: params.limit || 10,
@@ -114,7 +125,7 @@ export const storage = {
       query = db.select({ count: count() }).from(commissions).where(
         and(
           eq(commissions.brokerId, brokerId),
-          eq(commissions.status, status)
+          eq(commissions.status, status as any)
         )
       );
     }
@@ -129,7 +140,11 @@ export const storage = {
       with: {
         transaction: {
           with: {
-            property: true,
+            benefitProgram: {
+              with: {
+                organization: true
+              }
+            }
           },
         },
         broker: true,
@@ -142,16 +157,22 @@ export const storage = {
   async createCommission(data: CreateCommissionData): Promise<CommissionWithDetails> {
     // Start a transaction to ensure all operations succeed or fail together
     return await db.transaction(async (tx) => {
-      // 1. Create the property
-      const [property] = await tx.insert(properties).values(data.property).returning();
+      // 1. Create the organization
+      const [organization] = await tx.insert(organizations).values(data.organization).returning();
       
-      // 2. Create the transaction
-      const [transaction] = await tx.insert(transactions).values({
-        ...data.transaction,
-        propertyId: property.id,
+      // 2. Create the benefit program
+      const [benefitProgram] = await tx.insert(benefitPrograms).values({
+        ...data.benefitProgram,
+        organizationId: organization.id,
       }).returning();
       
-      // 3. Create the commissions
+      // 3. Create the transaction
+      const [transaction] = await tx.insert(transactions).values({
+        ...data.transaction,
+        benefitProgramId: benefitProgram.id,
+      }).returning();
+      
+      // 4. Create the commissions
       const commissionsToInsert = data.commissions.map(commission => ({
         ...commission,
         transactionId: transaction.id,
@@ -159,13 +180,17 @@ export const storage = {
       
       const insertedCommissions = await tx.insert(commissions).values(commissionsToInsert).returning();
       
-      // 4. Return the first commission with details (in practice you might want to return all)
+      // 5. Return the first commission with details (in practice you might want to return all)
       const commissionWithDetails = await tx.query.commissions.findFirst({
         where: eq(commissions.id, insertedCommissions[0].id),
         with: {
           transaction: {
             with: {
-              property: true,
+              benefitProgram: {
+                with: {
+                  organization: true
+                }
+              }
             },
           },
           broker: true,
@@ -287,7 +312,11 @@ export const storage = {
       with: {
         transaction: {
           with: {
-            property: true,
+            benefitProgram: {
+              with: {
+                organization: true
+              }
+            }
           },
         },
         broker: true,
@@ -321,10 +350,10 @@ export const storage = {
       });
     }
     
-    // Get commission breakdown by property type
+    // Get commission breakdown by benefit program group
     const breakdownQuery = await db
       .select({
-        propertyType: properties.propertyTypeGroup,
+        programGroup: benefitPrograms.programGroup,
         amount: sum(commissions.amount),
       })
       .from(commissions)
@@ -333,17 +362,17 @@ export const storage = {
         eq(commissions.transactionId, transactions.id)
       )
       .innerJoin(
-        properties,
-        eq(transactions.propertyId, properties.id)
+        benefitPrograms,
+        eq(transactions.benefitProgramId, benefitPrograms.id)
       )
       .where(eq(commissions.brokerId, brokerId))
-      .groupBy(properties.propertyTypeGroup);
+      .groupBy(benefitPrograms.programGroup);
     
     // Calculate total for percentages
     const totalAmount = breakdownQuery.reduce((sum, item) => sum + Number(item.amount), 0);
     
     const breakdown = breakdownQuery.map(item => ({
-      type: item.propertyType,
+      type: item.programGroup,
       amount: Number(item.amount),
       percentage: totalAmount > 0 ? (Number(item.amount) / totalAmount) * 100 : 0,
     }));
@@ -358,10 +387,10 @@ export const storage = {
       });
     }
     
-    // Get top property type
-    const topPropertyQuery = await db
+    // Get top benefit program type
+    const topProgramQuery = await db
       .select({
-        propertyType: properties.propertyType,
+        programType: benefitPrograms.programType,
         amount: sum(commissions.amount),
       })
       .from(commissions)
@@ -370,11 +399,11 @@ export const storage = {
         eq(commissions.transactionId, transactions.id)
       )
       .innerJoin(
-        properties,
-        eq(transactions.propertyId, properties.id)
+        benefitPrograms,
+        eq(transactions.benefitProgramId, benefitPrograms.id)
       )
       .where(eq(commissions.brokerId, brokerId))
-      .groupBy(properties.propertyType)
+      .groupBy(benefitPrograms.programType)
       .orderBy(desc(sql`amount`))
       .limit(1);
     
@@ -383,16 +412,16 @@ export const storage = {
       percentage: 0,
     };
     
-    if (topPropertyQuery.length > 0) {
-      const propertyTypeReadable = topPropertyQuery[0].propertyType
+    if (topProgramQuery.length > 0) {
+      const programTypeReadable = topProgramQuery[0].programType
         .replace(/_/g, ' ')
         .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
       
       topPropertyType = {
-        name: propertyTypeReadable,
-        percentage: totalAmount > 0 ? (Number(topPropertyQuery[0].amount) / totalAmount) * 100 : 0,
+        name: programTypeReadable,
+        percentage: totalAmount > 0 ? (Number(topProgramQuery[0].amount) / totalAmount) * 100 : 0,
       };
     }
     
@@ -463,10 +492,10 @@ export const storage = {
       });
     }
     
-    // Get property type breakdown
+    // Get program type breakdown
     const typeBreakdown = await db
       .select({
-        propertyType: properties.propertyTypeGroup,
+        programType: benefitPrograms.programType,
         amount: sum(commissions.amount),
       })
       .from(commissions)
@@ -475,17 +504,17 @@ export const storage = {
         eq(commissions.transactionId, transactions.id)
       )
       .innerJoin(
-        properties,
-        eq(transactions.propertyId, properties.id)
+        benefitPrograms,
+        eq(transactions.benefitProgramId, benefitPrograms.id)
       )
       .where(eq(commissions.brokerId, brokerId))
-      .groupBy(properties.propertyTypeGroup);
+      .groupBy(benefitPrograms.programType);
     
     // Calculate total for percentages
     const totalAmount = typeBreakdown.reduce((sum, item) => sum + Number(item.amount), 0);
     
     const typeBreakdownWithPercentages = typeBreakdown.map(item => ({
-      type: item.propertyType,
+      type: item.programType,
       amount: Number(item.amount),
       percentage: totalAmount > 0 ? (Number(item.amount) / totalAmount) * 100 : 0,
     }));

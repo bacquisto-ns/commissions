@@ -70,120 +70,229 @@ async function seed() {
       await db.insert(schema.brokers).values(brokers);
     }
 
-    console.log("Creating properties...");
-    const existingProperties = await db.select().from(schema.properties);
-    if (existingProperties.length === 0) {
-      const properties = [
+    console.log("Creating organizations...");
+    const existingOrganizations = await db.select().from(schema.organizations);
+    if (existingOrganizations.length === 0) {
+      const organizations = [
         {
-          address: "1234 Maple Avenue",
-          city: "Springfield",
-          state: "IL",
-          zipCode: "62704",
-          propertyType: "residential_single_family",
-          propertyTypeGroup: "residential",
+          name: "TechCorp Inc.",
+          address: "100 Innovation Way",
+          city: "San Francisco",
+          state: "CA",
+          zipCode: "94107",
+          contactName: "David Chen",
+          contactEmail: "dchen@techcorp.com",
+          contactPhone: "415-555-7890",
         },
         {
-          address: "567 Oak Street",
-          city: "Springfield",
+          name: "Healthcare Partners",
+          address: "450 Medical Plaza",
+          city: "Chicago",
           state: "IL",
-          zipCode: "62701",
-          propertyType: "residential_condo",
-          propertyTypeGroup: "residential",
+          zipCode: "60601",
+          contactName: "Maria Sanchez",
+          contactEmail: "msanchez@hcpartners.org",
+          contactPhone: "312-555-1234",
         },
         {
-          address: "42 Commerce Way",
-          city: "Springfield",
-          state: "IL",
-          zipCode: "62703",
-          propertyType: "commercial_office",
-          propertyTypeGroup: "commercial",
+          name: "Retail Solutions Group",
+          address: "789 Market Street",
+          city: "Boston",
+          state: "MA",
+          zipCode: "02110",
+          contactName: "John Miller",
+          contactEmail: "jmiller@retailsolutions.com",
+          contactPhone: "617-555-3456",
         },
         {
-          address: "890 Pine Court",
-          city: "Springfield",
-          state: "IL",
-          zipCode: "62702",
-          propertyType: "residential_townhouse",
-          propertyTypeGroup: "residential",
+          name: "Financial Services LLC",
+          address: "222 Wall Street",
+          city: "New York",
+          state: "NY",
+          zipCode: "10005",
+          contactName: "Patricia Wong",
+          contactEmail: "pwong@finservices.com",
+          contactPhone: "212-555-8901",
         },
         {
-          address: "123 Hillside Drive",
-          city: "Springfield",
-          state: "IL",
-          zipCode: "62707",
-          propertyType: "land",
-          propertyTypeGroup: "land",
+          name: "Education First Academy",
+          address: "1250 Learning Avenue",
+          city: "Austin",
+          state: "TX",
+          zipCode: "78701",
+          contactName: "Robert Johnson",
+          contactEmail: "rjohnson@edufirst.edu",
+          contactPhone: "512-555-6789",
         },
       ];
 
-      await db.insert(schema.properties).values(properties);
+      await db.insert(schema.organizations).values(organizations);
     }
 
-    // Get seeded brokers and properties
+    // Get seeded organizations
+    const seededOrganizations = await db.select().from(schema.organizations);
+    
+    console.log("Creating benefit programs...");
+    const existingPrograms = await db.select().from(schema.benefitPrograms);
+    if (existingPrograms.length === 0 && seededOrganizations.length > 0) {
+      const now = new Date();
+      const startDates = [
+        new Date(now.getFullYear() - 1, 0, 1), // Jan 1, Last Year
+        new Date(now.getFullYear() - 1, 3, 1), // Apr 1, Last Year
+        new Date(now.getFullYear() - 1, 5, 1), // Jun 1, Last Year
+        new Date(now.getFullYear() - 1, 8, 1), // Sep 1, Last Year
+        new Date(now.getFullYear() - 1, 10, 1), // Nov 1, Last Year
+      ];
+      
+      const endDates = [
+        new Date(now.getFullYear() + 1, 0, 1), // Jan 1, Next Year
+        new Date(now.getFullYear() + 1, 3, 1), // Apr 1, Next Year
+        new Date(now.getFullYear() + 1, 5, 1), // Jun 1, Next Year
+        new Date(now.getFullYear() + 1, 8, 1), // Sep 1, Next Year
+        new Date(now.getFullYear() + 1, 10, 1), // Nov 1, Next Year
+      ];
+      
+      const benefitPrograms = [
+        {
+          organizationId: seededOrganizations[0].id,
+          programName: "TechCorp HSA Plan",
+          programType: schema.benefitProgramTypeEnum.enumValues[0], // "hsa"
+          programGroup: schema.benefitProgramGroupEnum.enumValues[0], // "health"
+          commissionPerParticipant: "2.00",
+          startDate: startDates[0],
+          endDate: endDates[0],
+          notes: "Tech industry HSA plan with high participation",
+        },
+        {
+          organizationId: seededOrganizations[0].id,
+          programName: "TechCorp Dental Plan",
+          programType: schema.benefitProgramTypeEnum.enumValues[3], // "dental"
+          programGroup: schema.benefitProgramGroupEnum.enumValues[0], // "health"
+          commissionPerParticipant: "2.00",
+          startDate: startDates[0],
+          endDate: endDates[0],
+          notes: "Comprehensive dental plan for employees",
+        },
+        {
+          organizationId: seededOrganizations[1].id,
+          programName: "Healthcare Partners FSA",
+          programType: schema.benefitProgramTypeEnum.enumValues[1], // "fsa"
+          programGroup: schema.benefitProgramGroupEnum.enumValues[0], // "health"
+          commissionPerParticipant: "2.00",
+          startDate: startDates[1],
+          endDate: endDates[1],
+          notes: "Healthcare-focused FSA with dependent care option",
+        },
+        {
+          organizationId: seededOrganizations[2].id,
+          programName: "Retail Solutions COBRA",
+          programType: schema.benefitProgramTypeEnum.enumValues[2], // "cobra"
+          programGroup: schema.benefitProgramGroupEnum.enumValues[0], // "health"
+          commissionPerParticipant: "2.00",
+          startDate: startDates[2],
+          endDate: endDates[2],
+          notes: "COBRA administration for retail employees",
+        },
+        {
+          organizationId: seededOrganizations[3].id,
+          programName: "Financial Services 401k",
+          programType: schema.benefitProgramTypeEnum.enumValues[5], // "retirement"
+          programGroup: schema.benefitProgramGroupEnum.enumValues[2], // "retirement"
+          commissionPerParticipant: "2.00",
+          startDate: startDates[3],
+          endDate: endDates[3],
+          notes: "Retirement planning for financial sector",
+        },
+        {
+          organizationId: seededOrganizations[4].id,
+          programName: "Education First Vision",
+          programType: schema.benefitProgramTypeEnum.enumValues[4], // "vision"
+          programGroup: schema.benefitProgramGroupEnum.enumValues[0], // "health"
+          commissionPerParticipant: "2.00",
+          startDate: startDates[4],
+          endDate: endDates[4],
+          notes: "Vision coverage for education staff",
+        },
+        {
+          organizationId: seededOrganizations[4].id,
+          programName: "Education First Life Insurance",
+          programType: schema.benefitProgramTypeEnum.enumValues[6], // "life_insurance"
+          programGroup: schema.benefitProgramGroupEnum.enumValues[3], // "insurance"
+          commissionPerParticipant: "2.00",
+          startDate: startDates[4],
+          endDate: endDates[4],
+          notes: "Life insurance for faculty and staff",
+        },
+      ];
+
+      await db.insert(schema.benefitPrograms).values(benefitPrograms);
+    }
+
+    // Get seeded brokers and benefit programs
     const seededBrokers = await db.select().from(schema.brokers);
-    const seededProperties = await db.select().from(schema.properties);
+    const seededPrograms = await db.select().from(schema.benefitPrograms);
 
     // Create transactions and commissions if they don't exist
     const existingTransactions = await db.select().from(schema.transactions);
-    if (existingTransactions.length === 0 && seededProperties.length > 0) {
+    if (existingTransactions.length === 0 && seededPrograms.length > 0) {
       console.log("Creating transactions and commissions...");
 
       // Create transaction dates 
       const now = new Date();
       const dates = [
-        new Date(now.getFullYear(), now.getMonth() - 1, 12), // Nov 12, 2023
-        new Date(now.getFullYear(), now.getMonth() - 1, 5),  // Nov 5, 2023
-        new Date(now.getFullYear(), now.getMonth() - 1, 29), // Oct 29, 2023
-        new Date(now.getFullYear(), now.getMonth() - 2, 21), // Oct 21, 2023
-        new Date(now.getFullYear(), now.getMonth() - 2, 18), // Oct 18, 2023
+        new Date(now.getFullYear(), now.getMonth() - 1, 12), // Last month, 12th
+        new Date(now.getFullYear(), now.getMonth() - 1, 5),  // Last month, 5th
+        new Date(now.getFullYear(), now.getMonth() - 2, 29), // Two months ago, 29th
+        new Date(now.getFullYear(), now.getMonth() - 2, 21), // Two months ago, 21st
+        new Date(now.getFullYear(), now.getMonth() - 2, 18), // Two months ago, 18th
       ];
 
       // Transactions
       const transactions = [
         {
-          propertyId: seededProperties[0].id,
-          transactionType: "sale",
+          benefitProgramId: seededPrograms[0].id,
+          transactionType: schema.transactionTypeEnum.enumValues[0], // "enrollment"
           transactionDate: dates[0],
-          transactionAmount: "875000",
-          commissionRate: "3.00",
-          totalCommission: "26250.00",
-          notes: "Successful sale with multiple offers",
-        },
-        {
-          propertyId: seededProperties[1].id,
-          transactionType: "sale",
-          transactionDate: dates[1],
-          transactionAmount: "425000",
-          commissionRate: "3.00",
-          totalCommission: "12750.00",
-          notes: "First-time homebuyer",
-        },
-        {
-          propertyId: seededProperties[2].id,
-          transactionType: "lease",
-          transactionDate: dates[2],
-          transactionAmount: "1800000",
+          participantCount: 450,
           commissionRate: "2.00",
-          totalCommission: "36000.00",
-          notes: "10-year commercial lease",
+          totalCommission: "900.00",
+          notes: "Annual HSA enrollment for TechCorp",
         },
         {
-          propertyId: seededProperties[3].id,
-          transactionType: "sale",
+          benefitProgramId: seededPrograms[2].id,
+          transactionType: schema.transactionTypeEnum.enumValues[0], // "enrollment"
+          transactionDate: dates[1],
+          participantCount: 320,
+          commissionRate: "2.00",
+          totalCommission: "640.00",
+          notes: "Healthcare Partners FSA enrollment",
+        },
+        {
+          benefitProgramId: seededPrograms[3].id,
+          transactionType: schema.transactionTypeEnum.enumValues[2], // "adjustment"
+          transactionDate: dates[2],
+          participantCount: 85,
+          commissionRate: "2.00",
+          totalCommission: "170.00",
+          notes: "COBRA participants adjustment",
+        },
+        {
+          benefitProgramId: seededPrograms[4].id,
+          transactionType: schema.transactionTypeEnum.enumValues[0], // "enrollment"
           transactionDate: dates[3],
-          transactionAmount: "525000",
-          commissionRate: "3.00",
-          totalCommission: "15750.00",
-          notes: "Sold in under 30 days",
+          participantCount: 275,
+          commissionRate: "2.00",
+          totalCommission: "550.00",
+          notes: "401k enrollment period",
         },
         {
-          propertyId: seededProperties[4].id,
-          transactionType: "sale",
+          benefitProgramId: seededPrograms[5].id,
+          transactionType: schema.transactionTypeEnum.enumValues[1], // "renewal"
           transactionDate: dates[4],
-          transactionAmount: "350000",
-          commissionRate: "3.00",
-          totalCommission: "10500.00",
-          notes: "Land for development",
+          participantCount: 180,
+          commissionRate: "2.00",
+          totalCommission: "360.00",
+          notes: "Vision plan renewal",
         },
       ];
 
@@ -196,81 +305,91 @@ async function seed() {
             transactionId: insertedTransactions[0].id,
             brokerId: seededBrokers[0].id, // Sarah Johnson
             splitPercentage: "50.00",
-            amount: "13125.00",
-            status: "paid",
+            amount: "450.00",
+            status: schema.commissionStatusEnum.enumValues[1], // "paid"
             paymentDate: new Date(dates[0].getFullYear(), dates[0].getMonth(), dates[0].getDate() + 15),
+            updatedAt: new Date(),
           },
           {
             transactionId: insertedTransactions[0].id,
             brokerId: seededBrokers[1].id, // James Wilson
             splitPercentage: "50.00",
-            amount: "13125.00",
-            status: "paid",
+            amount: "450.00",
+            status: schema.commissionStatusEnum.enumValues[1], // "paid"
             paymentDate: new Date(dates[0].getFullYear(), dates[0].getMonth(), dates[0].getDate() + 15),
+            updatedAt: new Date(),
           },
           {
             transactionId: insertedTransactions[1].id,
             brokerId: seededBrokers[0].id, // Sarah Johnson
             splitPercentage: "60.00",
-            amount: "7650.00",
-            status: "pending",
+            amount: "384.00",
+            status: schema.commissionStatusEnum.enumValues[0], // "pending"
             paymentDate: null,
+            updatedAt: new Date(),
           },
           {
             transactionId: insertedTransactions[1].id,
             brokerId: seededBrokers[2].id, // Emily Parker
             splitPercentage: "40.00",
-            amount: "5100.00",
-            status: "pending",
+            amount: "256.00",
+            status: schema.commissionStatusEnum.enumValues[0], // "pending"
             paymentDate: null,
+            updatedAt: new Date(),
           },
           {
             transactionId: insertedTransactions[2].id,
             brokerId: seededBrokers[0].id, // Sarah Johnson
             splitPercentage: "75.00",
-            amount: "27000.00",
-            status: "paid",
+            amount: "127.50",
+            status: schema.commissionStatusEnum.enumValues[1], // "paid"
             paymentDate: new Date(dates[2].getFullYear(), dates[2].getMonth(), dates[2].getDate() + 20),
+            updatedAt: new Date(),
           },
           {
             transactionId: insertedTransactions[2].id,
             brokerId: seededBrokers[3].id, // Michael Chang
             splitPercentage: "25.00",
-            amount: "9000.00",
-            status: "paid",
+            amount: "42.50",
+            status: schema.commissionStatusEnum.enumValues[1], // "paid"
             paymentDate: new Date(dates[2].getFullYear(), dates[2].getMonth(), dates[2].getDate() + 20),
+            updatedAt: new Date(),
           },
           {
             transactionId: insertedTransactions[3].id,
             brokerId: seededBrokers[0].id, // Sarah Johnson
             splitPercentage: "50.00",
-            amount: "7875.00",
-            status: "overdue",
+            amount: "275.00",
+            status: schema.commissionStatusEnum.enumValues[2], // "overdue"
             paymentDate: null,
+            updatedAt: new Date(),
           },
           {
             transactionId: insertedTransactions[3].id,
             brokerId: seededBrokers[4].id, // Lisa Rodriguez
             splitPercentage: "50.00",
-            amount: "7875.00",
-            status: "overdue",
+            amount: "275.00",
+            status: schema.commissionStatusEnum.enumValues[2], // "overdue"
             paymentDate: null,
+            updatedAt: new Date(),
           },
           {
             transactionId: insertedTransactions[4].id,
             brokerId: seededBrokers[0].id, // Sarah Johnson
             splitPercentage: "60.00",
-            amount: "6300.00",
-            status: "paid",
+            amount: "216.00",
+            status: schema.commissionStatusEnum.enumValues[1], // "paid"
             paymentDate: new Date(dates[4].getFullYear(), dates[4].getMonth(), dates[4].getDate() + 25),
+            updatedAt: new Date(),
           },
           {
             transactionId: insertedTransactions[4].id,
             brokerId: seededBrokers[5].id, // Robert Kim
             splitPercentage: "40.00",
-            amount: "4200.00",
-            status: "paid",
+            amount: "144.00",
+            status: schema.commissionStatusEnum.enumValues[1], // "paid"
             paymentDate: new Date(dates[4].getFullYear(), dates[4].getMonth(), dates[4].getDate() + 25),
+            updatedAt: new Date(),
           },
         ];
 

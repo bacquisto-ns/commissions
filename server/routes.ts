@@ -2,7 +2,13 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { commissionInsertSchema, commissionStatusEnum, propertyInsertSchema, transactionInsertSchema } from "@shared/schema";
+import { 
+  commissionInsertSchema, 
+  commissionStatusEnum, 
+  organizationInsertSchema,
+  benefitProgramInsertSchema,
+  transactionInsertSchema
+} from "@shared/schema";
 
 const apiPrefix = "/api";
 
@@ -102,18 +108,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create a new commission (including property and transaction)
+  // Create a new commission (including organization, benefit program, and transaction)
   app.post(`${apiPrefix}/commissions`, async (req, res) => {
     try {
       // Validation schema for the entire payload
       const createCommissionSchema = z.object({
-        property: propertyInsertSchema,
+        organization: organizationInsertSchema,
+        benefitProgram: benefitProgramInsertSchema,
         transaction: z.object({
           transactionType: transactionInsertSchema.shape.transactionType,
           transactionDate: z.coerce.date(),
-          transactionAmount: z.string().or(z.number()).transform(val => 
-            typeof val === 'number' ? val.toString() : val
-          ),
+          participantCount: z.number().int().positive(),
           commissionRate: z.string().or(z.number()).transform(val => 
             typeof val === 'number' ? val.toString() : val
           ),
@@ -124,21 +129,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           splitPercentage: z.string().or(z.number()).transform(val => 
             typeof val === 'number' ? val.toString() : val
           ),
-          status: commissionStatusEnum,
+          status: z.enum(['pending', 'paid', 'overdue']),
           notes: z.string().optional(),
         })),
       });
       
       const validatedData = createCommissionSchema.parse(req.body);
       
-      // Calculate the total commission amount
-      const transactionAmount = parseFloat(validatedData.transaction.transactionAmount.toString());
+      // Calculate the total commission amount based on participant count and rate
+      const participantCount = validatedData.transaction.participantCount;
       const commissionRate = parseFloat(validatedData.transaction.commissionRate.toString());
-      const totalCommission = (transactionAmount * commissionRate) / 100;
+      const totalCommission = participantCount * commissionRate;
       
       // Create the commission
       const result = await storage.createCommission({
-        property: validatedData.property,
+        organization: validatedData.organization,
+        benefitProgram: validatedData.benefitProgram,
         transaction: {
           ...validatedData.transaction,
           totalCommission: totalCommission.toString(),

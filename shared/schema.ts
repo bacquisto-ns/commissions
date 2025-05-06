@@ -4,24 +4,27 @@ import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 // Enums
-export const propertyTypeEnum = pgEnum("property_type", [
-  "residential_single_family", 
-  "residential_condo", 
-  "residential_townhouse", 
-  "commercial_office", 
-  "commercial_retail", 
-  "commercial_industrial", 
-  "land"
-]);
-
-export const propertyTypeGroupEnum = pgEnum("property_type_group", [
-  "residential", 
-  "commercial", 
-  "land", 
+export const benefitProgramTypeEnum = pgEnum("benefit_program_type", [
+  "hsa",
+  "fsa",
+  "cobra",
+  "dental",
+  "vision",
+  "retirement",
+  "life_insurance",
+  "disability",
   "other"
 ]);
 
-export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "lease", "other"]);
+export const benefitProgramGroupEnum = pgEnum("benefit_program_group", [
+  "health",
+  "wellness",
+  "retirement",
+  "insurance",
+  "other"
+]);
+
+export const transactionTypeEnum = pgEnum("transaction_type", ["enrollment", "renewal", "adjustment"]);
 
 export const commissionStatusEnum = pgEnum("commission_status", ["pending", "paid", "overdue"]);
 
@@ -38,24 +41,39 @@ export const brokers = pgTable("brokers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const properties = pgTable("properties", {
+export const organizations = pgTable("organizations", {
   id: serial("id").primaryKey(),
+  name: text("name").notNull(),
   address: text("address").notNull(),
   city: text("city").notNull(),
   state: text("state").notNull(),
   zipCode: text("zip_code").notNull(),
-  propertyType: propertyTypeEnum("property_type").notNull(),
-  propertyTypeGroup: propertyTypeGroupEnum("property_type_group").notNull(),
+  contactName: text("contact_name").notNull(),
+  contactEmail: text("contact_email").notNull(),
+  contactPhone: text("contact_phone"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const benefitPrograms = pgTable("benefit_programs", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  programName: text("program_name").notNull(),
+  programType: benefitProgramTypeEnum("program_type").notNull(),
+  programGroup: benefitProgramGroupEnum("program_group").notNull(),
+  commissionPerParticipant: decimal("commission_per_participant", { precision: 8, scale: 2 }).default("2.00").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  benefitProgramId: integer("benefit_program_id").references(() => benefitPrograms.id).notNull(),
   transactionType: transactionTypeEnum("transaction_type").notNull(),
   transactionDate: timestamp("transaction_date").notNull(),
-  transactionAmount: decimal("transaction_amount", { precision: 12, scale: 2 }).notNull(),
-  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).notNull(),
+  participantCount: integer("participant_count").notNull(),
+  commissionRate: decimal("commission_rate", { precision: 8, scale: 2 }).notNull(),
   totalCommission: decimal("total_commission", { precision: 12, scale: 2 }).notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -79,14 +97,22 @@ export const brokersRelations = relations(brokers, ({ many }) => ({
   commissions: many(commissions),
 }));
 
-export const propertiesRelations = relations(properties, ({ many }) => ({
+export const organizationsRelations = relations(organizations, ({ many }) => ({
+  benefitPrograms: many(benefitPrograms),
+}));
+
+export const benefitProgramsRelations = relations(benefitPrograms, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [benefitPrograms.organizationId],
+    references: [organizations.id],
+  }),
   transactions: many(transactions),
 }));
 
 export const transactionsRelations = relations(transactions, ({ one, many }) => ({
-  property: one(properties, {
-    fields: [transactions.propertyId],
-    references: [properties.id],
+  benefitProgram: one(benefitPrograms, {
+    fields: [transactions.benefitProgramId],
+    references: [benefitPrograms.id],
   }),
   commissions: many(commissions),
 }));
@@ -111,15 +137,23 @@ export const brokerInsertSchema = createInsertSchema(brokers, {
   password: (schema) => schema.min(8, "Password must be at least 8 characters"),
 });
 
-export const propertyInsertSchema = createInsertSchema(properties, {
+export const organizationInsertSchema = createInsertSchema(organizations, {
+  name: (schema) => schema.min(2, "Organization name must be at least 2 characters"),
   address: (schema) => schema.min(5, "Address must be at least 5 characters"),
   city: (schema) => schema.min(2, "City must be at least 2 characters"),
   state: (schema) => schema.min(2, "State must be at least 2 characters"),
   zipCode: (schema) => schema.min(5, "Zip code must be at least 5 characters"),
+  contactName: (schema) => schema.min(2, "Contact name must be at least 2 characters"),
+  contactEmail: (schema) => schema.email("Must provide a valid email address"),
+});
+
+export const benefitProgramInsertSchema = createInsertSchema(benefitPrograms, {
+  programName: (schema) => schema.min(2, "Program name must be at least 2 characters"),
+  commissionPerParticipant: (schema) => schema.min(0, "Commission per participant must be greater than or equal to 0"),
 });
 
 export const transactionInsertSchema = createInsertSchema(transactions, {
-  transactionAmount: (schema) => schema.min(0, "Transaction amount must be greater than or equal to 0"),
+  participantCount: (schema) => schema.min(1, "Participant count must be at least 1"),
   commissionRate: (schema) => schema.min(0, "Commission rate must be greater than or equal to 0"),
   totalCommission: (schema) => schema.min(0, "Total commission must be greater than or equal to 0"),
 });
@@ -133,8 +167,11 @@ export const commissionInsertSchema = createInsertSchema(commissions, {
 export type Broker = typeof brokers.$inferSelect;
 export type BrokerInsert = z.infer<typeof brokerInsertSchema>;
 
-export type Property = typeof properties.$inferSelect;
-export type PropertyInsert = z.infer<typeof propertyInsertSchema>;
+export type Organization = typeof organizations.$inferSelect;
+export type OrganizationInsert = z.infer<typeof organizationInsertSchema>;
+
+export type BenefitProgram = typeof benefitPrograms.$inferSelect;
+export type BenefitProgramInsert = z.infer<typeof benefitProgramInsertSchema>;
 
 export type Transaction = typeof transactions.$inferSelect;
 export type TransactionInsert = z.infer<typeof transactionInsertSchema>;
@@ -145,12 +182,16 @@ export type CommissionInsert = z.infer<typeof commissionInsertSchema>;
 // Extended types with relations
 export type CommissionWithDetails = Commission & {
   transaction: Transaction & {
-    property: Property;
+    benefitProgram: BenefitProgram & {
+      organization: Organization;
+    };
   };
   broker: Broker;
 };
 
 export type TransactionWithDetails = Transaction & {
-  property: Property;
+  benefitProgram: BenefitProgram & {
+    organization: Organization;
+  };
   commissions: Commission[];
 };
