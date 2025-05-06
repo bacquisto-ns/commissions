@@ -22,10 +22,18 @@ interface Commission {
   transaction: {
     transactionDate: string;
     transactionType: string;
-    transactionAmount: number | string;
-    property: {
-      address: string;
-      propertyType: string;
+    totalCommission: number | string;
+    benefitProgram: {
+      programName: string;
+      programType: string;
+      programGroup: string;
+      organization: {
+        address: string;
+        name: string;
+        city: string;
+        state: string;
+        zipCode: string;
+      };
     };
   };
   broker: {
@@ -103,16 +111,18 @@ export default function CommissionsTable({
                 <TableRow key={commission.id} className="hover:bg-muted/50">
                   <TableCell>
                     <div>
-                      <div className="font-medium">{commission.transaction.property.address}</div>
+                      <div className="font-medium">
+                        {commission.transaction.benefitProgram.organization.address}
+                      </div>
                       <div className="text-sm text-muted-foreground">
-                        {formatPropertyType(commission.transaction.property.propertyType)}
+                        {commission.transaction.benefitProgram.programName}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="capitalize">{commission.transaction.transactionType}</div>
                     <div className="text-sm text-muted-foreground">
-                      {formatCurrency(Number(commission.transaction.transactionAmount))}
+                      {formatCurrency(Number(commission.transaction.totalCommission))}
                     </div>
                   </TableCell>
                   <TableCell>
