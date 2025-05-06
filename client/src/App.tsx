@@ -6,6 +6,9 @@ import Dashboard from "./pages/dashboard";
 import Commissions from "./pages/commissions";
 import CommissionDetails from "./pages/commission-details";
 import NewCommission from "./pages/new-commission";
+import Brokers from "./pages/brokers";
+import Reports from "./pages/reports";
+import Settings from "./pages/settings";
 import NotFound from "./pages/not-found";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -14,8 +17,11 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/commissions" component={Commissions} />
-      <Route path="/commissions/:id" component={CommissionDetails} />
       <Route path="/commissions/new" component={NewCommission} />
+      <Route path="/commissions/:id" component={CommissionDetails} />
+      <Route path="/brokers" component={Brokers} />
+      <Route path="/reports" component={Reports} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
