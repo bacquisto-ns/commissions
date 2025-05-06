@@ -174,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const schema = z.object({
-        status: commissionStatusEnum,
+        status: z.enum(['pending', 'paid', 'overdue']),
         paymentDate: z.date().optional().nullable(),
       });
       

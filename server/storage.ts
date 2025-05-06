@@ -241,7 +241,7 @@ export const storage = {
     const ytdEnd = new Date();
     
     const ytdResult = await db
-      .select({ total: sum(commissions.amount) })
+      .select({ total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))` })
       .from(commissions)
       .where(
         and(
@@ -257,7 +257,7 @@ export const storage = {
     const lastYearEnd = new Date(currentYear - 1, 11, 31);
     
     const lastYearResult = await db
-      .select({ total: sum(commissions.amount) })
+      .select({ total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))` })
       .from(commissions)
       .where(
         and(
@@ -270,7 +270,7 @@ export const storage = {
     
     // Get pending commissions
     const pendingResult = await db
-      .select({ total: sum(commissions.amount) })
+      .select({ total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))` })
       .from(commissions)
       .where(
         and(
@@ -333,7 +333,7 @@ export const storage = {
       const monthEnd = endOfMonth(subMonths(new Date(), i));
       
       const monthResult = await db
-        .select({ total: sum(commissions.amount) })
+        .select({ total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))` })
         .from(commissions)
         .where(
           and(
@@ -354,7 +354,7 @@ export const storage = {
     const breakdownQuery = await db
       .select({
         programGroup: benefitPrograms.programGroup,
-        amount: sum(commissions.amount),
+        amount: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
       })
       .from(commissions)
       .innerJoin(
@@ -391,7 +391,7 @@ export const storage = {
     const topProgramQuery = await db
       .select({
         programType: benefitPrograms.programType,
-        amount: sum(commissions.amount),
+        amount: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
       })
       .from(commissions)
       .innerJoin(
@@ -475,7 +475,7 @@ export const storage = {
     const earnings = [];
     for (const period of periods) {
       const result = await db
-        .select({ total: sum(commissions.amount) })
+        .select({ total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))` })
         .from(commissions)
         .where(
           and(
@@ -496,7 +496,7 @@ export const storage = {
     const typeBreakdown = await db
       .select({
         programType: benefitPrograms.programType,
-        amount: sum(commissions.amount),
+        amount: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
       })
       .from(commissions)
       .innerJoin(
