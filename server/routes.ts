@@ -113,12 +113,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Validation schema for the entire payload
       const createCommissionSchema = z.object({
-        organization: organizationInsertSchema,
-        benefitProgram: benefitProgramInsertSchema,
+        property: z.object({
+          address: z.string().min(5, "Address must be at least 5 characters"),
+          city: z.string().min(2, "City must be at least 2 characters"),
+          state: z.string().min(2, "State must be at least 2 characters"),
+          zipCode: z.string().min(5, "Zip code must be at least 5 characters"),
+          selectedProducts: z.array(z.string()).min(1, "At least one product must be selected"),
+          propertyTypeGroup: z.string(),
+        }),
         transaction: z.object({
           transactionType: transactionInsertSchema.shape.transactionType,
           transactionDate: z.coerce.date(),
-          participantCount: z.number().int().positive(),
+          participantCount: z.coerce.number().int().positive(),
           commissionRate: z.string().or(z.number()).transform(val => 
             typeof val === 'number' ? val.toString() : val
           ),

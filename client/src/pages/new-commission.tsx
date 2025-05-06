@@ -126,6 +126,7 @@ export default function NewCommission() {
     
     // Update the form
     form.setValue("property.selectedProducts", updatedProducts);
+    // All products are in the benefits group
     form.setValue("property.propertyTypeGroup", "benefits");
   };
 
