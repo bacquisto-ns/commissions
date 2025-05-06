@@ -100,25 +100,25 @@ export default function NewCommission() {
           transactionAmount: "200.00",
           commissions: [
             {
-              brokerId: 1, // Default to the first broker (Sarah Johnson)
+              brokerId: 7, // Default to Sarah Johnson (ID 7)
               splitPercentage: "100",
               status: "pending",
               notes: "",
             },
             {
-              brokerId: 1,
+              brokerId: 8, // James Wilson (ID 8)
               splitPercentage: "0",
               status: "pending",
               notes: "",
             },
             {
-              brokerId: 1,
+              brokerId: 9, // Emily Parker (ID 9)
               splitPercentage: "0",
               status: "pending",
               notes: "",
             },
             {
-              brokerId: 1,
+              brokerId: 10, // Michael Chang (ID 10)
               splitPercentage: "0",
               status: "pending",
               notes: "",
@@ -153,7 +153,7 @@ export default function NewCommission() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/1'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/7'] });
       toast({
         title: "Commission created",
         description: "New commission has been successfully created",
@@ -199,25 +199,25 @@ export default function NewCommission() {
         transactionAmount: "200.00",
         commissions: [
           {
-            brokerId: 1,
+            brokerId: 7, // Sarah Johnson
             splitPercentage: "100",
             status: "pending",
             notes: "",
           },
           {
-            brokerId: 1,
+            brokerId: 8, // James Wilson
             splitPercentage: "0",
             status: "pending",
             notes: "",
           },
           {
-            brokerId: 1,
+            brokerId: 9, // Emily Parker
             splitPercentage: "0",
             status: "pending",
             notes: "",
           },
           {
-            brokerId: 1,
+            brokerId: 10, // Michael Chang
             splitPercentage: "0",
             status: "pending",
             notes: "",

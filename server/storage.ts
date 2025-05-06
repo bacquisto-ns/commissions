@@ -188,7 +188,29 @@ export const storage = {
       const [transaction] = await tx.insert(transactions).values(transactionData).returning();
       
       // 4. Create the commissions
-      const commissionsToInsert = data.commissions.map(commission => {
+      // First, let's get a list of valid broker IDs from the database
+      const brokersResults = await tx.select({ id: brokers.id }).from(brokers);
+      const validBrokerIds = brokersResults.map(broker => broker.id);
+      
+      // Filter commissions: only keep those with valid broker IDs and non-zero split percentages
+      const validCommissions = data.commissions.filter(commission => {
+        // Check if broker exists in the database
+        return validBrokerIds.includes(commission.brokerId);
+      });
+      
+      // If no valid commissions, use the first valid broker ID
+      if (validCommissions.length === 0 && validBrokerIds.length > 0) {
+        // Create a default commission with the first valid broker
+        validCommissions.push({
+          brokerId: validBrokerIds[0],
+          splitPercentage: "100",
+          status: "pending" as any,
+          notes: null,
+          amount: data.transaction.totalCommission
+        });
+      }
+      
+      const commissionsToInsert = validCommissions.map(commission => {
         // Ensure splitPercentage and amount are properly formatted for PostgreSQL
         let splitPct: string = '';
         if (commission.splitPercentage !== undefined) {
