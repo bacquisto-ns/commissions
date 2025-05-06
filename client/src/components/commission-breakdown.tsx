@@ -1,4 +1,4 @@
-import { Home } from "lucide-react";
+import { CircleDollarSign, Heart, Home } from "lucide-react";
 
 interface BreakdownItem {
   type: string;
@@ -12,21 +12,26 @@ interface CommissionBreakdownProps {
     name: string;
     percentage: number;
   };
+  // Property renamed in component usage but keeping the same interface for backward compatibility
 }
 
 export default function CommissionBreakdown({
   data,
   topPropertyType,
 }: CommissionBreakdownProps) {
-  // Helper to get color class based on property type
+  // Helper to get color class based on product type
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "residential":
+      case "fsa":
         return "bg-primary";
-      case "commercial":
+      case "hsa":
         return "bg-secondary";
-      case "land":
+      case "cobra":
         return "bg-accent";
+      case "hra":
+        return "bg-indigo-500";
+      case "consolidated_billing":
+        return "bg-emerald-500";
       default:
         return "bg-gray-400";
     }
@@ -51,10 +56,10 @@ export default function CommissionBreakdown({
       
       {topPropertyType && (
         <div className="mt-6 pt-4 border-t border-border">
-          <h3 className="text-sm font-medium text-foreground mb-2">Top Property Type</h3>
+          <h3 className="text-sm font-medium text-foreground mb-2">Top Product</h3>
           <div className="flex items-center">
             <span className="p-1 rounded-md bg-primary/10 mr-2">
-              <Home className="w-5 h-5 text-primary" />
+              <Heart className="w-5 h-5 text-primary" />
             </span>
             <div>
               <p className="font-medium">{topPropertyType.name}</p>
