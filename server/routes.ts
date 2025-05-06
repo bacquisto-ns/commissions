@@ -147,18 +147,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const commissionRate = parseFloat(validatedData.transaction.commissionRate.toString());
       const totalCommission = participantCount * commissionRate;
       
+      // Create the organization data from property information
+      const organization = {
+        name: `Employer ${validatedData.property.address}`, // Use address as part of name
+        address: validatedData.property.address,
+        city: validatedData.property.city,
+        state: validatedData.property.state,
+        zipCode: validatedData.property.zipCode,
+        contactName: "Contact", // Default values for now
+        contactEmail: "contact@example.com", // Default values for now
+        contactPhone: "" // Default values for now
+      };
+      
+      // Convert the selected products to benefit program
+      // We need to ensure the programType is one of the enum values
+      const primaryProduct = validatedData.property.selectedProducts[0] as "hsa" | "fsa" | "cobra" | "dental" | "vision" | "retirement" | "life_insurance" | "disability" | "other";
+      
+      const benefitProgram = {
+        programName: `${validatedData.property.selectedProducts.join(", ")} Program`,
+        programType: primaryProduct, // Use first selected product as primary type
+        programGroup: validatedData.property.propertyTypeGroup as "health" | "wellness" | "retirement" | "insurance" | "other",
+        participantMinimum: participantCount, // Use participant count as minimum
+        startDate: validatedData.transaction.transactionDate,
+        endDate: null as Date | null,
+        notes: validatedData.transaction.notes || null
+      };
+      
+      // Prepare commission data with proper null handling
+      const commissionData = validatedData.commissions.map(commission => ({
+        brokerId: commission.brokerId,
+        splitPercentage: commission.splitPercentage,
+        status: commission.status,
+        notes: commission.notes || null,
+        amount: ((parseFloat(commission.splitPercentage.toString()) / 100) * totalCommission).toString()
+      }));
+      
       // Create the commission
       const result = await storage.createCommission({
-        organization: validatedData.organization,
-        benefitProgram: validatedData.benefitProgram,
+        organization: organization,
+        benefitProgram: benefitProgram,
         transaction: {
-          ...validatedData.transaction,
+          transactionType: validatedData.transaction.transactionType,
+          transactionDate: validatedData.transaction.transactionDate,
+          participantCount: validatedData.transaction.participantCount,
+          commissionRate: validatedData.transaction.commissionRate,
+          notes: validatedData.transaction.notes || null,
           totalCommission: totalCommission.toString(),
         },
-        commissions: validatedData.commissions.map(commission => ({
-          ...commission,
-          amount: ((parseFloat(commission.splitPercentage.toString()) / 100) * totalCommission).toString(),
-        })),
+        commissions: commissionData,
       });
       
       return res.status(201).json(result);

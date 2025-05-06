@@ -34,6 +34,7 @@ const formSchema = z.object({
     transactionDate: z.date(),
     transactionAmount: z.string().min(1, "Amount is required"),
     commissionRate: z.string().min(1, "Commission rate is required"),
+    participantCount: z.string().min(1, "Participant count is required"),
     notes: z.string().optional(),
   }),
   commissions: z.array(
@@ -74,6 +75,7 @@ export default function NewCommission() {
         transactionDate: new Date(),
         transactionAmount: "",
         commissionRate: "2.00",
+        participantCount: "100", // Default to 100 participants
         notes: "",
       },
       commissions: [
@@ -90,7 +92,19 @@ export default function NewCommission() {
   // Create commission mutation
   const createCommission = useMutation({
     mutationFn: async (data: FormValues) => {
-      return apiRequest('POST', '/api/commissions', data);
+      // Convert participant count from string to number 
+      const participantCount = parseInt(data.transaction.participantCount);
+      
+      // Update the data to include the participantCount as a number
+      const updatedData = {
+        ...data,
+        transaction: {
+          ...data.transaction,
+          participantCount: participantCount
+        }
+      };
+      
+      return apiRequest('POST', '/api/commissions', updatedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
@@ -338,7 +352,7 @@ export default function NewCommission() {
                 )}
               />
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <FormField
                   control={form.control}
                   name="transaction.transactionAmount"
@@ -360,13 +374,29 @@ export default function NewCommission() {
                   name="transaction.commissionRate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Commission Rate</FormLabel>
+                      <FormLabel>Commission Rate ($ per participant)</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Percent className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input className="pl-8" placeholder="3.00" {...field} />
+                          <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input className="pl-8" placeholder="2.00" {...field} />
                         </div>
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="transaction.participantCount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Participant Count</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="100" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Number of participants in the program
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -417,11 +447,11 @@ export default function NewCommission() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {brokers?.map((broker: any) => (
+                        {Array.isArray(brokers) ? brokers.map((broker: any) => (
                           <SelectItem key={broker.id} value={broker.id.toString()}>
                             {broker.firstName} {broker.lastName}
                           </SelectItem>
-                        ))}
+                        )) : null}
                       </SelectContent>
                     </Select>
                     <FormMessage />
