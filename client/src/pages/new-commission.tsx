@@ -151,10 +151,10 @@ export default function NewCommission() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <HomeIcon className="mr-2 h-5 w-5 text-primary" />
-                Property Information
+                Employer Details
               </CardTitle>
               <CardDescription>
-                Enter the property details for this commission
+                Enter the employer information for this commission
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

@@ -58,8 +58,14 @@ export default function CommissionsTable({
   const startItem = (currentPage - 1) * pageSize + 1;
   const endItem = Math.min(currentPage * pageSize, totalItems);
 
-  // Format property type for display
+  // Format product type for display
   const formatPropertyType = (type: string): string => {
+    // For the new product types, display them directly
+    if (['fsa', 'hsa', 'cobra', 'hra', 'consolidated_billing'].includes(type.toLowerCase())) {
+      return type.toUpperCase();
+    }
+    
+    // For legacy property types, format them as before
     return type
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -76,7 +82,7 @@ export default function CommissionsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Property</TableHead>
+              <TableHead>Employer Details</TableHead>
               <TableHead>Transaction</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Split With</TableHead>
@@ -233,7 +239,7 @@ function CommissionsTableSkeleton() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Property</TableHead>
+            <TableHead>Employer Details</TableHead>
             <TableHead>Transaction</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Split With</TableHead>
