@@ -188,10 +188,25 @@ export const storage = {
       const [transaction] = await tx.insert(transactions).values(transactionData).returning();
       
       // 4. Create the commissions
-      const commissionsToInsert = data.commissions.map(commission => ({
-        ...commission,
-        transactionId: transaction.id,
-      }));
+      const commissionsToInsert = data.commissions.map(commission => {
+        // Ensure splitPercentage and amount are properly formatted for PostgreSQL
+        const splitPct = typeof commission.splitPercentage === 'string' 
+          ? commission.splitPercentage 
+          : commission.splitPercentage.toString();
+          
+        const amount = typeof commission.amount === 'string'
+          ? commission.amount
+          : commission.amount.toString();
+          
+        return {
+          ...commission,
+          transactionId: transaction.id,
+          splitPercentage: splitPct,
+          amount: amount
+        };
+      });
+      
+      console.log("Commission data:", JSON.stringify(commissionsToInsert, null, 2));
       
       const insertedCommissions = await tx.insert(commissions).values(commissionsToInsert).returning();
       
