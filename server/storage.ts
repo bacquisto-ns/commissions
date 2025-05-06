@@ -404,7 +404,7 @@ export const storage = {
       )
       .where(eq(commissions.brokerId, brokerId))
       .groupBy(benefitPrograms.programType)
-      .orderBy(desc(sql`amount`))
+      .orderBy(desc(sql`SUM(CAST(${commissions.amount} AS DECIMAL))`))
       .limit(1);
     
     let topPropertyType = {
