@@ -105,6 +105,24 @@ export default function NewCommission() {
               status: "pending",
               notes: "",
             },
+            {
+              brokerId: 1,
+              splitPercentage: "0",
+              status: "pending",
+              notes: "",
+            },
+            {
+              brokerId: 1,
+              splitPercentage: "0",
+              status: "pending",
+              notes: "",
+            },
+            {
+              brokerId: 1,
+              splitPercentage: "0",
+              status: "pending",
+              notes: "",
+            },
           ],
         },
       ],
@@ -183,6 +201,24 @@ export default function NewCommission() {
           {
             brokerId: 1,
             splitPercentage: "100",
+            status: "pending",
+            notes: "",
+          },
+          {
+            brokerId: 1,
+            splitPercentage: "0",
+            status: "pending",
+            notes: "",
+          },
+          {
+            brokerId: 1,
+            splitPercentage: "0",
+            status: "pending",
+            notes: "",
+          },
+          {
+            brokerId: 1,
+            splitPercentage: "0",
             status: "pending",
             notes: "",
           },
@@ -605,25 +641,13 @@ export default function NewCommission() {
                       
                       <FormField
                         control={form.control}
-                        name={`productDetails.${productIndex}.commissions.${commissionIndex}.status`}
+                        name={`productDetails.${productIndex}.commissions.${commissionIndex}.notes`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Status</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="paid">Paid</SelectItem>
-                                <SelectItem value="overdue">Overdue</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <FormLabel>Notes</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Optional notes" {...field} />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
