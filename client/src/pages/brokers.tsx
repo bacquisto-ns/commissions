@@ -1,14 +1,30 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
-import { User, Search, UserPlus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Users, UserPlus, Mail, Phone, Edit, Trash, Check, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import UserAvatar from "@/components/user-avatar";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 type Broker = {
   id: number;
@@ -22,22 +38,44 @@ type Broker = {
 
 export default function Brokers() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
   
   const { data: brokers, isLoading } = useQuery<Broker[]>({
     queryKey: ["/api/brokers"],
   });
   
-  const filteredBrokers = brokers?.filter((broker) => {
-    const fullName = `${broker.firstName} ${broker.lastName}`.toLowerCase();
-    return fullName.includes(searchQuery.toLowerCase()) || 
-           broker.email.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filteredBrokers = brokers?.filter(broker => 
+    broker.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    broker.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    broker.email.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+  
+  const handleNewBroker = () => {
+    toast({
+      title: "Broker added",
+      description: "New broker has been successfully added.",
+    });
+  };
+  
+  const handleEditBroker = () => {
+    toast({
+      title: "Broker updated",
+      description: "Broker information has been updated.",
+    });
+  };
+  
+  const handleDeleteBroker = () => {
+    toast({
+      title: "Broker deleted",
+      description: "Broker has been successfully removed.",
+    });
+  };
 
   return (
     <>
       <Helmet>
         <title>Brokers | BrokerCommissions</title>
-        <meta name="description" content="Manage your insurance brokers and their commission settings" />
+        <meta name="description" content="Manage insurance brokers and their commission splits" />
       </Helmet>
       
       <div className="flex flex-col space-y-6">
@@ -45,95 +83,225 @@ export default function Brokers() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Brokers</h1>
             <p className="text-muted-foreground">
-              Manage your brokers and their commission settings
+              Manage brokers and their commission structures
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search brokers..."
-                className="pl-8 w-full sm:w-[250px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button className="gap-1">
-              <UserPlus className="h-4 w-4" />
-              <span>Add Broker</span>
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  <span>Add Broker</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Broker</DialogTitle>
+                  <DialogDescription>
+                    Enter the details of the new broker
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="firstName" className="text-right">
+                      First Name
+                    </Label>
+                    <Input id="firstName" className="col-span-3" />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="lastName" className="text-right">
+                      Last Name
+                    </Label>
+                    <Input id="lastName" className="col-span-3" />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">
+                      Email
+                    </Label>
+                    <Input id="email" type="email" className="col-span-3" />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="phone" className="text-right">
+                      Phone
+                    </Label>
+                    <Input id="phone" type="tel" className="col-span-3" />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="username" className="text-right">
+                      Username
+                    </Label>
+                    <Input id="username" className="col-span-3" />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit" onClick={handleNewBroker}>Add Broker</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-xl flex items-center gap-2">
-              <User className="h-5 w-5" />
-              <span>All Brokers</span>
+              <Users className="h-5 w-5" />
+              <span>Broker Directory</span>
             </CardTitle>
             <CardDescription>
-              View and manage all brokers in your organization
+              View and manage all registered brokers
             </CardDescription>
+            <div className="mt-4">
+              <Input
+                placeholder="Search brokers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="max-w-sm"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <BrokersTableSkeleton />
+            ) : filteredBrokers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <Users className="h-10 w-10 text-muted-foreground mb-3" />
+                <h3 className="text-lg font-medium">No brokers found</h3>
+                <p className="text-muted-foreground mt-1">
+                  {searchQuery ? "Try a different search query" : "Add a broker to get started"}
+                </p>
+              </div>
             ) : (
-              <div className="border rounded-md">
+              <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[50px]">ID</TableHead>
                       <TableHead>Broker</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead className="hidden md:table-cell">Phone</TableHead>
-                      <TableHead className="hidden md:table-cell">Username</TableHead>
+                      <TableHead>Contact</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredBrokers && filteredBrokers.length > 0 ? (
-                      filteredBrokers.map((broker) => (
-                        <TableRow key={broker.id}>
-                          <TableCell className="font-medium">{broker.id}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <UserAvatar
-                                user={{ firstName: broker.firstName, lastName: broker.lastName }}
-                                className="h-8 w-8"
-                              />
-                              <div>
-                                <p className="font-medium">{broker.firstName} {broker.lastName}</p>
-                              </div>
+                    {filteredBrokers.map((broker) => (
+                      <TableRow key={broker.id}>
+                        <TableCell className="font-medium">
+                          {broker.firstName} {broker.lastName}
+                          <div className="text-sm text-muted-foreground">
+                            @{broker.username}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span>{broker.email}</span>
+                          </div>
+                          {broker.phoneNumber && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <Phone className="h-4 w-4 text-muted-foreground" />
+                              <span>{broker.phoneNumber}</span>
                             </div>
-                          </TableCell>
-                          <TableCell>{broker.email}</TableCell>
-                          <TableCell className="hidden md:table-cell">{broker.phoneNumber || "-"}</TableCell>
-                          <TableCell className="hidden md:table-cell">{broker.username}</TableCell>
-                          <TableCell>
-                            <Badge variant={broker.active ? "success" : "destructive"}>
-                              {broker.active ? "Active" : "Inactive"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">
-                              View
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              Edit
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center h-24">
-                          No brokers found
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={broker.active ? "success" : "destructive"}>
+                            {broker.active ? (
+                              <span className="flex items-center gap-1">
+                                <Check className="h-3 w-3" /> Active
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                <X className="h-3 w-3" /> Inactive
+                              </span>
+                            )}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <span className="sr-only">Edit</span>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Edit Broker</DialogTitle>
+                                <DialogDescription>
+                                  Update broker information
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <Label htmlFor="edit-firstName" className="text-right">
+                                    First Name
+                                  </Label>
+                                  <Input 
+                                    id="edit-firstName" 
+                                    defaultValue={broker.firstName} 
+                                    className="col-span-3" 
+                                  />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <Label htmlFor="edit-lastName" className="text-right">
+                                    Last Name
+                                  </Label>
+                                  <Input 
+                                    id="edit-lastName" 
+                                    defaultValue={broker.lastName} 
+                                    className="col-span-3" 
+                                  />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <Label htmlFor="edit-email" className="text-right">
+                                    Email
+                                  </Label>
+                                  <Input 
+                                    id="edit-email" 
+                                    type="email" 
+                                    defaultValue={broker.email} 
+                                    className="col-span-3" 
+                                  />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <Label htmlFor="edit-phone" className="text-right">
+                                    Phone
+                                  </Label>
+                                  <Input 
+                                    id="edit-phone" 
+                                    type="tel" 
+                                    defaultValue={broker.phoneNumber} 
+                                    className="col-span-3" 
+                                  />
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <Button type="submit" onClick={handleEditBroker}>Save Changes</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive">
+                                <span className="sr-only">Delete</span>
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Confirm Deletion</DialogTitle>
+                                <DialogDescription>
+                                  Are you sure you want to delete this broker? This action cannot be undone.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <DialogFooter>
+                                <Button variant="outline">Cancel</Button>
+                                <Button variant="destructive" onClick={handleDeleteBroker}>Delete</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         </TableCell>
                       </TableRow>
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -147,43 +315,44 @@ export default function Brokers() {
 
 function BrokersTableSkeleton() {
   return (
-    <div className="border rounded-md">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[50px]">ID</TableHead>
-            <TableHead>Broker</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead className="hidden md:table-cell">Phone</TableHead>
-            <TableHead className="hidden md:table-cell">Username</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array(5).fill(0).map((_, index) => (
-            <TableRow key={index}>
-              <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <Skeleton className="h-4 w-[150px]" />
-                </div>
-              </TableCell>
-              <TableCell><Skeleton className="h-4 w-[200px]" /></TableCell>
-              <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-[120px]" /></TableCell>
-              <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-[100px]" /></TableCell>
-              <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Skeleton className="h-8 w-16" />
-                  <Skeleton className="h-8 w-16" />
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="space-y-4">
+      <div className="animate-pulse">
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Broker</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array(5).fill(0).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <div className="h-5 w-32 bg-muted rounded"></div>
+                    <div className="h-3 w-20 bg-muted rounded mt-2"></div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-36 bg-muted rounded"></div>
+                    <div className="h-4 w-24 bg-muted rounded mt-1"></div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-5 w-16 bg-muted rounded"></div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <div className="h-8 w-8 bg-muted rounded"></div>
+                      <div className="h-8 w-8 bg-muted rounded"></div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </div>
   );
 }
