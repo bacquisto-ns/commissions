@@ -111,41 +111,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new commission (including organization, benefit program, and transaction)
   app.post(`${apiPrefix}/commissions`, async (req, res) => {
     try {
-      // Validation schema for the entire payload
+      // Validation schema for the entire payload using the new product-based structure
       const createCommissionSchema = z.object({
         property: z.object({
           address: z.string().min(5, "Address must be at least 5 characters"),
           city: z.string().min(2, "City must be at least 2 characters"),
           state: z.string().min(2, "State must be at least 2 characters"),
           zipCode: z.string().min(5, "Zip code must be at least 5 characters"),
-          selectedProducts: z.array(z.string()).min(1, "At least one product must be selected"),
           propertyTypeGroup: z.string(),
         }),
         transaction: z.object({
           transactionType: transactionInsertSchema.shape.transactionType,
           transactionDate: z.coerce.date(),
-          participantCount: z.coerce.number().int().positive(),
-          commissionRate: z.string().or(z.number()).transform(val => 
-            typeof val === 'number' ? val.toString() : val
-          ),
           notes: z.string().optional(),
         }),
-        commissions: z.array(z.object({
-          brokerId: z.number().int().positive(),
-          splitPercentage: z.string().or(z.number()).transform(val => 
-            typeof val === 'number' ? val.toString() : val
-          ),
-          status: z.enum(['pending', 'paid', 'overdue']),
-          notes: z.string().optional(),
-        })),
+        productDetails: z.array(
+          z.object({
+            productId: z.string(),
+            productName: z.string(),
+            participantCount: z.string().transform(val => parseInt(val)),
+            commissionRate: z.string().transform(val => parseFloat(val)),
+            transactionAmount: z.string().transform(val => parseFloat(val)),
+            commissions: z.array(
+              z.object({
+                brokerId: z.number().int().positive(),
+                splitPercentage: z.string().transform(val => parseFloat(val)),
+                status: z.string().default("pending"),
+                notes: z.string().optional(),
+              })
+            ).min(1, "At least one commission split is required"),
+          })
+        ).min(1, "At least one product detail is required"),
       });
       
       const validatedData = createCommissionSchema.parse(req.body);
-      
-      // Calculate the total commission amount based on participant count and rate
-      const participantCount = validatedData.transaction.participantCount;
-      const commissionRate = parseFloat(validatedData.transaction.commissionRate.toString());
-      const totalCommission = participantCount * commissionRate;
       
       // Create the organization data from property information
       const organization = {
@@ -159,45 +158,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contactPhone: "" // Default values for now
       };
       
-      // Convert the selected products to benefit program
-      // We need to ensure the programType is one of the enum values
-      const primaryProduct = validatedData.property.selectedProducts[0] as "hsa" | "fsa" | "cobra" | "dental" | "vision" | "retirement" | "life_insurance" | "disability" | "other";
+      // Process each product detail as a separate commission entry
+      const results = [];
       
-      const benefitProgram = {
-        programName: `${validatedData.property.selectedProducts.join(", ")} Program`,
-        programType: primaryProduct, // Use first selected product as primary type
-        programGroup: validatedData.property.propertyTypeGroup as "health" | "wellness" | "retirement" | "insurance" | "other",
-        participantMinimum: participantCount, // Use participant count as minimum
-        startDate: validatedData.transaction.transactionDate,
-        endDate: null as Date | null,
-        notes: validatedData.transaction.notes || null
-      };
+      for (const productDetail of validatedData.productDetails) {
+        // Use productId as the benefit program type
+        // Ensure it's a valid enum value by casting
+        const programType = productDetail.productId as "hsa" | "fsa" | "cobra" | "dental" | "vision" | "retirement" | "life_insurance" | "disability" | "other";
+        
+        const benefitProgram = {
+          programName: `${productDetail.productName} Program`,
+          programType: programType,
+          programGroup: validatedData.property.propertyTypeGroup as "health" | "wellness" | "retirement" | "insurance" | "other",
+          participantMinimum: productDetail.participantCount,
+          startDate: validatedData.transaction.transactionDate,
+          endDate: null as Date | null,
+          notes: validatedData.transaction.notes || null
+        };
+        
+        // Calculate total commission for this product
+        const totalCommission = productDetail.transactionAmount;
+        
+        // Prepare commission data with proper null handling
+        // Filter out zero percentage splits
+        const commissionData = productDetail.commissions
+          .filter(commission => commission.splitPercentage > 0)
+          .map(commission => ({
+            brokerId: commission.brokerId,
+            splitPercentage: commission.splitPercentage.toString(),
+            status: "pending", // Default all to pending
+            notes: commission.notes || null,
+            amount: ((commission.splitPercentage / 100) * totalCommission).toString()
+          }));
+        
+        if (commissionData.length === 0) {
+          // Ensure at least one commission entry
+          commissionData.push({
+            brokerId: productDetail.commissions[0].brokerId,
+            splitPercentage: "100",
+            status: "pending",
+            notes: null,
+            amount: totalCommission.toString()
+          });
+        }
+        
+        // Create the transaction and commissions
+        const result = await storage.createCommission({
+          organization: organization,
+          benefitProgram: benefitProgram,
+          transaction: {
+            transactionType: validatedData.transaction.transactionType,
+            transactionDate: validatedData.transaction.transactionDate,
+            participantCount: productDetail.participantCount,
+            commissionRate: productDetail.commissionRate.toString(),
+            notes: validatedData.transaction.notes || null,
+            totalCommission: totalCommission.toString(),
+          },
+          commissions: commissionData,
+        });
+        
+        results.push(result);
+      }
       
-      // Prepare commission data with proper null handling
-      const commissionData = validatedData.commissions.map(commission => ({
-        brokerId: commission.brokerId,
-        splitPercentage: commission.splitPercentage,
-        status: commission.status,
-        notes: commission.notes || null,
-        amount: ((parseFloat(commission.splitPercentage.toString()) / 100) * totalCommission).toString()
-      }));
-      
-      // Create the commission
-      const result = await storage.createCommission({
-        organization: organization,
-        benefitProgram: benefitProgram,
-        transaction: {
-          transactionType: validatedData.transaction.transactionType,
-          transactionDate: validatedData.transaction.transactionDate,
-          participantCount: validatedData.transaction.participantCount,
-          commissionRate: validatedData.transaction.commissionRate,
-          notes: validatedData.transaction.notes || null,
-          totalCommission: totalCommission.toString(),
-        },
-        commissions: commissionData,
-      });
-      
-      return res.status(201).json(result);
+      // Return the first result (or we could return all of them)
+      return res.status(201).json(results[0]);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
