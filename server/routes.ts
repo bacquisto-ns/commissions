@@ -186,7 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .map(commission => ({
             brokerId: commission.brokerId,
             splitPercentage: commission.splitPercentage.toString(),
-            status: "pending", // Default all to pending
+            status: "pending" as "pending" | "paid" | "overdue", // Type assertion for TypeScript
             notes: commission.notes || null,
             amount: ((commission.splitPercentage / 100) * totalCommission).toString()
           }));
@@ -196,7 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           commissionData.push({
             brokerId: productDetail.commissions[0].brokerId,
             splitPercentage: "100",
-            status: "pending",
+            status: "pending" as "pending" | "paid" | "overdue",
             notes: null,
             amount: totalCommission.toString()
           });
@@ -224,6 +224,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(201).json(results[0]);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation error:", JSON.stringify(error.errors, null, 2));
+        console.error("Request body:", JSON.stringify(req.body, null, 2));
         return res.status(400).json({ errors: error.errors });
       }
       console.error("Error creating commission:", error);
