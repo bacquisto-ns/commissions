@@ -129,13 +129,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           z.object({
             productId: z.string(),
             productName: z.string(),
-            participantCount: z.string().transform(val => parseInt(val)),
-            commissionRate: z.string().transform(val => parseFloat(val)),
-            transactionAmount: z.string().transform(val => parseFloat(val)),
+            participantCount: z.union([
+              z.string(),
+              z.number().transform(n => n.toString())
+            ]),
+            commissionRate: z.union([
+              z.string(),
+              z.number().transform(n => n.toString())
+            ]),
+            transactionAmount: z.union([
+              z.string(),
+              z.number().transform(n => n.toString())
+            ]),
             commissions: z.array(
               z.object({
                 brokerId: z.number().int().positive(),
-                splitPercentage: z.string().transform(val => parseFloat(val)),
+                splitPercentage: z.union([
+                  z.string(),
+                  z.number().transform(n => n.toString())
+                ]),
                 status: z.string().default("pending"),
                 notes: z.string().optional(),
               })
@@ -166,30 +178,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Ensure it's a valid enum value by casting
         const programType = productDetail.productId as "hsa" | "fsa" | "cobra" | "dental" | "vision" | "retirement" | "life_insurance" | "disability" | "other";
         
+        // Parse string values to numbers for calculations
+        const participantCount = parseInt(productDetail.participantCount);
+        const commissionRate = parseFloat(productDetail.commissionRate);
+        const transactionAmount = parseFloat(productDetail.transactionAmount);
+        
         const benefitProgram = {
           programName: `${productDetail.productName} Program`,
           programType: programType,
           programGroup: validatedData.property.propertyTypeGroup as "health" | "wellness" | "retirement" | "insurance" | "other",
-          participantMinimum: productDetail.participantCount,
+          participantMinimum: participantCount,
           startDate: validatedData.transaction.transactionDate,
           endDate: null as Date | null,
           notes: validatedData.transaction.notes || null
         };
         
-        // Calculate total commission for this product
-        const totalCommission = productDetail.transactionAmount;
-        
         // Prepare commission data with proper null handling
         // Filter out zero percentage splits
         const commissionData = productDetail.commissions
-          .filter(commission => commission.splitPercentage > 0)
-          .map(commission => ({
-            brokerId: commission.brokerId,
-            splitPercentage: commission.splitPercentage.toString(),
-            status: "pending" as "pending" | "paid" | "overdue", // Type assertion for TypeScript
-            notes: commission.notes || null,
-            amount: ((commission.splitPercentage / 100) * totalCommission).toString()
-          }));
+          .filter(commission => {
+            // Parse splitPercentage to a number for comparison
+            const splitPct = parseFloat(commission.splitPercentage);
+            return splitPct > 0;
+          })
+          .map(commission => {
+            const splitPct = parseFloat(commission.splitPercentage);
+            return {
+              brokerId: commission.brokerId,
+              splitPercentage: commission.splitPercentage,
+              status: "pending" as "pending" | "paid" | "overdue", // Type assertion for TypeScript
+              notes: commission.notes || null,
+              amount: ((splitPct / 100) * transactionAmount).toString()
+            };
+          });
         
         if (commissionData.length === 0) {
           // Ensure at least one commission entry
@@ -198,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             splitPercentage: "100",
             status: "pending" as "pending" | "paid" | "overdue",
             notes: null,
-            amount: totalCommission.toString()
+            amount: transactionAmount.toString()
           });
         }
         
@@ -209,10 +230,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           transaction: {
             transactionType: validatedData.transaction.transactionType,
             transactionDate: validatedData.transaction.transactionDate,
-            participantCount: productDetail.participantCount,
-            commissionRate: productDetail.commissionRate.toString(),
+            participantCount: participantCount, // Use the parsed number
+            commissionRate: productDetail.commissionRate, // Already a string
             notes: validatedData.transaction.notes || null,
-            totalCommission: totalCommission.toString(),
+            totalCommission: transactionAmount.toString(), // Use the transaction amount as the commission
           },
           commissions: commissionData,
         });
