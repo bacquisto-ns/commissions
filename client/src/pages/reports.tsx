@@ -128,11 +128,17 @@ export default function Reports() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading || !statistics ? (
+              {isLoading ? (
                 <div className="h-64 w-full flex items-center justify-center">
                   <div className="text-center">
                     <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
                     <p className="mt-2 text-sm text-muted-foreground">Loading data...</p>
+                  </div>
+                </div>
+              ) : !statistics || statistics.typeBreakdown.length === 0 ? (
+                <div className="h-64 w-full flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-muted-foreground">No commission data available</p>
                   </div>
                 </div>
               ) : (
@@ -165,11 +171,17 @@ export default function Reports() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading || !statistics ? (
+            {isLoading ? (
               <div className="h-64 w-full flex items-center justify-center">
                 <div className="text-center">
                   <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
                   <p className="mt-2 text-sm text-muted-foreground">Loading data...</p>
+                </div>
+              </div>
+            ) : !statistics || !statistics.earnings.some(item => item.amount > 0) ? (
+              <div className="h-64 w-full flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-muted-foreground">No earnings data available for this period</p>
                 </div>
               </div>
             ) : (
@@ -201,13 +213,17 @@ export default function Reports() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading || !statistics ? (
+            {isLoading ? (
               <div className="animate-pulse space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   {Array(4).fill(0).map((_, i) => (
                     <div key={i} className="h-24 bg-muted rounded-md"></div>
                   ))}
                 </div>
+              </div>
+            ) : !statistics ? (
+              <div className="text-center py-6">
+                <p className="text-muted-foreground">No statistics available</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
