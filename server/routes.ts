@@ -230,8 +230,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .map(commission => {
             const splitPct = parseFloat(commission.splitPercentage);
+            
             // Handle broker ID 0 as null (no broker assigned)
-            const brokerId = commission.brokerId === 0 || commission.brokerId === "0" ? null : commission.brokerId;
+            let brokerId = null;
+            
+            // Convert to number first to ensure consistent comparison
+            const brokerIdNumber = typeof commission.brokerId === 'string' 
+              ? parseInt(commission.brokerId) 
+              : (typeof commission.brokerId === 'number' ? commission.brokerId : 0);
+              
+            // Only set a broker ID if it's greater than 0
+            if (brokerIdNumber > 0) {
+              brokerId = brokerIdNumber;
+            }
+            
             return {
               brokerId, // Can be null
               splitPercentage: commission.splitPercentage,

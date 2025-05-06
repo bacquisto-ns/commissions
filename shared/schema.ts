@@ -82,7 +82,7 @@ export const transactions = pgTable("transactions", {
 export const commissions = pgTable("commissions", {
   id: serial("id").primaryKey(),
   transactionId: integer("transaction_id").references(() => transactions.id).notNull(),
-  brokerId: integer("broker_id").references(() => brokers.id).notNull(),
+  brokerId: integer("broker_id").references(() => brokers.id),
   splitPercentage: decimal("split_percentage", { precision: 5, scale: 2 }).notNull(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   status: commissionStatusEnum("status").notNull(),
@@ -186,7 +186,7 @@ export type CommissionWithDetails = Commission & {
       organization: Organization;
     };
   };
-  broker: Broker;
+  broker?: Broker | null;
 };
 
 export type TransactionWithDetails = Transaction & {

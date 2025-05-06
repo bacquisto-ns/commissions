@@ -192,10 +192,10 @@ export const storage = {
       const brokersResults = await tx.select({ id: brokers.id }).from(brokers);
       const validBrokerIds = brokersResults.map(broker => broker.id);
       
-      // Filter commissions: only keep those with valid broker IDs and non-zero split percentages
+      // Filter commissions: only keep those with valid broker IDs or null brokerIds
       const validCommissions = data.commissions.filter(commission => {
-        // Check if broker exists in the database
-        return validBrokerIds.includes(commission.brokerId);
+        // Allow null broker IDs or valid broker IDs in the database
+        return commission.brokerId === null || validBrokerIds.includes(commission.brokerId);
       });
       
       // If no valid commissions, use the first valid broker ID
