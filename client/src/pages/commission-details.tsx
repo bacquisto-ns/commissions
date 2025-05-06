@@ -24,6 +24,40 @@ import { format } from "date-fns";
 import { ArrowLeft, FileText, Home, User, Calendar, DollarSign, Percent, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Updated interface to match our new data structure
+interface CommissionDetails {
+  id: number;
+  amount: string | number;
+  splitPercentage: string | number;
+  status: string;
+  paymentDate?: string;
+  notes?: string | null;
+  transaction: {
+    transactionDate: string;
+    transactionType: string;
+    totalCommission: string | number;
+    participantCount: number;
+    commissionRate: string | number;
+    benefitProgram: {
+      programName: string;
+      programType: string;
+      programGroup: string;
+      organization: {
+        name: string;
+        address: string;
+        city: string;
+        state: string;
+        zipCode: string;
+      };
+    };
+  };
+  broker: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
 export default function CommissionDetails() {
   const { id } = useParams();
   const [, navigate] = useLocation();
@@ -31,7 +65,7 @@ export default function CommissionDetails() {
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
 
   // Fetch commission details
-  const { data: commission, isLoading } = useQuery({
+  const { data: commission, isLoading } = useQuery<CommissionDetails>({
     queryKey: [`/api/commissions/${id}`],
   });
 
@@ -44,7 +78,7 @@ export default function CommissionDetails() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/commissions/${id}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/1'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/7'] }); // Using broker ID 7 instead of 1
       toast({
         title: "Status updated",
         description: "Commission status has been successfully updated",
@@ -76,11 +110,13 @@ export default function CommissionDetails() {
   }
 
   const { transaction, broker } = commission;
-  const { property } = transaction;
-
-  const propertyTypeFormatted = property.propertyType
+  const { benefitProgram } = transaction;
+  const { organization } = benefitProgram;
+  
+  // Format program type for display
+  const programTypeFormatted = benefitProgram.programType
     .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
   return (
@@ -93,7 +129,7 @@ export default function CommissionDetails() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">Commission Details</h1>
           <p className="text-sm text-muted-foreground">
-            View and manage commission for {property.address}
+            View and manage commission for {organization.address}
           </p>
         </div>
       </div>
@@ -103,21 +139,21 @@ export default function CommissionDetails() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Home className="mr-2 h-5 w-5 text-primary" />
-              Property Information
+              Employer Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Address</p>
-              <p className="text-foreground">{property.address}</p>
+              <p className="text-foreground">{organization.address}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Location</p>
-              <p className="text-foreground">{property.city}, {property.state} {property.zipCode}</p>
+              <p className="text-foreground">{organization.city}, {organization.state} {organization.zipCode}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Property Type</p>
-              <p className="text-foreground">{propertyTypeFormatted}</p>
+              <p className="text-sm font-medium text-muted-foreground">Product Type</p>
+              <p className="text-foreground">{programTypeFormatted}</p>
             </div>
           </CardContent>
         </Card>
@@ -139,8 +175,12 @@ export default function CommissionDetails() {
               <p className="text-foreground">{format(new Date(transaction.transactionDate), 'MMMM d, yyyy')}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Transaction Amount</p>
-              <p className="text-foreground">{formatCurrency(Number(transaction.transactionAmount))}</p>
+              <p className="text-sm font-medium text-muted-foreground">Participant Count</p>
+              <p className="text-foreground">{transaction.participantCount} participants</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Commission</p>
+              <p className="text-foreground">{formatCurrency(Number(transaction.totalCommission))}</p>
             </div>
           </CardContent>
         </Card>
@@ -156,7 +196,7 @@ export default function CommissionDetails() {
             <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Commission Rate</p>
-                <p className="text-lg font-semibold">{transaction.commissionRate}%</p>
+                <p className="text-lg font-semibold">${transaction.commissionRate} per participant</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Commission</p>
