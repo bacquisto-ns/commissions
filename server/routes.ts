@@ -19,8 +19,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/brokers/me`, async (req, res) => {
     try {
       // In a real app, this would be based on the session
-      // For now we'll hardcode to the first broker (Sarah Johnson)
-      const broker = await storage.getBrokerById(1);
+      // For now we'll hardcode to the first broker (Sarah Johnson, ID 7)
+      const broker = await storage.getBrokerById(7);
       
       if (!broker) {
         return res.status(404).json({ message: "Broker not found" });
@@ -65,7 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get commissions for a broker
   app.get(`${apiPrefix}/commissions`, async (req, res) => {
     try {
-      const brokerId = parseInt(req.query.brokerId as string) || 1; // Default to broker 1
+      const brokerId = parseInt(req.query.brokerId as string) || 7; // Default to Sarah Johnson (ID 7)
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = parseInt(req.query.offset as string) || 0;
       const status = req.query.status as string || undefined;
