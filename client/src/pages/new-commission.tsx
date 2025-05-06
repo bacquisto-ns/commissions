@@ -65,14 +65,14 @@ export default function NewCommission() {
         city: "",
         state: "",
         zipCode: "",
-        propertyType: "residential_single_family",
-        propertyTypeGroup: "residential",
+        propertyType: "fsa",
+        propertyTypeGroup: "benefits",
       },
       transaction: {
-        transactionType: "sale",
+        transactionType: "enrollment",
         transactionDate: new Date(),
         transactionAmount: "",
-        commissionRate: "3.00",
+        commissionRate: "2.00",
         notes: "",
       },
       commissions: [
@@ -109,17 +109,10 @@ export default function NewCommission() {
     },
   });
 
-  // Handle property type change to set the appropriate group
+  // Handle product type change to set the appropriate group
   const handlePropertyTypeChange = (value: string) => {
-    let group = "other";
-    
-    if (value.startsWith("residential_")) {
-      group = "residential";
-    } else if (value.startsWith("commercial_")) {
-      group = "commercial";
-    } else if (value === "land") {
-      group = "land";
-    }
+    // All new types are in the benefits group
+    const group = "benefits";
     
     form.setValue("property.propertyType", value);
     form.setValue("property.propertyTypeGroup", group);
@@ -219,24 +212,22 @@ export default function NewCommission() {
                 name="property.propertyType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Property Type</FormLabel>
+                    <FormLabel>Product</FormLabel>
                     <Select
                       onValueChange={handlePropertyTypeChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select property type" />
+                          <SelectValue placeholder="Select product" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="residential_single_family">Residential - Single Family</SelectItem>
-                        <SelectItem value="residential_condo">Residential - Condo</SelectItem>
-                        <SelectItem value="residential_townhouse">Residential - Townhouse</SelectItem>
-                        <SelectItem value="commercial_office">Commercial - Office</SelectItem>
-                        <SelectItem value="commercial_retail">Commercial - Retail</SelectItem>
-                        <SelectItem value="commercial_industrial">Commercial - Industrial</SelectItem>
-                        <SelectItem value="land">Land</SelectItem>
+                        <SelectItem value="fsa">FSA</SelectItem>
+                        <SelectItem value="hsa">HSA</SelectItem>
+                        <SelectItem value="cobra">COBRA</SelectItem>
+                        <SelectItem value="hra">HRA</SelectItem>
+                        <SelectItem value="consolidated_billing">Consolidated Billing</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -270,9 +261,9 @@ export default function NewCommission() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="sale">Sale</SelectItem>
-                        <SelectItem value="lease">Lease</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="enrollment">Enrollment</SelectItem>
+                        <SelectItem value="renewal">Renewal</SelectItem>
+                        <SelectItem value="adjustment">Adjustment</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
