@@ -51,11 +51,11 @@ interface CommissionDetails {
       };
     };
   };
-  broker: {
+  broker?: {
     firstName: string;
     lastName: string;
     email: string;
-  };
+  } | null;
 }
 
 export default function CommissionDetails() {
@@ -228,17 +228,23 @@ export default function CommissionDetails() {
 
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-2">Split With</p>
-              <div className="flex items-center">
-                <div className="flex-shrink-0 mr-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
+              {broker ? (
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 mr-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium">{broker.firstName} {broker.lastName}</p>
+                    <p className="text-sm text-muted-foreground">{broker.email}</p>
                   </div>
                 </div>
-                <div>
-                  <p className="font-medium">{broker.firstName} {broker.lastName}</p>
-                  <p className="text-sm text-muted-foreground">{broker.email}</p>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No broker assigned
                 </div>
-              </div>
+              )}
             </div>
 
             {commission.notes && (

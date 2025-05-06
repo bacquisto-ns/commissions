@@ -230,8 +230,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .map(commission => {
             const splitPct = parseFloat(commission.splitPercentage);
+            // Handle broker ID 0 as null (no broker assigned)
+            const brokerId = commission.brokerId === 0 || commission.brokerId === "0" ? null : commission.brokerId;
             return {
-              brokerId: commission.brokerId,
+              brokerId, // Can be null
               splitPercentage: commission.splitPercentage,
               status: "pending" as "pending" | "paid" | "overdue", // Type assertion for TypeScript
               notes: commission.notes || null,
@@ -241,8 +243,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (commissionData.length === 0) {
           // Ensure at least one commission entry
+          // If all commissions were filtered out, use a null brokerId (unassigned)
           commissionData.push({
-            brokerId: productDetail.commissions[0].brokerId,
+            brokerId: null,
             splitPercentage: "100",
             status: "pending" as "pending" | "paid" | "overdue",
             notes: null,

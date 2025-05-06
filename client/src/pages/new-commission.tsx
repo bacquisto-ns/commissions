@@ -643,6 +643,7 @@ export default function NewCommission() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
+                                <SelectItem value="0">No Broker / Unassigned</SelectItem>
                                 {Array.isArray(brokers) ? brokers.map((broker: any) => (
                                   <SelectItem key={broker.id} value={broker.id.toString()}>
                                     {broker.firstName} {broker.lastName}
