@@ -25,15 +25,57 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState("profile");
   const { toast } = useToast();
   
-  const { data: broker } = useQuery<Broker>({
+  const { data: broker, refetch } = useQuery<Broker>({
     queryKey: ["/api/brokers/me"],
   });
   
-  const handleSaveSettings = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your settings have been successfully saved.",
-    });
+  const handleSaveSettings = async (event: React.FormEvent) => {
+    event.preventDefault();
+    
+    if (!broker?.id) return;
+    
+    // Get form values
+    const formElements = (event.target as HTMLFormElement).elements;
+    const firstName = (formElements.namedItem('firstName') as HTMLInputElement)?.value;
+    const lastName = (formElements.namedItem('lastName') as HTMLInputElement)?.value;
+    const email = (formElements.namedItem('email') as HTMLInputElement)?.value;
+    const phoneNumber = (formElements.namedItem('phone') as HTMLInputElement)?.value;
+
+    try {
+      // Make the API request to update the broker
+      const response = await fetch(`/api/brokers/${broker.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          phoneNumber
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      // Refetch broker data
+      refetch();
+      
+      // Show success notification
+      toast({
+        title: "Settings saved",
+        description: "Your settings have been successfully saved.",
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Failed to save settings",
+        description: "There was a problem saving your settings. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -81,70 +123,76 @@ export default function Settings() {
                   Update your profile information and contact details
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <UserAvatar 
-                    user={broker} 
-                    className="h-16 w-16"
-                  />
-                  <div>
-                    <h3 className="font-medium text-lg">Profile Picture</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Upload a new profile picture
-                    </p>
-                    <div className="mt-2">
-                      <Button variant="outline" size="sm">
-                        Change Avatar
-                      </Button>
+              <form onSubmit={handleSaveSettings}>
+                <CardContent className="space-y-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <UserAvatar 
+                      user={broker} 
+                      className="h-16 w-16"
+                    />
+                    <div>
+                      <h3 className="font-medium text-lg">Profile Picture</h3>
+                      <p className="text-muted-foreground text-sm">
+                        Upload a new profile picture
+                      </p>
+                      <div className="mt-2">
+                        <Button variant="outline" size="sm" type="button">
+                          Change Avatar
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <Separator />
+                  <Separator />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input 
-                      id="firstName" 
-                      defaultValue={broker?.firstName || ""} 
-                      placeholder="Enter your first name"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input 
+                        id="firstName" 
+                        name="firstName"
+                        defaultValue={broker?.firstName || ""} 
+                        placeholder="Enter your first name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input 
+                        id="lastName" 
+                        name="lastName"
+                        defaultValue={broker?.lastName || ""} 
+                        placeholder="Enter your last name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input 
+                        id="email" 
+                        name="email"
+                        type="email" 
+                        defaultValue={broker?.email || ""} 
+                        placeholder="Enter your email address"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input 
+                        id="phone" 
+                        name="phone"
+                        type="tel" 
+                        defaultValue={broker?.phoneNumber || ""} 
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input 
-                      id="lastName" 
-                      defaultValue={broker?.lastName || ""} 
-                      placeholder="Enter your last name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      defaultValue={broker?.email || ""} 
-                      placeholder="Enter your email address"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input 
-                      id="phone" 
-                      type="tel" 
-                      defaultValue={broker?.phoneNumber || ""} 
-                      placeholder="Enter your phone number"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="border-t px-6 py-4">
-                <Button className="ml-auto gap-1" onClick={handleSaveSettings}>
-                  <Save className="h-4 w-4" />
-                  <span>Save Changes</span>
-                </Button>
-              </CardFooter>
+                </CardContent>
+                <CardFooter className="border-t px-6 py-4">
+                  <Button className="ml-auto gap-1" type="submit">
+                    <Save className="h-4 w-4" />
+                    <span>Save Changes</span>
+                  </Button>
+                </CardFooter>
+              </form>
             </Card>
           </TabsContent>
 

@@ -274,53 +274,62 @@ export default function Brokers() {
                                   Update broker information
                                 </DialogDescription>
                               </DialogHeader>
-                              <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                  <Label htmlFor="edit-firstName" className="text-right">
-                                    First Name
-                                  </Label>
-                                  <Input 
-                                    id="edit-firstName" 
-                                    defaultValue={broker.firstName} 
-                                    className="col-span-3" 
-                                  />
+                              <form id={`edit-broker-${broker.id}`} onSubmit={(e) => {
+                                e.preventDefault();
+                                handleEditBroker(broker.id, e.currentTarget);
+                              }}>
+                                <div className="grid gap-4 py-4">
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor={`edit-firstName-${broker.id}`} className="text-right">
+                                      First Name
+                                    </Label>
+                                    <Input 
+                                      id={`edit-firstName-${broker.id}`}
+                                      name="edit-firstName"
+                                      defaultValue={broker.firstName} 
+                                      className="col-span-3" 
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor={`edit-lastName-${broker.id}`} className="text-right">
+                                      Last Name
+                                    </Label>
+                                    <Input 
+                                      id={`edit-lastName-${broker.id}`}
+                                      name="edit-lastName"
+                                      defaultValue={broker.lastName} 
+                                      className="col-span-3" 
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor={`edit-email-${broker.id}`} className="text-right">
+                                      Email
+                                    </Label>
+                                    <Input 
+                                      id={`edit-email-${broker.id}`}
+                                      name="edit-email"
+                                      type="email" 
+                                      defaultValue={broker.email} 
+                                      className="col-span-3" 
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor={`edit-phone-${broker.id}`} className="text-right">
+                                      Phone
+                                    </Label>
+                                    <Input 
+                                      id={`edit-phone-${broker.id}`}
+                                      name="edit-phone"
+                                      type="tel" 
+                                      defaultValue={broker.phoneNumber} 
+                                      className="col-span-3" 
+                                    />
+                                  </div>
                                 </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                  <Label htmlFor="edit-lastName" className="text-right">
-                                    Last Name
-                                  </Label>
-                                  <Input 
-                                    id="edit-lastName" 
-                                    defaultValue={broker.lastName} 
-                                    className="col-span-3" 
-                                  />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                  <Label htmlFor="edit-email" className="text-right">
-                                    Email
-                                  </Label>
-                                  <Input 
-                                    id="edit-email" 
-                                    type="email" 
-                                    defaultValue={broker.email} 
-                                    className="col-span-3" 
-                                  />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                  <Label htmlFor="edit-phone" className="text-right">
-                                    Phone
-                                  </Label>
-                                  <Input 
-                                    id="edit-phone" 
-                                    type="tel" 
-                                    defaultValue={broker.phoneNumber} 
-                                    className="col-span-3" 
-                                  />
-                                </div>
-                              </div>
-                              <DialogFooter>
-                                <Button type="submit" onClick={handleEditBroker}>Save Changes</Button>
-                              </DialogFooter>
+                                <DialogFooter>
+                                  <Button type="submit">Save Changes</Button>
+                                </DialogFooter>
+                              </form>
                             </DialogContent>
                           </Dialog>
                           <Dialog>
