@@ -144,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ]),
             commissions: z.array(
               z.object({
-                brokerId: z.number().int().positive(),
+                brokerId: z.number().int().nonnegative(), // Allow 0 for "No Broker / Unassigned"
                 splitPercentage: z.union([
                   z.string(),
                   z.number().transform(n => n.toString())

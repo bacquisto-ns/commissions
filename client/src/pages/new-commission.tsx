@@ -102,7 +102,7 @@ export default function NewCommission() {
           transactionAmount: "200.00",
           commissions: [
             {
-              brokerId: 7, // Default to Sarah Johnson (ID 7)
+              brokerId: 0, // Default to No Broker / Unassigned (ID 0)
               splitPercentage: "100",
               status: "pending",
               notes: "",
@@ -201,7 +201,7 @@ export default function NewCommission() {
         transactionAmount: "200.00",
         commissions: [
           {
-            brokerId: 7, // Sarah Johnson
+            brokerId: 0, // No Broker / Unassigned
             splitPercentage: "100",
             status: "pending",
             notes: "",
@@ -652,7 +652,7 @@ export default function NewCommission() {
                             <FormLabel>Broker</FormLabel>
                             <Select
                               onValueChange={(value) => field.onChange(parseInt(value))}
-                              defaultValue={field.value?.toString() || "1"}
+                              defaultValue={field.value?.toString() || "0"}
                             >
                               <FormControl>
                                 <SelectTrigger>
