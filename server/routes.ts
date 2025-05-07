@@ -248,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return {
               brokerId, // Can be null
               splitPercentage: commission.splitPercentage,
-              status: "pending" as "pending" | "paid" | "overdue", // Type assertion for TypeScript
+              status: "pending" as "pending" | "approved", // Type assertion for TypeScript
               notes: commission.notes || null,
               amount: ((splitPct / 100) * transactionAmount).toString()
             };
@@ -306,7 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const schema = z.object({
-        status: z.enum(['pending', 'paid', 'overdue']),
+        status: z.enum(['pending', 'approved']),
         paymentDate: z.date().optional().nullable(),
       });
       

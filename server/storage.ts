@@ -277,8 +277,8 @@ export const storage = {
       updatedAt: new Date(),
     };
     
-    // If status is 'paid', set payment date to now if not provided
-    if (status === 'paid' && !paymentDate) {
+    // If status is 'approved', set payment date to now if not provided
+    if (status === 'approved' && !paymentDate) {
       updateData.paymentDate = new Date();
     } else {
       updateData.paymentDate = paymentDate;
@@ -308,7 +308,7 @@ export const storage = {
       .where(
         and(
           eq(commissions.brokerId, brokerId),
-          eq(commissions.status, 'paid'),
+          eq(commissions.status, 'approved'),
           gte(commissions.paymentDate, ytdStart),
           lte(commissions.paymentDate, ytdEnd)
         )
@@ -324,7 +324,7 @@ export const storage = {
       .where(
         and(
           eq(commissions.brokerId, brokerId),
-          eq(commissions.status, 'paid'),
+          eq(commissions.status, 'approved'),
           gte(commissions.paymentDate, lastYearStart),
           lte(commissions.paymentDate, lastYearEnd)
         )
@@ -400,7 +400,7 @@ export const storage = {
         .where(
           and(
             eq(commissions.brokerId, brokerId),
-            eq(commissions.status, 'paid'),
+            eq(commissions.status, 'approved'),
             gte(commissions.paymentDate, monthStart),
             lte(commissions.paymentDate, monthEnd)
           )
@@ -542,7 +542,7 @@ export const storage = {
         .where(
           and(
             eq(commissions.brokerId, brokerId),
-            eq(commissions.status, 'paid'),
+            eq(commissions.status, 'approved'),
             gte(commissions.paymentDate, period.start),
             lte(commissions.paymentDate, period.end)
           )
