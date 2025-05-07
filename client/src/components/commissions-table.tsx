@@ -112,7 +112,7 @@ export default function CommissionsTable({
                   <TableCell>
                     <div>
                       <div className="font-medium">
-                        {commission.transaction.benefitProgram.organization.address}
+                        {commission.transaction.benefitProgram.organization.name}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {commission.transaction.benefitProgram.programName}
