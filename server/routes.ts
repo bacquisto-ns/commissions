@@ -307,7 +307,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const schema = z.object({
         status: z.enum(['pending', 'approved']),
-        paymentDate: z.date().optional().nullable(),
+        paymentDate: z.string().or(z.date()).optional().nullable().transform(val => 
+          val ? new Date(val) : null
+        ),
       });
       
       const validatedData = schema.parse(req.body);
