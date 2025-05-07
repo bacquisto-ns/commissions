@@ -306,7 +306,7 @@ async function seed() {
             brokerId: seededBrokers[0].id, // Sarah Johnson
             splitPercentage: "50.00",
             amount: "450.00",
-            status: schema.commissionStatusEnum.enumValues[1], // "paid"
+            status: schema.commissionStatusEnum.enumValues[1], // "approved"
             paymentDate: new Date(dates[0].getFullYear(), dates[0].getMonth(), dates[0].getDate() + 15),
             updatedAt: new Date(),
           },
@@ -315,7 +315,7 @@ async function seed() {
             brokerId: seededBrokers[1].id, // James Wilson
             splitPercentage: "50.00",
             amount: "450.00",
-            status: schema.commissionStatusEnum.enumValues[1], // "paid"
+            status: schema.commissionStatusEnum.enumValues[1], // "approved"
             paymentDate: new Date(dates[0].getFullYear(), dates[0].getMonth(), dates[0].getDate() + 15),
             updatedAt: new Date(),
           },
@@ -342,7 +342,7 @@ async function seed() {
             brokerId: seededBrokers[0].id, // Sarah Johnson
             splitPercentage: "75.00",
             amount: "127.50",
-            status: schema.commissionStatusEnum.enumValues[1], // "paid"
+            status: schema.commissionStatusEnum.enumValues[1], // "approved"
             paymentDate: new Date(dates[2].getFullYear(), dates[2].getMonth(), dates[2].getDate() + 20),
             updatedAt: new Date(),
           },
@@ -351,7 +351,7 @@ async function seed() {
             brokerId: seededBrokers[3].id, // Michael Chang
             splitPercentage: "25.00",
             amount: "42.50",
-            status: schema.commissionStatusEnum.enumValues[1], // "paid"
+            status: schema.commissionStatusEnum.enumValues[1], // "approved"
             paymentDate: new Date(dates[2].getFullYear(), dates[2].getMonth(), dates[2].getDate() + 20),
             updatedAt: new Date(),
           },
@@ -360,7 +360,7 @@ async function seed() {
             brokerId: seededBrokers[0].id, // Sarah Johnson
             splitPercentage: "50.00",
             amount: "275.00",
-            status: schema.commissionStatusEnum.enumValues[2], // "overdue"
+            status: schema.commissionStatusEnum.enumValues[0], // "pending"
             paymentDate: null,
             updatedAt: new Date(),
           },
@@ -369,7 +369,7 @@ async function seed() {
             brokerId: seededBrokers[4].id, // Lisa Rodriguez
             splitPercentage: "50.00",
             amount: "275.00",
-            status: schema.commissionStatusEnum.enumValues[2], // "overdue"
+            status: schema.commissionStatusEnum.enumValues[0], // "pending"
             paymentDate: null,
             updatedAt: new Date(),
           },
