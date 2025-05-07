@@ -57,11 +57,55 @@ export default function Brokers() {
     });
   };
   
-  const handleEditBroker = () => {
-    toast({
-      title: "Broker updated",
-      description: "Broker information has been updated.",
-    });
+  const handleEditBroker = async (brokerId: number, formData: HTMLFormElement) => {
+    try {
+      const formElements = formData.elements;
+      
+      // Extract form values
+      const firstName = (formElements.namedItem('edit-firstName') as HTMLInputElement).value;
+      const lastName = (formElements.namedItem('edit-lastName') as HTMLInputElement).value;
+      const email = (formElements.namedItem('edit-email') as HTMLInputElement).value;
+      const phoneNumber = (formElements.namedItem('edit-phone') as HTMLInputElement).value;
+      
+      // Create payload for API
+      const payload = {
+        firstName,
+        lastName,
+        email,
+        phoneNumber
+      };
+      
+      // Make API request to update broker
+      const response = await fetch(`/api/brokers/${brokerId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update broker');
+      }
+      
+      // Show success message
+      toast({
+        title: "Broker updated",
+        description: "Broker information has been updated successfully.",
+      });
+      
+      // Invalidate the brokers query to refresh the data
+      window.location.reload();
+      
+    } catch (error) {
+      // Show error message
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating the broker information.",
+        variant: "destructive"
+      });
+      console.error("Error updating broker:", error);
+    }
   };
   
   const handleDeleteBroker = () => {

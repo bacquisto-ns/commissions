@@ -32,6 +32,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Internal server error" });
     }
   });
+  
+  // Update broker profile
+  app.patch(`${apiPrefix}/brokers/:id`, async (req, res) => {
+    try {
+      const brokerId = parseInt(req.params.id);
+      if (isNaN(brokerId)) {
+        return res.status(400).json({ message: "Invalid broker ID" });
+      }
+      
+      // Define validation schema for broker updates
+      const schema = z.object({
+        firstName: z.string().min(1).optional(),
+        lastName: z.string().min(1).optional(),
+        email: z.string().email().optional(),
+        phoneNumber: z.string().optional(),
+        active: z.boolean().optional()
+      });
+      
+      // Validate request body
+      const validatedData = schema.parse(req.body);
+      
+      // Update broker in database
+      const updatedBroker = await storage.updateBroker(brokerId, validatedData);
+      
+      if (!updatedBroker) {
+        return res.status(404).json({ message: "Broker not found" });
+      }
+      
+      return res.json(updatedBroker);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error updating broker:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   // Get all brokers
   app.get(`${apiPrefix}/brokers`, async (req, res) => {

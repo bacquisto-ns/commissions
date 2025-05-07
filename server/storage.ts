@@ -66,6 +66,16 @@ export const storage = {
   async getAllBrokers(): Promise<Broker[]> {
     return await db.select().from(brokers).where(eq(brokers.active, true));
   },
+  
+  async updateBroker(brokerId: number, brokerData: Partial<Broker>): Promise<Broker | undefined> {
+    const [updatedBroker] = await db
+      .update(brokers)
+      .set(brokerData)
+      .where(eq(brokers.id, brokerId))
+      .returning();
+    
+    return updatedBroker;
+  },
 
   // Commission operations
   async getBrokerCommissions(
