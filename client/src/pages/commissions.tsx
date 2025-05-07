@@ -59,8 +59,7 @@ export default function Commissions() {
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="paid">Paid</TabsTrigger>
-            <TabsTrigger value="overdue">Overdue</TabsTrigger>
+            <TabsTrigger value="approved">Approved</TabsTrigger>
           </TabsList>
           
           <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
@@ -150,34 +149,12 @@ export default function Commissions() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="paid" className="mt-0">
+        <TabsContent value="approved" className="mt-0">
           <Card>
             <CardHeader className="pt-6 px-6">
-              <CardTitle>Paid Commissions</CardTitle>
+              <CardTitle>Approved Commissions</CardTitle>
               <CardDescription>
-                View and manage completed commission payments
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <CommissionsTable 
-                commissions={commissionsData?.data || []}
-                isLoading={isLoading}
-                showPagination={true}
-                currentPage={currentPage}
-                totalItems={commissionsData?.meta?.total || 0}
-                pageSize={pageSize}
-                onPageChange={handlePageChange}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="overdue" className="mt-0">
-          <Card>
-            <CardHeader className="pt-6 px-6">
-              <CardTitle>Overdue Commissions</CardTitle>
-              <CardDescription>
-                View and manage commissions past their due date
+                View and manage approved commission payments
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">

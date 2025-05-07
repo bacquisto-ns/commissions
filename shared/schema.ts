@@ -26,7 +26,7 @@ export const benefitProgramGroupEnum = pgEnum("benefit_program_group", [
 
 export const transactionTypeEnum = pgEnum("transaction_type", ["enrollment", "renewal", "adjustment"]);
 
-export const commissionStatusEnum = pgEnum("commission_status", ["pending", "paid", "overdue"]);
+export const commissionStatusEnum = pgEnum("commission_status", ["pending", "approved"]);
 
 // Tables
 export const brokers = pgTable("brokers", {
