@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
@@ -47,10 +47,7 @@ const formSchema = z.object({
       commissions: z.array(
         z.object({
           brokerId: z.number().int().nonnegative(), // Allow 0 for "No Broker / Unassigned"
-          splitPercentage: z.string().refine((val) => {
-            // All we need to check is if the string has a value
-            return val.length > 0;
-          }, { message: "Split percentage is required" }),
+          splitPercentage: z.string(), // Allow any string value, we'll validate it in our component
           status: z.string(),
           notes: z.string().optional(),
         })
@@ -691,6 +688,14 @@ export default function NewCommission() {
                           const brokerId = form.getValues(`productDetails.${productIndex}.commissions.${commissionIndex}.brokerId`);
                           const isNoBroker = brokerId === 0;
                           
+                          // Set split percentage to 0 for "No Broker" entries (except first one)
+                          if (isNoBroker && commissionIndex > 0 && field.value !== "0") {
+                            // Use setTimeout to avoid React state update during render
+                            setTimeout(() => {
+                              field.onChange("0");
+                            }, 0);
+                          }
+                          
                           return (
                             <FormItem>
                               <FormLabel>Split Percentage</FormLabel>
@@ -701,7 +706,8 @@ export default function NewCommission() {
                                     className="pl-8" 
                                     placeholder="100" 
                                     {...field} 
-                                    disabled={isNoBroker && commissionIndex > 0} 
+                                    disabled={isNoBroker && commissionIndex > 0}
+                                    value={isNoBroker && commissionIndex > 0 ? "0" : field.value}
                                   />
                                 </div>
                               </FormControl>
