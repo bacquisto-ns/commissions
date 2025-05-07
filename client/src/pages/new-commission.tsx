@@ -46,8 +46,11 @@ const formSchema = z.object({
       transactionAmount: z.string().min(1, "Amount is required"),
       commissions: z.array(
         z.object({
-          brokerId: z.number().int().positive(),
-          splitPercentage: z.string().min(1, "Split percentage is required"),
+          brokerId: z.number().int().nonnegative(), // Allow 0 for "No Broker / Unassigned"
+          splitPercentage: z.string().refine((val) => {
+            // All we need to check is if the string has a value
+            return val.length > 0;
+          }, { message: "Split percentage is required" }),
           status: z.string(),
           notes: z.string().optional(),
         })
@@ -651,7 +654,14 @@ export default function NewCommission() {
                           <FormItem>
                             <FormLabel>Broker</FormLabel>
                             <Select
-                              onValueChange={(value) => field.onChange(parseInt(value))}
+                              onValueChange={(value) => {
+                                const intVal = parseInt(value);
+                                // Set split percentage to 0 when selecting "No Broker" for non-first entries
+                                if (intVal === 0 && commissionIndex > 0) {
+                                  form.setValue(`productDetails.${productIndex}.commissions.${commissionIndex}.splitPercentage`, "0");
+                                }
+                                field.onChange(intVal);
+                              }}
                               defaultValue={field.value?.toString() || "0"}
                             >
                               <FormControl>
@@ -676,18 +686,32 @@ export default function NewCommission() {
                       <FormField
                         control={form.control}
                         name={`productDetails.${productIndex}.commissions.${commissionIndex}.splitPercentage`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Split Percentage</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Percent className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input className="pl-8" placeholder="100" {...field} />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        render={({ field }) => {
+                          // Get the broker ID for this commission
+                          const brokerId = form.getValues(`productDetails.${productIndex}.commissions.${commissionIndex}.brokerId`);
+                          const isNoBroker = brokerId === 0;
+                          
+                          return (
+                            <FormItem>
+                              <FormLabel>Split Percentage</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Percent className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                  <Input 
+                                    className="pl-8" 
+                                    placeholder="100" 
+                                    {...field} 
+                                    disabled={isNoBroker && commissionIndex > 0} 
+                                  />
+                                </div>
+                              </FormControl>
+                              {isNoBroker && commissionIndex > 0 ? 
+                                <FormDescription>No percentage needed for unassigned broker</FormDescription> :
+                                <FormMessage />
+                              }
+                            </FormItem>
+                          );
+                        }}
                       />
                       
                       <FormField
