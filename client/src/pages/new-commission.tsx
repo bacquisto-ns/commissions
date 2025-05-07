@@ -108,19 +108,19 @@ export default function NewCommission() {
               notes: "",
             },
             {
-              brokerId: 8, // James Wilson (ID 8)
+              brokerId: 0, // No Broker / Unassigned
               splitPercentage: "0",
               status: "pending",
               notes: "",
             },
             {
-              brokerId: 9, // Emily Parker (ID 9)
+              brokerId: 0, // No Broker / Unassigned
               splitPercentage: "0",
               status: "pending",
               notes: "",
             },
             {
-              brokerId: 10, // Michael Chang (ID 10)
+              brokerId: 0, // No Broker / Unassigned
               splitPercentage: "0",
               status: "pending",
               notes: "",
@@ -207,19 +207,19 @@ export default function NewCommission() {
             notes: "",
           },
           {
-            brokerId: 8, // James Wilson
+            brokerId: 0, // No Broker / Unassigned
             splitPercentage: "0",
             status: "pending",
             notes: "",
           },
           {
-            brokerId: 9, // Emily Parker
+            brokerId: 0, // No Broker / Unassigned
             splitPercentage: "0",
             status: "pending",
             notes: "",
           },
           {
-            brokerId: 10, // Michael Chang
+            brokerId: 0, // No Broker / Unassigned
             splitPercentage: "0",
             status: "pending",
             notes: "",
