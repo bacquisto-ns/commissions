@@ -258,25 +258,25 @@ export default function CommissionDetails() {
             )}
           </CardContent>
           <CardFooter className="flex justify-between">
-            {commission.status !== 'paid' && (
+            {commission.status !== 'approved' && (
               <AlertDialog open={openStatusDialog} onOpenChange={setOpenStatusDialog}>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" className="mr-2">
                     <CheckCircle className="mr-2 h-4 w-4" />
-                    Mark as Paid
+                    Mark as Approved
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Mark Commission as Paid?</AlertDialogTitle>
+                    <AlertDialogTitle>Mark Commission as Approved?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will update the commission status to "Paid" and record today's date as the payment date.
+                      This will update the commission status to "Approved" and record today's date as the approval date.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction 
-                      onClick={() => updateStatus.mutate('paid')}
+                      onClick={() => updateStatus.mutate('approved')}
                       disabled={updateStatus.isPending}
                     >
                       {updateStatus.isPending ? "Updating..." : "Confirm"}
