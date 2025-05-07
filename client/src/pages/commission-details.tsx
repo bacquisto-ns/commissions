@@ -72,7 +72,7 @@ export default function CommissionDetails() {
   // Update commission status mutation
   const updateStatus = useMutation({
     mutationFn: async (status: string) => {
-      const paymentDate = status === 'paid' ? new Date() : null;
+      const paymentDate = status === 'approved' ? new Date() : null;
       return apiRequest('PATCH', `/api/commissions/${id}/status`, { status, paymentDate });
     },
     onSuccess: () => {
