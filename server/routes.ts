@@ -114,6 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validation schema for the entire payload using the new product-based structure
       const createCommissionSchema = z.object({
         property: z.object({
+          name: z.string().min(2, "Employer name must be at least 2 characters"),
           address: z.string().min(5, "Address must be at least 5 characters"),
           city: z.string().min(2, "City must be at least 2 characters"),
           state: z.string().min(2, "State must be at least 2 characters"),
@@ -160,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create the organization data from property information
       const organization = {
-        name: `Employer ${validatedData.property.address}`, // Use address as part of name
+        name: validatedData.property.name || `Employer ${validatedData.property.address}`, // Use provided name or fallback to address
         address: validatedData.property.address,
         city: validatedData.property.city,
         state: validatedData.property.state,
