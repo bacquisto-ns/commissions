@@ -9,7 +9,7 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
   const getStatusStyles = (status: string): { bg: string; text: string } => {
     switch (status.toLowerCase()) {
       case "approved":
-        return { bg: "bg-paid/10", text: "text-paid" };
+        return { bg: "bg-approved/10", text: "text-approved" };
       case "pending":
         return { bg: "bg-pending/10", text: "text-pending" };
       default:

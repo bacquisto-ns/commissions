@@ -260,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           commissionData.push({
             brokerId: null,
             splitPercentage: "100",
-            status: "pending" as "pending" | "paid" | "overdue",
+            status: "pending" as "pending" | "approved",
             notes: null,
             amount: transactionAmount.toString()
           });

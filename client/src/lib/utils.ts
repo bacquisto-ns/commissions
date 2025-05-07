@@ -26,8 +26,8 @@ export function getStatusColor(status: string): {
   text: string;
 } {
   switch (status.toLowerCase()) {
-    case 'paid':
-      return { bg: 'bg-paid/10', text: 'text-paid' };
+    case 'approved':
+      return { bg: 'bg-approved/10', text: 'text-approved' };
     case 'pending':
       return { bg: 'bg-pending/10', text: 'text-pending' };
     case 'overdue':

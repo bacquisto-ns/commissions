@@ -41,7 +41,7 @@
     --radius: 0.5rem;
 
     /* Custom colors */
-    --paid: 167 100% 33%;
+    --approved: 167 100% 33%;
     --pending: 45 100% 51%;
     --overdue: 0 84.2% 60.2%;
   }

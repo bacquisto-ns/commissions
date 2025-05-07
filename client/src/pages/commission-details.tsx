@@ -286,10 +286,10 @@ export default function CommissionDetails() {
               </AlertDialog>
             )}
             
-            {commission.status === 'paid' && commission.paymentDate && (
+            {commission.status === 'approved' && commission.paymentDate && (
               <div className="flex items-center text-sm text-muted-foreground">
-                <CheckCircle className="mr-2 h-4 w-4 text-paid" />
-                Paid on {format(new Date(commission.paymentDate), 'MMMM d, yyyy')}
+                <CheckCircle className="mr-2 h-4 w-4 text-approved" />
+                Approved on {format(new Date(commission.paymentDate), 'MMMM d, yyyy')}
               </div>
             )}
           </CardFooter>
