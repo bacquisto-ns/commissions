@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 // Form validation schema
 const formSchema = z.object({
   property: z.object({
+    name: z.string().min(2, "Employer name must be at least 2 characters"),
     address: z.string().min(5, "Address must be at least 5 characters"),
     city: z.string().min(2, "City must be at least 2 characters"),
     state: z.string().min(2, "State must be at least 2 characters"),
@@ -80,6 +81,7 @@ export default function NewCommission() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       property: {
+        name: "",
         address: "",
         city: "",
         state: "",
