@@ -314,7 +314,7 @@ export default function AgencyDashboard() {
                   ) : (
                     agencyBrokers.map((broker) => {
                       const brokerYtd = broker.totalCommissions || 0;
-                      const agencyTotal = parseFloat(mockDashboardData.totalYtd);
+                      const agencyTotal = parseFloat(dashboardWithDefaults.totalYtd);
                       const percentage = agencyTotal > 0 ? (brokerYtd / agencyTotal) * 100 : 0;
                       
                       return (
