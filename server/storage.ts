@@ -7,6 +7,7 @@ import {
   organizations,
   transactions,
   products,
+  agencies,
   type Broker, 
   type Commission, 
   type Organization,
@@ -14,8 +15,11 @@ import {
   type Transaction,
   type Product,
   type ProductInsert,
+  type Agency,
+  type AgencyInsert,
   CommissionWithDetails,
-  TransactionWithDetails
+  TransactionWithDetails,
+  BrokerWithAgency
 } from "@shared/schema";
 import { addMonths, format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
@@ -61,13 +65,24 @@ type CreateCommissionData = {
 // Define the storage interface
 export const storage = {
   // Broker operations
-  async getBrokerById(id: number): Promise<Broker | undefined> {
-    const result = await db.select().from(brokers).where(eq(brokers.id, id));
-    return result[0];
+  async getBrokerById(id: number): Promise<BrokerWithAgency | undefined> {
+    const result = await db.query.brokers.findFirst({
+      where: eq(brokers.id, id),
+      with: {
+        agency: true
+      }
+    });
+    return result;
   },
 
-  async getAllBrokers(): Promise<Broker[]> {
-    return await db.select().from(brokers).where(eq(brokers.active, true));
+  async getAllBrokers(): Promise<BrokerWithAgency[]> {
+    return await db.query.brokers.findMany({
+      where: eq(brokers.active, true),
+      with: {
+        agency: true
+      },
+      orderBy: [asc(brokers.lastName), asc(brokers.firstName)]
+    });
   },
   
   async updateBroker(brokerId: number, brokerData: Partial<Broker>): Promise<Broker | undefined> {
@@ -78,6 +93,52 @@ export const storage = {
       .returning();
     
     return updatedBroker;
+  },
+
+  // Agency operations
+  async getAllAgencies(): Promise<Agency[]> {
+    return await db.select().from(agencies).orderBy(agencies.name);
+  },
+
+  async getAgencyById(id: number): Promise<Agency | undefined> {
+    const result = await db.select().from(agencies).where(eq(agencies.id, id));
+    return result[0];
+  },
+
+  async createAgency(agencyData: AgencyInsert): Promise<Agency> {
+    const [newAgency] = await db
+      .insert(agencies)
+      .values({
+        ...agencyData,
+        active: true,
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    return newAgency;
+  },
+
+  async updateAgency(agencyId: number, agencyData: Partial<Agency>): Promise<Agency | undefined> {
+    const [updatedAgency] = await db
+      .update(agencies)
+      .set({
+        ...agencyData,
+        updatedAt: new Date()
+      })
+      .where(eq(agencies.id, agencyId))
+      .returning();
+    
+    return updatedAgency;
+  },
+
+  async getBrokersForAgency(agencyId: number): Promise<BrokerWithAgency[]> {
+    return await db.query.brokers.findMany({
+      where: eq(brokers.agencyId, agencyId),
+      with: {
+        agency: true
+      },
+      orderBy: [asc(brokers.lastName), asc(brokers.firstName)]
+    });
   },
   
   // Product operations
