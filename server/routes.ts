@@ -48,6 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: z.string().min(1).optional(),
         email: z.string().email().optional(),
         phoneNumber: z.string().optional(),
+        agencyId: z.number().optional().nullable(),
         active: z.boolean().optional()
       });
       
@@ -78,6 +79,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(brokers);
     } catch (error) {
       console.error("Error getting all brokers:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // --- Agency Management Routes ---
+  
+  // Get all agencies
+  app.get(`${apiPrefix}/agencies`, async (req, res) => {
+    try {
+      const agencies = await storage.getAllAgencies();
+      return res.json(agencies);
+    } catch (error) {
+      console.error("Error getting all agencies:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get agency by ID
+  app.get(`${apiPrefix}/agencies/:id`, async (req, res) => {
+    try {
+      const agencyId = parseInt(req.params.id);
+      if (isNaN(agencyId)) {
+        return res.status(400).json({ message: "Invalid agency ID" });
+      }
+      
+      const agency = await storage.getAgencyById(agencyId);
+      
+      if (!agency) {
+        return res.status(404).json({ message: "Agency not found" });
+      }
+      
+      return res.json(agency);
+    } catch (error) {
+      console.error("Error getting agency:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new agency
+  app.post(`${apiPrefix}/agencies`, async (req, res) => {
+    try {
+      const schema = z.object({
+        name: z.string().min(2, "Agency name must be at least 2 characters"),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        zipCode: z.string().optional(),
+        contactName: z.string().optional(),
+        contactEmail: z.string().email("Must provide a valid email").optional(),
+        contactPhone: z.string().optional(),
+        website: z.string().optional(),
+        active: z.boolean().optional(),
+      });
+      
+      const validatedData = schema.parse(req.body);
+      
+      const newAgency = await storage.createAgency(validatedData);
+      
+      return res.status(201).json(newAgency);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid agency data", 
+          errors: error.errors 
+        });
+      }
+      
+      console.error("Error creating agency:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update agency
+  app.patch(`${apiPrefix}/agencies/:id`, async (req, res) => {
+    try {
+      const agencyId = parseInt(req.params.id);
+      if (isNaN(agencyId)) {
+        return res.status(400).json({ message: "Invalid agency ID" });
+      }
+      
+      const schema = z.object({
+        name: z.string().min(2).optional(),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        zipCode: z.string().optional(),
+        contactName: z.string().optional(),
+        contactEmail: z.string().email("Must provide a valid email").optional(),
+        contactPhone: z.string().optional(),
+        website: z.string().optional(),
+        active: z.boolean().optional(),
+      });
+      
+      const validatedData = schema.parse(req.body);
+      
+      const updatedAgency = await storage.updateAgency(agencyId, validatedData);
+      
+      if (!updatedAgency) {
+        return res.status(404).json({ message: "Agency not found" });
+      }
+      
+      return res.json(updatedAgency);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid agency data", 
+          errors: error.errors 
+        });
+      }
+      
+      console.error("Error updating agency:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get brokers for an agency
+  app.get(`${apiPrefix}/agencies/:id/brokers`, async (req, res) => {
+    try {
+      const agencyId = parseInt(req.params.id);
+      if (isNaN(agencyId)) {
+        return res.status(400).json({ message: "Invalid agency ID" });
+      }
+      
+      const agency = await storage.getAgencyById(agencyId);
+      
+      if (!agency) {
+        return res.status(404).json({ message: "Agency not found" });
+      }
+      
+      const brokers = await storage.getBrokersForAgency(agencyId);
+      
+      return res.json(brokers);
+    } catch (error) {
+      console.error("Error getting agency brokers:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });

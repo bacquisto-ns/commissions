@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import UserAvatar from "@/components/user-avatar";
-import { LayoutDashboard, DollarSign, Users, BarChart3, Settings, Menu, Package } from "lucide-react";
+import { LayoutDashboard, DollarSign, Users, BarChart3, Settings, Menu, Package, Building2 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
@@ -43,6 +43,11 @@ export default function Sidebar({ className }: SidebarProps) {
       label: "Brokers",
       icon: <Users className="mr-3 h-5 w-5" />,
       href: "/brokers",
+    },
+    {
+      label: "Agencies",
+      icon: <Building2 className="mr-3 h-5 w-5" />,
+      href: "/agencies",
     },
     {
       label: "Products",
