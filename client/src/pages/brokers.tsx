@@ -438,6 +438,7 @@ function BrokersTableSkeleton() {
               <TableRow>
                 <TableHead>Broker</TableHead>
                 <TableHead>Contact</TableHead>
+                <TableHead>Agency</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -452,6 +453,9 @@ function BrokersTableSkeleton() {
                   <TableCell>
                     <div className="h-4 w-36 bg-muted rounded"></div>
                     <div className="h-4 w-24 bg-muted rounded mt-1"></div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-28 bg-muted rounded"></div>
                   </TableCell>
                   <TableCell>
                     <div className="h-5 w-16 bg-muted rounded"></div>
