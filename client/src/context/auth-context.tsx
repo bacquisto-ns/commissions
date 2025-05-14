@@ -19,6 +19,7 @@ export interface User {
   role: UserRole;
   agencyId: number | null;
   agencyName?: string;
+  image?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
