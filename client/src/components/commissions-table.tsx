@@ -19,6 +19,7 @@ interface Commission {
   amount: number | string;
   status: string;
   splitPercentage: number | string;
+  paymentDate?: string | null;
   transaction: {
     transactionDate: string;
     transactionType: string;
@@ -36,10 +37,10 @@ interface Commission {
       };
     };
   };
-  broker: {
+  broker?: {
     firstName: string;
     lastName: string;
-  };
+  } | null;
 }
 
 interface CommissionsTableProps {
@@ -132,7 +133,10 @@ export default function CommissionsTable({
                   </TableCell>
                   <TableCell>
                     <div>
-                      {commission.broker.firstName} {commission.broker.lastName} ({commission.splitPercentage}%)
+                      {commission.broker 
+                        ? `${commission.broker.firstName} ${commission.broker.lastName} (${commission.splitPercentage}%)`
+                        : `No Broker/Unassigned (${commission.splitPercentage}%)`
+                      }
                     </div>
                   </TableCell>
                   <TableCell>

@@ -196,6 +196,12 @@ export default function Products() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
+            <ExportMenu
+              data={filteredProducts || []}
+              filename="products-list"
+              label="Export Products"
+              variant="outline"
+            />
             <Dialog>
               <DialogTrigger asChild>
                 <Button className="gap-2">
