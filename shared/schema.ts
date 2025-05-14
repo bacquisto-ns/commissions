@@ -30,6 +30,8 @@ export const transactionTypeEnum = pgEnum("transaction_type", ["enrollment", "re
 
 export const commissionStatusEnum = pgEnum("commission_status", ["pending", "approved"]);
 
+export const userRoleEnum = pgEnum("user_role", ["broker", "agency_admin", "system_admin"]);
+
 // Tables
 export const agencies = pgTable("agencies", {
   id: serial("id").primaryKey(),
@@ -56,6 +58,7 @@ export const brokers = pgTable("brokers", {
   email: text("email").notNull().unique(),
   phoneNumber: text("phone_number"),
   agencyId: integer("agency_id").references(() => agencies.id),
+  role: userRoleEnum("role").default("broker").notNull(),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -182,6 +185,7 @@ export const brokerInsertSchema = createInsertSchema(brokers, {
   username: (schema) => schema.min(4, "Username must be at least 4 characters"),
   password: (schema) => schema.min(8, "Password must be at least 8 characters"),
   agencyId: (schema) => schema.optional(),
+  role: (schema) => schema.default("broker"),
 });
 
 export const organizationInsertSchema = createInsertSchema(organizations, {
