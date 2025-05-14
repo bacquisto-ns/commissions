@@ -27,7 +27,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Broker not found" });
       }
       
-      return res.json(broker);
+      // Manually add role for now
+      // This will be coming from the database once we've migrated
+      const brokerWithRole = {
+        ...broker,
+        // System admin (ID 10), Agency admin (ID 7), others are brokers
+        role: broker.id === 10 ? 'system_admin' : 
+              broker.id === 7 ? 'agency_admin' : 'broker'
+      };
+      
+      return res.json(brokerWithRole);
     } catch (error) {
       console.error("Error getting broker profile:", error);
       return res.status(500).json({ message: "Internal server error" });

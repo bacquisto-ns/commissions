@@ -30,7 +30,8 @@ export const transactionTypeEnum = pgEnum("transaction_type", ["enrollment", "re
 
 export const commissionStatusEnum = pgEnum("commission_status", ["pending", "approved"]);
 
-export const userRoleEnum = pgEnum("user_role", ["broker", "agency_admin", "system_admin"]);
+// We'll uncomment this when we properly migrate the database
+// export const userRoleEnum = pgEnum("user_role", ["broker", "agency_admin", "system_admin"]);
 
 // Tables
 export const agencies = pgTable("agencies", {
@@ -58,7 +59,8 @@ export const brokers = pgTable("brokers", {
   email: text("email").notNull().unique(),
   phoneNumber: text("phone_number"),
   agencyId: integer("agency_id").references(() => agencies.id),
-  role: userRoleEnum("role").default("broker").notNull(),
+  // Temporarily commenting out the role field until we've migrated the database
+  // role: userRoleEnum("role").default("broker").notNull(),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
