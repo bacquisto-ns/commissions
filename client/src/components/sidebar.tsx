@@ -18,7 +18,13 @@ export default function Sidebar({ className }: SidebarProps) {
   const isMobile = useMobile();
   
   // Fetch authenticated user
-  const { data: broker } = useQuery({
+  const { data: broker } = useQuery<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email?: string;
+    username?: string;
+  }>({
     queryKey: ["/api/brokers/me"],
   });
 
