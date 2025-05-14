@@ -124,13 +124,33 @@ export const commissions = pgTable("commissions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Commission Structures table for different commission calculation methods
+export const commissionStructures = pgTable("commission_structures", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  structureType: commissionStructureTypeEnum("structure_type").notNull(),
+  // Store the structure configuration as JSON
+  // For flat_rate: { rate: 500.00 }
+  // For per_participant: { ratePerParticipant: 2.00 }
+  // For tiered_participant: { tiers: [{ min: 0, max: 100, rate: 1.50 }, { min: 101, max: 500, rate: 2.00 }, ...] }
+  // For percentage: { percentage: 5.00 }
+  configData: text("config_data").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 // Products table for managing product catalog
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   description: text("description"),
+  // Default commission rate for backward compatibility
   defaultCommissionRate: decimal("default_commission_rate", { precision: 10, scale: 2 }).notNull(),
+  // Reference to the commission structure for advanced calculations
+  commissionStructureId: integer("commission_structure_id").references(() => commissionStructures.id),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
@@ -146,6 +166,17 @@ export const brokersRelations = relations(brokers, ({ many, one }) => ({
   agency: one(agencies, {
     fields: [brokers.agencyId],
     references: [agencies.id],
+  }),
+}));
+
+export const commissionStructuresRelations = relations(commissionStructures, ({ many }) => ({
+  products: many(products),
+}));
+
+export const productsRelations = relations(products, ({ one }) => ({
+  commissionStructure: one(commissionStructures, {
+    fields: [products.commissionStructureId],
+    references: [commissionStructures.id],
   }),
 }));
 
@@ -223,10 +254,29 @@ export const commissionInsertSchema = createInsertSchema(commissions, {
   amount: (schema) => schema.min(0, "Amount must be greater than or equal to 0"),
 });
 
+export const commissionStructureInsertSchema = createInsertSchema(commissionStructures, {
+  name: (schema) => schema.min(2, "Structure name must be at least 2 characters"),
+  description: (schema) => schema.optional(),
+  configData: (schema) => schema.refine(
+    (data) => {
+      try {
+        JSON.parse(data);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    {
+      message: "Config data must be valid JSON",
+    }
+  ),
+});
+
 export const productInsertSchema = createInsertSchema(products, {
   name: (schema) => schema.min(2, "Product name must be at least 2 characters"),
   code: (schema) => schema.min(2, "Product code must be at least 2 characters"),
   defaultCommissionRate: (schema) => schema.min(0, "Commission rate must be at least 0"),
+  commissionStructureId: (schema) => schema.optional(),
 });
 
 // Types
@@ -247,6 +297,9 @@ export type TransactionInsert = z.infer<typeof transactionInsertSchema>;
 
 export type Commission = typeof commissions.$inferSelect;
 export type CommissionInsert = z.infer<typeof commissionInsertSchema>;
+
+export type CommissionStructure = typeof commissionStructures.$inferSelect;
+export type CommissionStructureInsert = z.infer<typeof commissionStructureInsertSchema>;
 
 export type Product = typeof products.$inferSelect;
 export type ProductInsert = z.infer<typeof productInsertSchema>;
@@ -270,4 +323,8 @@ export type TransactionWithDetails = Transaction & {
     organization: Organization;
   };
   commissions: Commission[];
+};
+
+export type ProductWithCommissionStructure = Product & {
+  commissionStructure?: CommissionStructure | null;
 };
