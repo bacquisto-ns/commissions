@@ -39,6 +39,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import ExportMenu from "@/components/export-menu";
 
 // Define the Agency type to match our backend schema
 type Agency = {
@@ -241,6 +242,12 @@ export default function Agencies() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
+            <ExportMenu
+              data={filteredAgencies || []}
+              filename="agencies-list"
+              label="Export Agencies"
+              variant="outline"
+            />
             <Dialog>
               <DialogTrigger asChild>
                 <Button className="gap-2">
