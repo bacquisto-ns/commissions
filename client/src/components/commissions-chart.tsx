@@ -1,6 +1,6 @@
-import { useMemo } from "react";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { Card } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useMobile } from "@/hooks/use-mobile";
 import { formatCurrency } from "@/lib/utils";
 
 interface EarningsDataPoint {
@@ -15,69 +15,80 @@ interface CommissionsChartProps {
 }
 
 export default function CommissionsChart({
-  data = [],
+  data,
   timeframe,
-  className,
+  className = "",
 }: CommissionsChartProps) {
-  // Format chart data for display
-  const chartData = useMemo(() => {
-    return data.map((item) => ({
-      name: item.month,
-      value: item.amount,
-    }));
+  const isMobile = useMobile();
+  const [chartData, setChartData] = useState<EarningsDataPoint[]>([]);
+  
+  // Format data for the chart
+  useEffect(() => {
+    setChartData(data);
   }, [data]);
-
-  // Custom tooltip
+  
+  // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <Card className="p-3 shadow-md border border-border">
+        <div className="bg-white p-4 border rounded-md shadow-md">
           <p className="font-medium">{label}</p>
-          <p className="text-primary font-bold">
+          <p className="text-primary">
             {formatCurrency(payload[0].value)}
           </p>
-        </Card>
+        </div>
       );
     }
     return null;
   };
-
+  
   return (
-    <div className="h-72 w-full">
+    <div className={`w-full h-[300px] ${className}`}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart
+        <AreaChart
           data={chartData}
-          margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+          margin={{
+            top: 10,
+            right: 10,
+            left: isMobile ? 0 : 10,
+            bottom: 20,
+          }}
         >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+          <defs>
+            <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#0066CC" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#0066CC" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
           <XAxis
-            dataKey="name"
-            axisLine={false}
+            dataKey="month"
             tickLine={false}
-            tickMargin={10}
-            fontSize={12}
-            style={{ fill: 'var(--muted-foreground)' }}
+            axisLine={false}
+            tick={{ fontSize: 12 }}
+            padding={{ left: 10, right: 10 }}
           />
           <YAxis
-            axisLine={false}
+            tickFormatter={(value) => `$${value.toLocaleString()}`}
+            tick={{ fontSize: 12 }}
+            width={isMobile ? 30 : 60}
             tickLine={false}
-            tickMargin={10}
-            tickFormatter={(value) => `$${value / 1000}k`}
-            fontSize={12}
-            style={{ fill: 'var(--muted-foreground)' }}
+            axisLine={false}
+            domain={['auto', 'auto']}
+            allowDecimals={false}
+            style={{ paddingLeft: "10px" }}
           />
-          <Tooltip 
-            content={<CustomTooltip />} 
-            cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} 
+          <Tooltip content={<CustomTooltip />} />
+          <Area
+            type="monotone"
+            dataKey="amount"
+            stroke="#0066CC"
+            fillOpacity={1}
+            fill="url(#colorAmount)"
+            strokeWidth={2}
+            activeDot={{ r: 6 }}
           />
-          <Bar
-            dataKey="value"
-            fill="hsl(var(--primary))"
-            opacity={0.8}
-            radius={[4, 4, 0, 0]}
-            barSize={40}
-          />
-        </BarChart>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );

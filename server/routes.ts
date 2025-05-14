@@ -217,6 +217,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get agency dashboard data
+  app.get(`${apiPrefix}/agencies/:id/dashboard`, async (req, res) => {
+    try {
+      const agencyId = parseInt(req.params.id);
+      if (isNaN(agencyId)) {
+        return res.status(400).json({ message: "Invalid agency ID" });
+      }
+      
+      const agency = await storage.getAgencyById(agencyId);
+      
+      if (!agency) {
+        return res.status(404).json({ message: "Agency not found" });
+      }
+      
+      const dashboardData = await storage.getAgencyDashboardData(agencyId);
+      
+      return res.json(dashboardData);
+    } catch (error) {
+      console.error("Error getting agency dashboard data:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
   // --- Product Management Routes ---
   
   // Get all products
