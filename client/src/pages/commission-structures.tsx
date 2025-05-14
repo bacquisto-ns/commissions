@@ -98,8 +98,18 @@ export default function CommissionStructuresPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Define structure type
+  interface CommissionStructureItem {
+    id: number;
+    name: string;
+    description?: string;
+    structureType: string;
+    configData: string;
+    active: boolean;
+  }
+  
   // Fetch commission structures
-  const { data: structures = [], isLoading } = useQuery({
+  const { data: structures = [], isLoading } = useQuery<CommissionStructureItem[]>({
     queryKey: ['/api/commission-structures'],
     enabled: true,
   });

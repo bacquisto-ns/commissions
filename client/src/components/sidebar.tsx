@@ -51,7 +51,13 @@ export default function Sidebar({ className }: SidebarProps) {
       label: "Products",
       icon: <Package className="mr-3 h-5 w-5" />,
       href: "/products",
-      permission: Permissions.VIEW_AGENCIES,
+      permission: Permissions.MANAGE_PRODUCTS,
+    },
+    {
+      label: "Commission Structures",
+      icon: <Shield className="mr-3 h-5 w-5" />,
+      href: "/commission-structures",
+      permission: Permissions.MANAGE_COMMISSION_STRUCTURES,
     },
     {
       label: "Reports",
