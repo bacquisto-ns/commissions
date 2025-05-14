@@ -37,10 +37,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Update user when data changes
   useEffect(() => {
     if (data) {
-      // Default to broker role if none is set
+      // Determine role based on broker ID and agencyId
+      // This is a temporary solution until we have the role field in the database
+      let role = UserRole.BROKER;
+      
+      // System admin (ID 10)
+      if (data.id === 10) {
+        role = UserRole.SYSTEM_ADMIN;
+      } 
+      // Agency admin (ID 7)
+      else if (data.id === 7) {
+        role = UserRole.AGENCY_ADMIN;
+      }
+      
       const userWithRole = {
         ...data,
-        role: data.role || UserRole.BROKER,
+        role,
       };
       setUser(userWithRole);
     }

@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import UserAvatar from "@/components/user-avatar";
+import RoleBadge from "@/components/role-badge";
 import { LayoutDashboard, DollarSign, Users, BarChart3, Settings, Menu, Package, Building2, Shield } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useMobile } from "@/hooks/use-mobile";
@@ -109,10 +110,9 @@ export default function Sidebar({ className }: SidebarProps) {
               <p className="text-sm font-medium text-foreground">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="text-xs font-medium text-muted-foreground">
-                {user?.role === UserRole.SYSTEM_ADMIN ? "System Admin" : 
-                 user?.role === UserRole.AGENCY_ADMIN ? "Agency Admin" : "Broker"} #{user?.id}
-              </p>
+              <div className="mt-1">
+                {user?.role && <RoleBadge role={user.role} />}
+              </div>
             </div>
           </div>
         </div>
