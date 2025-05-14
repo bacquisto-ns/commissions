@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
-import { Users, UserPlus, Mail, Phone, Edit, Trash, Check, X } from "lucide-react";
+import { Users, UserPlus, Mail, Phone, Edit, Trash, Check, X, Building2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,13 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Broker = {
   id: number;
@@ -34,6 +41,23 @@ type Broker = {
   phoneNumber: string;
   active: boolean;
   username: string;
+  agencyId: number | null;
+};
+
+type Agency = {
+  id: number;
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  website: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export default function Brokers() {
