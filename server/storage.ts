@@ -8,6 +8,7 @@ import {
   transactions,
   products,
   agencies,
+  commissionStructures,
   type Broker, 
   type Commission, 
   type Organization,
@@ -17,9 +18,12 @@ import {
   type ProductInsert,
   type Agency,
   type AgencyInsert,
+  type CommissionStructure,
+  type CommissionStructureInsert,
   CommissionWithDetails,
   TransactionWithDetails,
-  BrokerWithAgency
+  BrokerWithAgency,
+  ProductWithCommissionStructure
 } from "@shared/schema";
 import { addMonths, format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
@@ -449,14 +453,59 @@ export const storage = {
     };
   },
   
-  // Product operations
-  async getAllProducts(): Promise<Product[]> {
-    return await db.select().from(products).orderBy(products.name);
+  // Commission Structure operations
+  async getAllCommissionStructures(): Promise<CommissionStructure[]> {
+    return await db.select().from(commissionStructures).orderBy(commissionStructures.name);
   },
   
-  async getProductById(id: number): Promise<Product | undefined> {
-    const result = await db.select().from(products).where(eq(products.id, id));
+  async getCommissionStructureById(id: number): Promise<CommissionStructure | undefined> {
+    const result = await db.select().from(commissionStructures).where(eq(commissionStructures.id, id));
     return result[0];
+  },
+  
+  async createCommissionStructure(structureData: CommissionStructureInsert): Promise<CommissionStructure> {
+    const [newStructure] = await db
+      .insert(commissionStructures)
+      .values({
+        ...structureData,
+        active: true,
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    return newStructure;
+  },
+  
+  async updateCommissionStructure(structureId: number, structureData: Partial<CommissionStructure>): Promise<CommissionStructure | undefined> {
+    const [updatedStructure] = await db
+      .update(commissionStructures)
+      .set({
+        ...structureData,
+        updatedAt: new Date()
+      })
+      .where(eq(commissionStructures.id, structureId))
+      .returning();
+    
+    return updatedStructure;
+  },
+  
+  // Product operations
+  async getAllProducts(): Promise<ProductWithCommissionStructure[]> {
+    return await db.query.products.findMany({
+      orderBy: [asc(products.name)],
+      with: {
+        commissionStructure: true
+      }
+    });
+  },
+  
+  async getProductById(id: number): Promise<ProductWithCommissionStructure | undefined> {
+    return await db.query.products.findFirst({
+      where: eq(products.id, id),
+      with: {
+        commissionStructure: true
+      }
+    });
   },
   
   async createProduct(productData: ProductInsert): Promise<Product> {
