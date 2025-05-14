@@ -13,6 +13,7 @@ import Brokers from "./pages/brokers";
 import Agencies from "./pages/agencies";
 import AgencyDashboard from "./pages/agency-dashboard";
 import Products from "./pages/products";
+import CommissionStructures from "./pages/commission-structures";
 import Reports from "./pages/reports";
 import Settings from "./pages/settings";
 import NotFound from "./pages/not-found";
@@ -63,6 +64,16 @@ function Router() {
           <ProtectedRoute 
             component={Products} 
             permission={Permissions.MANAGE_PRODUCTS} 
+          />
+        } 
+      />
+      
+      <Route 
+        path="/commission-structures" 
+        component={() => 
+          <ProtectedRoute 
+            component={CommissionStructures} 
+            permission={Permissions.MANAGE_COMMISSION_STRUCTURES} 
           />
         } 
       />

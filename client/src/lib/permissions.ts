@@ -23,6 +23,10 @@ export const Permissions = {
   CREATE_COMMISSION: 'create_commission',
   APPROVE_COMMISSION: 'approve_commission',
   
+  // Product and Structure permissions
+  MANAGE_PRODUCTS: 'manage_products',
+  MANAGE_COMMISSION_STRUCTURES: 'manage_commission_structures',
+  
   // Dashboard permissions
   VIEW_DASHBOARD: 'view_dashboard',
   VIEW_AGENCY_DASHBOARD: 'view_agency_dashboard',
@@ -62,6 +66,8 @@ const rolePermissions: Record<UserRole, string[]> = {
     Permissions.VIEW_COMMISSIONS,
     Permissions.CREATE_COMMISSION,
     Permissions.APPROVE_COMMISSION,
+    Permissions.MANAGE_PRODUCTS,
+    Permissions.MANAGE_COMMISSION_STRUCTURES,
     Permissions.VIEW_DASHBOARD,
     Permissions.VIEW_AGENCY_DASHBOARD,
     Permissions.VIEW_SYSTEM_DASHBOARD,
