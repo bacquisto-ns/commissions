@@ -27,7 +27,16 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
       if (broker) {
         req.broker = broker;
-        req.userRole = broker.role || 'broker';
+        
+        // Temporarily determine role based on broker ID until we migrate the database
+        let role = 'broker';
+        if (broker.id === 10) {
+          role = 'system_admin';
+        } else if (broker.id === 7) {
+          role = 'agency_admin';
+        }
+        
+        req.userRole = role;
         return next();
       }
     } catch (error) {

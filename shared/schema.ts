@@ -187,7 +187,7 @@ export const brokerInsertSchema = createInsertSchema(brokers, {
   username: (schema) => schema.min(4, "Username must be at least 4 characters"),
   password: (schema) => schema.min(8, "Password must be at least 8 characters"),
   agencyId: (schema) => schema.optional(),
-  role: (schema) => schema.default("broker"),
+  // Temporarily removed role field
 });
 
 export const organizationInsertSchema = createInsertSchema(organizations, {

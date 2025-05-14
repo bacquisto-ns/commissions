@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
-import { hasPermission, canAccessBroker, canAccessAgency } from '@/lib/permissions';
-import { useAuth } from '@/context/auth-context';
+import { ReactNode } from "react";
+import { useAuth } from "@/context/auth-context";
+import { hasPermission, canAccessBroker, canAccessAgency } from "@/lib/permissions";
 
 interface PermissionGateProps {
   permission?: string;
@@ -10,6 +10,10 @@ interface PermissionGateProps {
   fallback?: ReactNode;
 }
 
+/**
+ * A component that renders its children only if the current user has the specified permission
+ * or access to the specified broker or agency
+ */
 export default function PermissionGate({
   permission,
   brokerId,
@@ -17,29 +21,28 @@ export default function PermissionGate({
   children,
   fallback = null,
 }: PermissionGateProps) {
-  // Get the current user from the auth context
   const { user } = useAuth();
-  
-  // If there's no user or the auth is loading, render fallback
-  if (!user) return <>{fallback}</>;
 
-  // Check if the user has the required permission
-  let hasAccess = true;
-
-  if (permission) {
-    hasAccess = hasPermission(user.role, permission);
+  // No user, deny access
+  if (!user) {
+    return <>{fallback}</>;
   }
 
-  // Check if the user can access the broker
-  if (hasAccess && brokerId !== undefined) {
-    hasAccess = canAccessBroker(user, brokerId);
+  // Check permission if specified
+  if (permission && !hasPermission(user.role, permission)) {
+    return <>{fallback}</>;
   }
 
-  // Check if the user can access the agency
-  if (hasAccess && agencyId !== undefined) {
-    hasAccess = canAccessAgency(user, agencyId);
+  // Check broker access if specified
+  if (brokerId !== undefined && !canAccessBroker(user, brokerId)) {
+    return <>{fallback}</>;
   }
 
-  // Render children if the user has access, otherwise render fallback
-  return <>{hasAccess ? children : fallback}</>;
+  // Check agency access if specified
+  if (agencyId !== undefined && !canAccessAgency(user, agencyId)) {
+    return <>{fallback}</>;
+  }
+
+  // If all checks pass or no specific checks requested, allow access
+  return <>{children}</>;
 }
