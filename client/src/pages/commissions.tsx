@@ -11,6 +11,7 @@ import { Plus, Search, CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import ExportMenu from "@/components/export-menu";
 
 export default function Commissions() {
   const [status, setStatus] = useState<string>("all");
@@ -19,8 +20,47 @@ export default function Commissions() {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const pageSize = 10;
 
+  // Define commission data type
+  interface Commission {
+    id: number;
+    amount: number | string;
+    status: string;
+    splitPercentage: number | string;
+    paymentDate?: string | null;
+    transaction: {
+      transactionDate: string;
+      transactionType: string;
+      totalCommission: number | string;
+      benefitProgram: {
+        programName: string;
+        programType: string;
+        programGroup: string;
+        organization: {
+          address: string;
+          name: string;
+          city: string;
+          state: string;
+          zipCode: string;
+        };
+      };
+    };
+    broker?: {
+      firstName: string;
+      lastName: string;
+    } | null;
+  }
+
+  interface CommissionsResponse {
+    data: Commission[];
+    meta: {
+      total: number;
+      limit: number;
+      offset: number;
+    };
+  }
+
   // Fetch commissions with filters
-  const { data: commissionsData, isLoading } = useQuery({
+  const { data: commissionsData = { data: [], meta: { total: 0, limit: pageSize, offset: 0 } }, isLoading } = useQuery<CommissionsResponse>({
     queryKey: [
       "/api/commissions", 
       { 
@@ -46,12 +86,19 @@ export default function Commissions() {
             Manage and track all your commission transactions
           </p>
         </div>
-        <Button className="mt-4 sm:mt-0" asChild>
-          <Link href="/commissions/new">
-            <Plus className="mr-2 h-4 w-4" />
-            New Commission
-          </Link>
-        </Button>
+        <div className="flex mt-4 sm:mt-0 gap-2">
+          <ExportMenu
+            data={commissionsData?.data || []}
+            filename="commissions"
+            label="Export"
+          />
+          <Button asChild>
+            <Link href="/commissions/new">
+              <Plus className="mr-2 h-4 w-4" />
+              New Commission
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="all" onValueChange={(value) => setStatus(value)}>
