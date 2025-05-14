@@ -23,6 +23,7 @@ import StatusBadge from "@/components/status-badge";
 import { format } from "date-fns";
 import { ArrowLeft, FileText, Home, User, Calendar, DollarSign, Percent, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ExportMenu from "@/components/export-menu";
 
 // Updated interface to match our new data structure
 interface CommissionDetails {
@@ -118,20 +119,49 @@ export default function CommissionDetails() {
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+    
+  // Format commission data for export
+  const formatCommissionForExport = (commission: CommissionDetails) => {
+    return {
+      Commission_ID: commission.id,
+      Status: commission.status,
+      Amount: typeof commission.amount === 'number' ? commission.amount : parseFloat(commission.amount),
+      Split_Percentage: typeof commission.splitPercentage === 'number' ? commission.splitPercentage : parseFloat(commission.splitPercentage),
+      Payment_Date: commission.paymentDate || 'Not paid',
+      Transaction_Date: format(new Date(commission.transaction.transactionDate), 'MM/dd/yyyy'),
+      Transaction_Type: commission.transaction.transactionType,
+      Total_Commission: typeof commission.transaction.totalCommission === 'number' ? commission.transaction.totalCommission : parseFloat(commission.transaction.totalCommission),
+      Participant_Count: commission.transaction.participantCount,
+      Commission_Rate: typeof commission.transaction.commissionRate === 'number' ? commission.transaction.commissionRate : parseFloat(commission.transaction.commissionRate),
+      Program_Name: commission.transaction.benefitProgram.programName,
+      Program_Type: programTypeFormatted,
+      Organization_Name: commission.transaction.benefitProgram.organization.name,
+      Organization_Address: commission.transaction.benefitProgram.organization.address,
+      Broker_Name: commission.broker ? `${commission.broker.firstName} ${commission.broker.lastName}` : 'No Broker',
+    };
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center">
-        <Button variant="ghost" onClick={() => navigate("/commissions")} className="mr-4">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Commission Details</h1>
-          <p className="text-sm text-muted-foreground">
-            View and manage commission for {organization.address}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Button variant="ghost" onClick={() => navigate("/commissions")} className="mr-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">Commission Details</h1>
+            <p className="text-sm text-muted-foreground">
+              View and manage commission for {organization.address}
+            </p>
+          </div>
         </div>
+        <ExportMenu
+          data={[formatCommissionForExport(commission)]}
+          filename={`commission-${commission.id}`}
+          label="Export Details"
+          variant="outline"
+        />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

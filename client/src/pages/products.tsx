@@ -40,6 +40,7 @@ import { formatCurrency } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import ExportMenu from "@/components/export-menu";
 
 // Define the Product type to match our backend schema
 type Product = {

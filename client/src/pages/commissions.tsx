@@ -21,7 +21,7 @@ export default function Commissions() {
   const pageSize = 10;
 
   // Define commission data type
-  interface Commission {
+  interface CommissionItem {
     id: number;
     amount: number | string;
     status: string;
@@ -51,7 +51,7 @@ export default function Commissions() {
   }
 
   interface CommissionsResponse {
-    data: Commission[];
+    data: CommissionItem[];
     meta: {
       total: number;
       limit: number;
