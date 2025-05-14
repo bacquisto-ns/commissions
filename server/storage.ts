@@ -5,12 +5,15 @@ import {
   commissions, 
   benefitPrograms,
   organizations,
-  transactions, 
+  transactions,
+  products,
   type Broker, 
   type Commission, 
   type Organization,
   type BenefitProgram,
   type Transaction,
+  type Product,
+  type ProductInsert,
   CommissionWithDetails,
   TransactionWithDetails
 } from "@shared/schema";
@@ -75,6 +78,42 @@ export const storage = {
       .returning();
     
     return updatedBroker;
+  },
+  
+  // Product operations
+  async getAllProducts(): Promise<Product[]> {
+    return await db.select().from(products).orderBy(products.name);
+  },
+  
+  async getProductById(id: number): Promise<Product | undefined> {
+    const result = await db.select().from(products).where(eq(products.id, id));
+    return result[0];
+  },
+  
+  async createProduct(productData: ProductInsert): Promise<Product> {
+    const [newProduct] = await db
+      .insert(products)
+      .values({
+        ...productData,
+        active: true,
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    return newProduct;
+  },
+  
+  async updateProduct(productId: number, productData: Partial<Product>): Promise<Product | undefined> {
+    const [updatedProduct] = await db
+      .update(products)
+      .set({
+        ...productData,
+        updatedAt: new Date()
+      })
+      .where(eq(products.id, productId))
+      .returning();
+    
+    return updatedProduct;
   },
 
   // Commission operations

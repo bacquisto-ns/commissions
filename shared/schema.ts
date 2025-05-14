@@ -177,6 +177,12 @@ export const commissionInsertSchema = createInsertSchema(commissions, {
   amount: (schema) => schema.min(0, "Amount must be greater than or equal to 0"),
 });
 
+export const productInsertSchema = createInsertSchema(products, {
+  name: (schema) => schema.min(2, "Product name must be at least 2 characters"),
+  code: (schema) => schema.min(2, "Product code must be at least 2 characters"),
+  defaultCommissionRate: (schema) => schema.min(0, "Commission rate must be at least 0"),
+});
+
 // Types
 export type Broker = typeof brokers.$inferSelect;
 export type BrokerInsert = z.infer<typeof brokerInsertSchema>;
@@ -192,6 +198,9 @@ export type TransactionInsert = z.infer<typeof transactionInsertSchema>;
 
 export type Commission = typeof commissions.$inferSelect;
 export type CommissionInsert = z.infer<typeof commissionInsertSchema>;
+
+export type Product = typeof products.$inferSelect;
+export type ProductInsert = z.infer<typeof productInsertSchema>;
 
 // Extended types with relations
 export type CommissionWithDetails = Commission & {

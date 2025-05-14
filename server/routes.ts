@@ -7,7 +7,8 @@ import {
   commissionStatusEnum, 
   organizationInsertSchema,
   benefitProgramInsertSchema,
-  transactionInsertSchema
+  transactionInsertSchema,
+  productInsertSchema
 } from "@shared/schema";
 
 const apiPrefix = "/api";
@@ -77,6 +78,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(brokers);
     } catch (error) {
       console.error("Error getting all brokers:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // --- Product Management Routes ---
+  
+  // Get all products
+  app.get(`${apiPrefix}/products`, async (req, res) => {
+    try {
+      const products = await storage.getAllProducts();
+      return res.json(products);
+    } catch (error) {
+      console.error("Error getting all products:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get a single product by ID
+  app.get(`${apiPrefix}/products/:id`, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+      }
+      
+      const product = await storage.getProductById(productId);
+      
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      
+      return res.json(product);
+    } catch (error) {
+      console.error("Error getting product by ID:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Create a new product
+  app.post(`${apiPrefix}/products`, async (req, res) => {
+    try {
+      const validatedData = productInsertSchema.parse(req.body);
+      
+      const newProduct = await storage.createProduct(validatedData);
+      return res.status(201).json(newProduct);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error creating product:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Update a product
+  app.patch(`${apiPrefix}/products/:id`, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+      }
+      
+      const schema = z.object({
+        name: z.string().min(2).optional(),
+        code: z.string().min(2).optional(),
+        description: z.string().optional().nullable(),
+        defaultCommissionRate: z.union([
+          z.number().min(0).transform(val => val.toString()),
+          z.string().min(1)
+        ]).optional(),
+        active: z.boolean().optional()
+      });
+      
+      const validatedData = schema.parse(req.body);
+      
+      const updatedProduct = await storage.updateProduct(productId, validatedData);
+      
+      if (!updatedProduct) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      
+      return res.json(updatedProduct);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error updating product:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
