@@ -8,7 +8,8 @@ import {
   organizationInsertSchema,
   benefitProgramInsertSchema,
   transactionInsertSchema,
-  productInsertSchema
+  productInsertSchema,
+  commissionStructureInsertSchema
 } from "@shared/schema";
 
 const apiPrefix = "/api";
@@ -332,6 +333,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ errors: error.errors });
       }
       console.error("Error updating product:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // --- Commission Structure Routes ---
+  
+  // Get all commission structures
+  app.get(`${apiPrefix}/commission-structures`, async (req, res) => {
+    try {
+      const structures = await storage.getAllCommissionStructures();
+      return res.json(structures);
+    } catch (error) {
+      console.error("Error getting all commission structures:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get a single commission structure by ID
+  app.get(`${apiPrefix}/commission-structures/:id`, async (req, res) => {
+    try {
+      const structureId = parseInt(req.params.id);
+      if (isNaN(structureId)) {
+        return res.status(400).json({ message: "Invalid structure ID" });
+      }
+      
+      const structure = await storage.getCommissionStructureById(structureId);
+      
+      if (!structure) {
+        return res.status(404).json({ message: "Commission structure not found" });
+      }
+      
+      return res.json(structure);
+    } catch (error) {
+      console.error("Error getting commission structure by ID:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Create a new commission structure
+  app.post(`${apiPrefix}/commission-structures`, async (req, res) => {
+    try {
+      const validatedData = commissionStructureInsertSchema.parse(req.body);
+      
+      const newStructure = await storage.createCommissionStructure(validatedData);
+      return res.status(201).json(newStructure);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error creating commission structure:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Update a commission structure
+  app.patch(`${apiPrefix}/commission-structures/:id`, async (req, res) => {
+    try {
+      const structureId = parseInt(req.params.id);
+      if (isNaN(structureId)) {
+        return res.status(400).json({ message: "Invalid structure ID" });
+      }
+      
+      const schema = z.object({
+        name: z.string().min(2).optional(),
+        structureType: z.enum(['flat_rate', 'per_participant', 'tiered_participant', 'percentage']).optional(),
+        configJson: z.string().optional(),
+        description: z.string().optional().nullable(),
+        active: z.boolean().optional()
+      });
+      
+      const validatedData = schema.parse(req.body);
+      
+      const updatedStructure = await storage.updateCommissionStructure(structureId, validatedData);
+      
+      if (!updatedStructure) {
+        return res.status(404).json({ message: "Commission structure not found" });
+      }
+      
+      return res.json(updatedStructure);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error updating commission structure:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
