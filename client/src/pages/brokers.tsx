@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import ExportMenu from "@/components/export-menu";
 
 type Broker = {
   id: number;
@@ -161,6 +162,12 @@ export default function Brokers() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
+            <ExportMenu
+              data={filteredBrokers || []}
+              filename="brokers-list"
+              label="Export Brokers"
+              variant="outline"
+            />
             <Dialog>
               <DialogTrigger asChild>
                 <Button className="gap-2">

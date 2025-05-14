@@ -44,7 +44,7 @@ interface Commission {
 }
 
 interface CommissionsTableProps {
-  commissions: Commission[];
+  commissions: any[]; // Use 'any' to avoid type conflicts between different commission formats
   isLoading: boolean;
   showPagination?: boolean;
   currentPage?: number;
