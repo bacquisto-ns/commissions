@@ -32,13 +32,14 @@ interface EarningsDataPoint {
   amount: number;
 }
 
-interface DashboardData {
+interface AgencyDashboardData {
   totalYtd: string;
   totalLastYear: string;
   totalPending: string;
   pendingCount: number;
   avgCommissionRate: string;
   totalTransactions: number;
+  brokerCount: number;
   monthlyEarnings: EarningsDataPoint[];
   breakdownByType: {
     type: string;
@@ -49,6 +50,14 @@ interface DashboardData {
     name: string;
     percentage: number;
   };
+  brokerPerformance?: Array<{
+    brokerId: number;
+    firstName: string;
+    lastName: string;
+    totalCommissions: number;
+    pendingCommissions: number;
+    percentageOfTotal: number;
+  }>;
 }
 
 interface AgencyDetail {
@@ -94,19 +103,19 @@ export default function AgencyDashboard() {
   
   // Fetch agency details
   const { data: agencyDetail, isLoading: isLoadingAgency } = useQuery<AgencyDetail>({
-    queryKey: ["/api/agencies", agencyId],
+    queryKey: [`/api/agencies/${agencyId}`],
     enabled: !!agencyId,
   });
   
   // Fetch agency dashboard data
-  const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery<DashboardData>({
-    queryKey: ["/api/agencies", agencyId, "dashboard"],
+  const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery<AgencyDashboardData>({
+    queryKey: [`/api/agencies/${agencyId}/dashboard`],
     enabled: !!agencyId,
   });
   
   // Fetch agency brokers
   const { data: brokers, isLoading: isLoadingBrokers } = useQuery<Broker[]>({
-    queryKey: ["/api/agencies", agencyId, "brokers"],
+    queryKey: [`/api/agencies/${agencyId}/brokers`],
     enabled: !!agencyId,
   });
   
@@ -136,48 +145,32 @@ export default function AgencyDashboard() {
     );
   }
   
-  // This is a temporary solution until we have real data from the API
-  // In the real implementation, this will come from the dashboardData
-  const mockDashboardData: DashboardData = {
-    totalYtd: dashboardData?.totalYtd || "187250.00",
-    totalLastYear: dashboardData?.totalLastYear || "145000.00",
-    totalPending: dashboardData?.totalPending || "32500.00",
-    pendingCount: dashboardData?.pendingCount || 14,
-    avgCommissionRate: dashboardData?.avgCommissionRate || "2.50",
-    totalTransactions: dashboardData?.totalTransactions || 67,
-    monthlyEarnings: dashboardData?.monthlyEarnings || [
-      { month: "Jan", amount: 14500 },
-      { month: "Feb", amount: 16200 },
-      { month: "Mar", amount: 15800 },
-      { month: "Apr", amount: 16900 },
-      { month: "May", amount: 18500 },
-      { month: "Jun", amount: 19750 },
-      { month: "Jul", amount: 21200 },
-      { month: "Aug", amount: 22100 },
-      { month: "Sep", amount: 19800 },
-      { month: "Oct", amount: 20500 },
-      { month: "Nov", amount: 0 },
-      { month: "Dec", amount: 0 }
-    ],
-    breakdownByType: dashboardData?.breakdownByType || [
-      { type: "HSA", percentage: 32, amount: 59920 },
-      { type: "FSA", percentage: 28, amount: 52430 },
-      { type: "COBRA", percentage: 18, amount: 33705 },
-      { type: "HRA", percentage: 14, amount: 26215 },
-      { type: "Consolidated Billing", percentage: 8, amount: 14980 }
-    ],
+  // This is a fallback if the API hasn't returned data yet
+  const dashboardWithDefaults: AgencyDashboardData = {
+    totalYtd: dashboardData?.totalYtd || "0",
+    totalLastYear: dashboardData?.totalLastYear || "0",
+    totalPending: dashboardData?.totalPending || "0",
+    pendingCount: dashboardData?.pendingCount || 0,
+    avgCommissionRate: dashboardData?.avgCommissionRate || "0",
+    totalTransactions: dashboardData?.totalTransactions || 0,
+    brokerCount: dashboardData?.brokerCount || (brokers?.length || 0),
+    monthlyEarnings: dashboardData?.monthlyEarnings || [],
+    breakdownByType: dashboardData?.breakdownByType || [],
     topPropertyType: dashboardData?.topPropertyType || {
-      name: "HSA",
-      percentage: 32
-    }
+      name: "None",
+      percentage: 0
+    },
+    brokerPerformance: dashboardData?.brokerPerformance || []
   };
   
   const agencyBrokers = brokers || [];
   
   const yearlyChange = 
-    parseFloat(mockDashboardData.totalYtd) - parseFloat(mockDashboardData.totalLastYear);
+    parseFloat(dashboardWithDefaults.totalYtd) - parseFloat(dashboardWithDefaults.totalLastYear);
   const yearlyChangePercent = 
-    (yearlyChange / parseFloat(mockDashboardData.totalLastYear)) * 100;
+    parseFloat(dashboardWithDefaults.totalLastYear) > 0 
+      ? (yearlyChange / parseFloat(dashboardWithDefaults.totalLastYear)) * 100
+      : 0;
   
   return (
     <>
@@ -224,7 +217,7 @@ export default function AgencyDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricsCard
             title="Total Commissions (YTD)"
-            value={formatCurrency(parseFloat(mockDashboardData.totalYtd))}
+            value={formatCurrency(parseFloat(dashboardWithDefaults.totalYtd))}
             icon={<DollarSign className="h-5 w-5" />}
             trend={{
               value: yearlyChangePercent,
@@ -234,16 +227,16 @@ export default function AgencyDashboard() {
           
           <MetricsCard
             title="Pending Commissions"
-            value={formatCurrency(parseFloat(mockDashboardData.totalPending))}
+            value={formatCurrency(parseFloat(dashboardWithDefaults.totalPending))}
             icon={<Timer className="h-5 w-5" />}
-            footer={`${mockDashboardData.pendingCount} pending transactions`}
+            footer={`${dashboardWithDefaults.pendingCount} pending transactions`}
           />
           
           <MetricsCard
             title="Average Commission"
-            value={`$${mockDashboardData.avgCommissionRate}/participant`}
+            value={`$${dashboardWithDefaults.avgCommissionRate}/participant`}
             icon={<ArrowRightLeft className="h-5 w-5" />}
-            footer={`${mockDashboardData.totalTransactions} total transactions`}
+            footer={`${dashboardWithDefaults.totalTransactions} total transactions`}
           />
           
           <MetricsCard
@@ -266,7 +259,7 @@ export default function AgencyDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <CommissionsChart data={mockDashboardData.monthlyEarnings} timeframe={timeframe} />
+              <CommissionsChart data={dashboardWithDefaults.monthlyEarnings} timeframe={timeframe} />
             </CardContent>
           </Card>
           
@@ -282,8 +275,8 @@ export default function AgencyDashboard() {
             </CardHeader>
             <CardContent>
               <CommissionBreakdown 
-                data={mockDashboardData.breakdownByType}
-                topPropertyType={mockDashboardData.topPropertyType}
+                data={dashboardWithDefaults.breakdownByType}
+                topPropertyType={dashboardWithDefaults.topPropertyType}
               />
             </CardContent>
           </Card>
