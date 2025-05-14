@@ -47,6 +47,38 @@ type DashboardData = {
   };
 };
 
+// Define type for the agency dashboard data
+type AgencyDashboardData = {
+  totalYtd: string;
+  totalLastYear: string;
+  totalPending: string;
+  pendingCount: number;
+  avgCommissionRate: string;
+  totalTransactions: number;
+  brokerCount: number;
+  monthlyEarnings: Array<{
+    month: string;
+    amount: number;
+  }>;
+  breakdownByType: Array<{
+    type: string;
+    percentage: number;
+    amount: number;
+  }>;
+  topPropertyType: {
+    name: string;
+    percentage: number;
+  };
+  brokerPerformance?: Array<{
+    brokerId: number;
+    firstName: string;
+    lastName: string;
+    totalCommissions: number;
+    pendingCommissions: number;
+    percentageOfTotal: number;
+  }>;
+};
+
 // Type for commission queries
 type CommissionQueryParams = {
   limit?: number;
@@ -139,6 +171,282 @@ export const storage = {
       },
       orderBy: [asc(brokers.lastName), asc(brokers.firstName)]
     });
+  },
+
+  // Agency Dashboard data
+  async getAgencyDashboardData(agencyId: number): Promise<AgencyDashboardData> {
+    // Get brokers in this agency
+    const agencyBrokers = await db.query.brokers.findMany({
+      where: eq(brokers.agencyId, agencyId),
+    });
+    
+    const brokerIds = agencyBrokers.map(broker => broker.id);
+    
+    // Skip additional calculations if there are no brokers in this agency
+    if (brokerIds.length === 0) {
+      return {
+        totalYtd: "0",
+        totalLastYear: "0",
+        totalPending: "0",
+        pendingCount: 0,
+        avgCommissionRate: "0",
+        totalTransactions: 0,
+        brokerCount: 0,
+        monthlyEarnings: [],
+        breakdownByType: [],
+        topPropertyType: {
+          name: "None",
+          percentage: 0
+        },
+        brokerPerformance: []
+      };
+    }
+    
+    // Current year data
+    const currentYear = new Date().getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1); // January 1st of current year
+    
+    // Get YTD commissions for all brokers in the agency
+    const ytdResult = await db
+      .select({
+        total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
+      })
+      .from(commissions)
+      .innerJoin(
+        transactions,
+        eq(commissions.transactionId, transactions.id)
+      )
+      .where(
+        and(
+          gte(transactions.transactionDate, startOfYear),
+          sql`${commissions.brokerId} IN (${brokerIds.join(',')})`
+        )
+      );
+    
+    // Get last year's commissions
+    const lastYear = currentYear - 1;
+    const startOfLastYear = new Date(lastYear, 0, 1);
+    const endOfLastYear = new Date(lastYear, 11, 31);
+    
+    const lastYearResult = await db
+      .select({
+        total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
+      })
+      .from(commissions)
+      .innerJoin(
+        transactions,
+        eq(commissions.transactionId, transactions.id)
+      )
+      .where(
+        and(
+          gte(transactions.transactionDate, startOfLastYear),
+          lte(transactions.transactionDate, endOfLastYear),
+          sql`${commissions.brokerId} IN (${brokerIds.join(',')})`
+        )
+      );
+    
+    // Get pending commissions
+    const pendingResult = await db
+      .select({
+        total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
+      })
+      .from(commissions)
+      .where(
+        and(
+          eq(commissions.status, "pending"),
+          sql`${commissions.brokerId} IN (${brokerIds.join(',')})`
+        )
+      );
+    
+    // Count pending transactions
+    const pendingCount = await db
+      .select({
+        count: count(),
+      })
+      .from(commissions)
+      .where(
+        and(
+          eq(commissions.status, "pending"),
+          sql`${commissions.brokerId} IN (${brokerIds.join(',')})`
+        )
+      );
+    
+    // Get average commission rate
+    const avgRateResult = await db
+      .select({
+        avgRate: sql<string>`AVG(CAST(${transactions.commissionRate} AS DECIMAL))`,
+      })
+      .from(transactions)
+      .innerJoin(
+        commissions,
+        eq(commissions.transactionId, transactions.id)
+      )
+      .where(sql`${commissions.brokerId} IN (${brokerIds.join(',')})`)
+      .limit(1);
+    
+    // Count total transactions
+    const transactionCount = await db
+      .select({
+        count: count(),
+      })
+      .from(transactions)
+      .innerJoin(
+        commissions,
+        eq(commissions.transactionId, transactions.id)
+      )
+      .where(sql`${commissions.brokerId} IN (${brokerIds.join(',')})`);
+    
+    // Get monthly earnings for current year
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthlyEarnings = await Promise.all(
+      Array.from({ length: 12 }, async (_, monthIndex) => {
+        const startDate = new Date(currentYear, monthIndex, 1);
+        const endDate = new Date(currentYear, monthIndex + 1, 0);
+        
+        // Skip future months
+        if (startDate > new Date()) {
+          return {
+            month: monthNames[monthIndex],
+            amount: 0,
+          };
+        }
+        
+        const result = await db
+          .select({
+            total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
+          })
+          .from(commissions)
+          .innerJoin(
+            transactions,
+            eq(commissions.transactionId, transactions.id)
+          )
+          .where(
+            and(
+              gte(transactions.transactionDate, startDate),
+              lte(transactions.transactionDate, endDate),
+              sql`${commissions.brokerId} IN (${brokerIds.join(',')})`
+            )
+          );
+        
+        return {
+          month: monthNames[monthIndex],
+          amount: result[0]?.total ? Number(result[0].total) : 0,
+        };
+      })
+    );
+    
+    // Get commission breakdown by program type
+    const programBreakdown = await db
+      .select({
+        programType: benefitPrograms.programType,
+        amount: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
+      })
+      .from(commissions)
+      .innerJoin(
+        transactions,
+        eq(commissions.transactionId, transactions.id)
+      )
+      .innerJoin(
+        benefitPrograms,
+        eq(transactions.benefitProgramId, benefitPrograms.id)
+      )
+      .where(sql`${commissions.brokerId} IN (${brokerIds.join(',')})`)
+      .groupBy(benefitPrograms.programType)
+      .orderBy(desc(sql`SUM(CAST(${commissions.amount} AS DECIMAL))`));
+    
+    // Calculate total amount for percentage calculations
+    const totalAmount = programBreakdown.reduce((sum, item) => sum + Number(item.amount), 0);
+    
+    // Format the breakdown with percentages
+    const breakdown = programBreakdown.map(item => {
+      const programTypeReadable = item.programType
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      return {
+        type: programTypeReadable,
+        amount: Number(item.amount),
+        percentage: totalAmount > 0 ? (Number(item.amount) / totalAmount) * 100 : 0,
+      };
+    });
+    
+    // Get top program type
+    let topPropertyType = {
+      name: "Unknown",
+      percentage: 0,
+    };
+    
+    if (programBreakdown.length > 0) {
+      const programTypeReadable = programBreakdown[0].programType
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      topPropertyType = {
+        name: programTypeReadable,
+        percentage: totalAmount > 0 ? (Number(programBreakdown[0].amount) / totalAmount) * 100 : 0,
+      };
+    }
+    
+    // Get broker performance data
+    const brokerPerformance = await Promise.all(
+      agencyBrokers.map(async (broker) => {
+        // Get total commissions for this broker
+        const totalCommissionsResult = await db
+          .select({
+            total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
+          })
+          .from(commissions)
+          .where(eq(commissions.brokerId, broker.id));
+        
+        // Get pending commissions for this broker
+        const pendingCommissionsResult = await db
+          .select({
+            total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
+          })
+          .from(commissions)
+          .where(
+            and(
+              eq(commissions.brokerId, broker.id),
+              eq(commissions.status, "pending")
+            )
+          );
+        
+        const totalCommissions = totalCommissionsResult[0]?.total 
+          ? Number(totalCommissionsResult[0].total) 
+          : 0;
+        
+        const pendingCommissions = pendingCommissionsResult[0]?.total 
+          ? Number(pendingCommissionsResult[0].total) 
+          : 0;
+        
+        return {
+          brokerId: broker.id,
+          firstName: broker.firstName,
+          lastName: broker.lastName,
+          totalCommissions,
+          pendingCommissions,
+          percentageOfTotal: totalAmount > 0 ? (totalCommissions / totalAmount) * 100 : 0,
+        };
+      })
+    );
+    
+    return {
+      totalYtd: ytdResult[0]?.total?.toString() || "0",
+      totalLastYear: lastYearResult[0]?.total?.toString() || "0",
+      totalPending: pendingResult[0]?.total?.toString() || "0",
+      pendingCount: pendingCount[0]?.count || 0,
+      avgCommissionRate: avgRateResult[0]?.avgRate || "0",
+      totalTransactions: transactionCount[0]?.count || 0,
+      brokerCount: agencyBrokers.length,
+      monthlyEarnings,
+      breakdownByType: breakdown,
+      topPropertyType,
+      brokerPerformance,
+    };
   },
   
   // Product operations

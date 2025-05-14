@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Building2, Plus, Edit, Users, Check, X, Building } from "lucide-react";
+import { Link } from "wouter";
+import { Building2, Plus, Edit, Users, Check, X, Building, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
