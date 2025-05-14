@@ -8,6 +8,7 @@ import CommissionDetails from "./pages/commission-details";
 import NewCommission from "./pages/new-commission";
 import Brokers from "./pages/brokers";
 import Agencies from "./pages/agencies";
+import AgencyDashboard from "./pages/agency-dashboard";
 import Products from "./pages/products";
 import Reports from "./pages/reports";
 import Settings from "./pages/settings";
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/commissions/:id" component={CommissionDetails} />
       <Route path="/brokers" component={Brokers} />
       <Route path="/agencies" component={Agencies} />
+      <Route path="/agency-dashboard/:id" component={AgencyDashboard} />
       <Route path="/products" component={Products} />
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
