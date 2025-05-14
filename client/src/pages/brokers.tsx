@@ -68,6 +68,10 @@ export default function Brokers() {
     queryKey: ["/api/brokers"],
   });
   
+  const { data: agencies } = useQuery<Agency[]>({
+    queryKey: ["/api/agencies"],
+  });
+  
   const filteredBrokers = brokers?.filter(broker => 
     broker.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     broker.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,13 +94,15 @@ export default function Brokers() {
       const lastName = (formElements.namedItem('edit-lastName') as HTMLInputElement).value;
       const email = (formElements.namedItem('edit-email') as HTMLInputElement).value;
       const phoneNumber = (formElements.namedItem('edit-phone') as HTMLInputElement).value;
+      const agencyId = (formElements.namedItem('edit-agency') as HTMLSelectElement)?.value;
       
       // Create payload for API
       const payload = {
         firstName,
         lastName,
         email,
-        phoneNumber
+        phoneNumber,
+        agencyId: agencyId === 'null' ? null : parseInt(agencyId)
       };
       
       // Make API request to update broker
@@ -245,6 +251,7 @@ export default function Brokers() {
                     <TableRow>
                       <TableHead>Broker</TableHead>
                       <TableHead>Contact</TableHead>
+                      <TableHead>Agency</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -268,6 +275,16 @@ export default function Brokers() {
                               <Phone className="h-4 w-4 text-muted-foreground" />
                               <span>{broker.phoneNumber}</span>
                             </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {broker.agencyId ? (
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              {agencies?.find(a => a.id === broker.agencyId)?.name || "Unknown Agency"}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">No Agency</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -348,6 +365,27 @@ export default function Brokers() {
                                       defaultValue={broker.phoneNumber} 
                                       className="col-span-3" 
                                     />
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor={`edit-agency-${broker.id}`} className="text-right">
+                                      Agency
+                                    </Label>
+                                    <Select 
+                                      name="edit-agency" 
+                                      defaultValue={broker.agencyId?.toString() || "null"}
+                                    >
+                                      <SelectTrigger id={`edit-agency-${broker.id}`} className="col-span-3">
+                                        <SelectValue placeholder="Select agency" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="null">No Agency</SelectItem>
+                                        {agencies?.map((agency) => (
+                                          <SelectItem key={agency.id} value={agency.id.toString()}>
+                                            {agency.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                 </div>
                                 <DialogFooter>
