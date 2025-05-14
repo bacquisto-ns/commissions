@@ -30,6 +30,13 @@ export const transactionTypeEnum = pgEnum("transaction_type", ["enrollment", "re
 
 export const commissionStatusEnum = pgEnum("commission_status", ["pending", "approved"]);
 
+export const commissionStructureTypeEnum = pgEnum("commission_structure_type", [
+  "flat_rate",
+  "per_participant",
+  "tiered_participant",
+  "percentage"
+]);
+
 // We'll uncomment this when we properly migrate the database
 // export const userRoleEnum = pgEnum("user_role", ["broker", "agency_admin", "system_admin"]);
 
