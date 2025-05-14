@@ -31,6 +31,22 @@ export const transactionTypeEnum = pgEnum("transaction_type", ["enrollment", "re
 export const commissionStatusEnum = pgEnum("commission_status", ["pending", "approved"]);
 
 // Tables
+export const agencies = pgTable("agencies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  website: text("website"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const brokers = pgTable("brokers", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -39,8 +55,10 @@ export const brokers = pgTable("brokers", {
   lastName: text("last_name").notNull(),
   email: text("email").notNull().unique(),
   phoneNumber: text("phone_number"),
+  agencyId: integer("agency_id").references(() => agencies.id),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const organizations = pgTable("organizations", {
@@ -107,8 +125,16 @@ export const products = pgTable("products", {
 });
 
 // Relations
-export const brokersRelations = relations(brokers, ({ many }) => ({
+export const agenciesRelations = relations(agencies, ({ many }) => ({
+  brokers: many(brokers),
+}));
+
+export const brokersRelations = relations(brokers, ({ many, one }) => ({
   commissions: many(commissions),
+  agency: one(agencies, {
+    fields: [brokers.agencyId],
+    references: [agencies.id],
+  }),
 }));
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
@@ -143,12 +169,19 @@ export const commissionsRelations = relations(commissions, ({ one }) => ({
 }));
 
 // Zod Schemas
+export const agencyInsertSchema = createInsertSchema(agencies, {
+  name: (schema) => schema.min(2, "Agency name must be at least 2 characters"),
+  contactEmail: (schema) => schema.email("Must provide a valid email").optional(),
+  contactName: (schema) => schema.min(2, "Contact name must be at least 2 characters").optional(),
+});
+
 export const brokerInsertSchema = createInsertSchema(brokers, {
   firstName: (schema) => schema.min(2, "First name must be at least 2 characters"),
   lastName: (schema) => schema.min(2, "Last name must be at least 2 characters"),
   email: (schema) => schema.email("Must provide a valid email"),
   username: (schema) => schema.min(4, "Username must be at least 4 characters"),
   password: (schema) => schema.min(8, "Password must be at least 8 characters"),
+  agencyId: (schema) => schema.optional(),
 });
 
 export const organizationInsertSchema = createInsertSchema(organizations, {
@@ -184,6 +217,9 @@ export const productInsertSchema = createInsertSchema(products, {
 });
 
 // Types
+export type Agency = typeof agencies.$inferSelect;
+export type AgencyInsert = z.infer<typeof agencyInsertSchema>;
+
 export type Broker = typeof brokers.$inferSelect;
 export type BrokerInsert = z.infer<typeof brokerInsertSchema>;
 
@@ -203,6 +239,10 @@ export type Product = typeof products.$inferSelect;
 export type ProductInsert = z.infer<typeof productInsertSchema>;
 
 // Extended types with relations
+export type BrokerWithAgency = Broker & {
+  agency?: Agency | null;
+};
+
 export type CommissionWithDetails = Commission & {
   transaction: Transaction & {
     benefitProgram: BenefitProgram & {
