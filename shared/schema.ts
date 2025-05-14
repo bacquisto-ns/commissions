@@ -8,6 +8,8 @@ export const benefitProgramTypeEnum = pgEnum("benefit_program_type", [
   "hsa",
   "fsa",
   "cobra",
+  "hra",
+  "consolidated_billing",
   "dental",
   "vision",
   "retirement",
@@ -90,6 +92,18 @@ export const commissions = pgTable("commissions", {
   paymentDate: timestamp("payment_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Products table for managing product catalog
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  code: text("code").notNull().unique(),
+  description: text("description"),
+  defaultCommissionRate: decimal("default_commission_rate", { precision: 10, scale: 2 }).notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 // Relations
