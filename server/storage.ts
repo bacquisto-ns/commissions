@@ -765,19 +765,22 @@ export const storage = {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth();
     
-    // Calculate YTD earnings
+    // Calculate YTD earnings (using transaction date to match agency dashboard)
     const ytdStart = new Date(currentYear, 0, 1); // Jan 1 of current year
     const ytdEnd = new Date();
     
     const ytdResult = await db
       .select({ total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))` })
       .from(commissions)
+      .innerJoin(
+        transactions,
+        eq(commissions.transactionId, transactions.id)
+      )
       .where(
         and(
           eq(commissions.brokerId, brokerId),
-          eq(commissions.status, 'approved'),
-          gte(commissions.paymentDate, ytdStart),
-          lte(commissions.paymentDate, ytdEnd)
+          gte(transactions.transactionDate, ytdStart),
+          lte(transactions.transactionDate, ytdEnd)
         )
       );
     
@@ -788,12 +791,15 @@ export const storage = {
     const lastYearResult = await db
       .select({ total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))` })
       .from(commissions)
+      .innerJoin(
+        transactions,
+        eq(commissions.transactionId, transactions.id)
+      )
       .where(
         and(
           eq(commissions.brokerId, brokerId),
-          eq(commissions.status, 'approved'),
-          gte(commissions.paymentDate, lastYearStart),
-          lte(commissions.paymentDate, lastYearEnd)
+          gte(transactions.transactionDate, lastYearStart),
+          lte(transactions.transactionDate, lastYearEnd)
         )
       );
     
