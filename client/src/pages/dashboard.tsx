@@ -12,7 +12,8 @@ import { DollarSign, Clock, PercentIcon, FileText, ChevronUp } from "lucide-reac
 
 export default function Dashboard() {
   // In a real app, we'd get the brokerId from authentication
-  const brokerId = 1;
+  // Use broker ID 10 (Michael Chang) since we assigned commissions to this broker
+  const brokerId = 10;
   const [chartTimeframe, setChartTimeframe] = useState("6months");
 
   // Fetch dashboard data

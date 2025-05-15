@@ -64,6 +64,7 @@ export default function Commissions() {
     queryKey: [
       "/api/commissions", 
       { 
+        brokerId: 10, // Explicitly use broker ID 10 (Michael Chang) to match our data
         status, 
         offset: (currentPage - 1) * pageSize, 
         limit: pageSize, 
