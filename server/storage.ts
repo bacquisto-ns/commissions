@@ -133,12 +133,45 @@ export const storage = {
 
   // Agency operations
   async getAllAgencies(): Promise<Agency[]> {
-    return await db.select().from(agencies).orderBy(agencies.name);
+    const allAgencies = await db.select().from(agencies).orderBy(agencies.name);
+    
+    // For each agency, count the number of brokers
+    const agenciesWithBrokerCount = await Promise.all(
+      allAgencies.map(async (agency) => {
+        const brokerCount = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(brokers)
+          .where(eq(brokers.agencyId, agency.id))
+          .then(result => result[0]?.count || 0);
+        
+        return {
+          ...agency,
+          brokerCount
+        };
+      })
+    );
+    
+    return agenciesWithBrokerCount;
   },
 
   async getAgencyById(id: number): Promise<Agency | undefined> {
     const result = await db.select().from(agencies).where(eq(agencies.id, id));
-    return result[0];
+    
+    if (!result[0]) {
+      return undefined;
+    }
+    
+    // Count the number of brokers for this agency
+    const brokerCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(brokers)
+      .where(eq(brokers.agencyId, id))
+      .then(result => result[0]?.count || 0);
+    
+    return {
+      ...result[0],
+      brokerCount
+    };
   },
 
   async createAgency(agencyData: AgencyInsert): Promise<Agency> {

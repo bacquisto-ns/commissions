@@ -313,15 +313,22 @@ export default function AgencyDashboard() {
                     </tr>
                   ) : (
                     agencyBrokers.map((broker) => {
-                      const brokerYtd = broker.totalCommissions || 0;
+                      // Use broker performance from dashboardData if available, otherwise fall back to broker data
+                      const brokerPerformance = dashboardWithDefaults.brokerPerformance?.find(bp => bp.brokerId === broker.id);
+                      
+                      const brokerYtd = brokerPerformance?.totalCommissions || broker.totalCommissions || 0;
+                      const pendingCommissions = brokerPerformance?.pendingCommissions || broker.pendingCommissions || 0;
                       const agencyTotal = parseFloat(dashboardWithDefaults.totalYtd);
-                      const percentage = agencyTotal > 0 ? (brokerYtd / agencyTotal) * 100 : 0;
+                      const percentage = brokerPerformance?.percentageOfTotal || 
+                        (agencyTotal > 0 ? (brokerYtd / agencyTotal) * 100 : 0);
                       
                       return (
-                        <tr key={broker.id} className="border-b">
+                        <tr key={broker.id} className="border-b hover:bg-muted/50">
                           <td className="py-3 px-4">
-                            <div className="font-medium">{broker.firstName} {broker.lastName}</div>
-                            <div className="text-sm text-muted-foreground">{broker.email}</div>
+                            <Link href={`/dashboard/${broker.id}`} className="hover:text-primary">
+                              <div className="font-medium">{broker.firstName} {broker.lastName}</div>
+                              <div className="text-sm text-muted-foreground">{broker.email}</div>
+                            </Link>
                           </td>
                           <td className="py-3 px-4">
                             <span className={`text-xs px-2 py-1 rounded-full ${broker.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -332,7 +339,7 @@ export default function AgencyDashboard() {
                             {formatCurrency(brokerYtd)}
                           </td>
                           <td className="py-3 px-4 text-right">
-                            {formatCurrency(broker.pendingCommissions || 0)}
+                            {formatCurrency(pendingCommissions)}
                           </td>
                           <td className="py-3 px-4 text-right">
                             {formatPercent(percentage)}

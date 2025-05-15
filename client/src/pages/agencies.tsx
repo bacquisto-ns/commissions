@@ -56,6 +56,7 @@ type Agency = {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  brokerCount?: number;
 };
 
 type Broker = {
