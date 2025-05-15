@@ -404,6 +404,10 @@ export const storage = {
             total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
           })
           .from(commissions)
+          .innerJoin(
+            transactions,
+            eq(commissions.transactionId, transactions.id)
+          )
           .where(eq(commissions.brokerId, broker.id));
         
         // Get pending commissions for this broker
@@ -412,6 +416,10 @@ export const storage = {
             total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
           })
           .from(commissions)
+          .innerJoin(
+            transactions,
+            eq(commissions.transactionId, transactions.id)
+          )
           .where(
             and(
               eq(commissions.brokerId, broker.id),
@@ -870,12 +878,15 @@ export const storage = {
       const monthResult = await db
         .select({ total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))` })
         .from(commissions)
+        .innerJoin(
+          transactions,
+          eq(commissions.transactionId, transactions.id)
+        )
         .where(
           and(
             eq(commissions.brokerId, brokerId),
-            eq(commissions.status, 'approved'),
-            gte(commissions.paymentDate, monthStart),
-            lte(commissions.paymentDate, monthEnd)
+            gte(transactions.transactionDate, monthStart),
+            lte(transactions.transactionDate, monthEnd)
           )
         );
       
@@ -888,7 +899,7 @@ export const storage = {
     // Get commission breakdown by benefit program group
     const breakdownQuery = await db
       .select({
-        programGroup: benefitPrograms.programGroup,
+        programType: benefitPrograms.programType, // Use programType instead of programGroup
         amount: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
       })
       .from(commissions)
@@ -901,13 +912,13 @@ export const storage = {
         eq(transactions.benefitProgramId, benefitPrograms.id)
       )
       .where(eq(commissions.brokerId, brokerId))
-      .groupBy(benefitPrograms.programGroup);
+      .groupBy(benefitPrograms.programType);
     
     // Calculate total for percentages
     const totalAmount = breakdownQuery.reduce((sum, item) => sum + Number(item.amount), 0);
     
     const breakdown = breakdownQuery.map(item => ({
-      type: item.programGroup,
+      type: item.programType,
       amount: Number(item.amount),
       percentage: totalAmount > 0 ? (Number(item.amount) / totalAmount) * 100 : 0,
     }));
