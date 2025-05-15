@@ -82,6 +82,19 @@ export const authorize = (allowedRoles: string[]) => {
   };
 };
 
+// Admin-only authorization middleware
+export const authorizeAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.userRole) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  if (req.userRole === 'admin') {
+    return next();
+  }
+
+  return res.status(403).json({ message: 'Forbidden: Admin privileges required' });
+};
+
 // Check if user has access to a specific agency
 export const authorizeAgencyAccess = async (req: Request, res: Response, next: NextFunction) => {
   const agencyId = parseInt(req.params.id || '0');
