@@ -525,8 +525,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = parseInt(req.query.offset as string) || 0;
       const status = req.query.status as string || undefined;
       
+      console.log(`Fetching commissions for broker ID: ${brokerId}, status: ${status || 'all'}`);
+      
       const commissions = await storage.getBrokerCommissions(brokerId, { limit, offset, status });
       const totalCount = await storage.getBrokerCommissionsCount(brokerId, status);
+      
+      console.log(`Found ${commissions.length} commissions, total count: ${totalCount}`);
       
       return res.json({
         data: commissions,

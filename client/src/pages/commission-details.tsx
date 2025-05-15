@@ -174,6 +174,10 @@ export default function CommissionDetails() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
+              <p className="text-sm font-medium text-muted-foreground">Employer Name</p>
+              <p className="text-foreground">{organization.name}</p>
+            </div>
+            <div>
               <p className="text-sm font-medium text-muted-foreground">Address</p>
               <p className="text-foreground">{organization.address}</p>
             </div>
