@@ -398,7 +398,7 @@ export const storage = {
     // Get broker performance data
     const brokerPerformance = await Promise.all(
       agencyBrokers.map(async (broker) => {
-        // Get total commissions for this broker
+        // Get YTD commissions for this broker
         const totalCommissionsResult = await db
           .select({
             total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))`,
@@ -408,7 +408,12 @@ export const storage = {
             transactions,
             eq(commissions.transactionId, transactions.id)
           )
-          .where(eq(commissions.brokerId, broker.id));
+          .where(
+            and(
+              eq(commissions.brokerId, broker.id),
+              gte(transactions.transactionDate, startOfYear)
+            )
+          );
         
         // Get pending commissions for this broker
         const pendingCommissionsResult = await db
