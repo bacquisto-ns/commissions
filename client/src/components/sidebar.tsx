@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import UserAvatar from "@/components/user-avatar";
 import RoleBadge from "@/components/role-badge";
+import RoleSwitcher from "@/components/role-switcher";
 import { LayoutDashboard, DollarSign, Users, BarChart3, Settings, Menu, Package, Building2, Shield } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useMobile } from "@/hooks/use-mobile";
@@ -110,7 +111,7 @@ export default function Sidebar({ className }: SidebarProps) {
         <Separator />
         
         <div className="p-4">
-          <div className="flex items-center">
+          <div className="flex items-center mb-3">
             <UserAvatar user={user} className="h-9 w-9" />
             <div className="ml-3">
               <p className="text-sm font-medium text-foreground">
@@ -120,6 +121,15 @@ export default function Sidebar({ className }: SidebarProps) {
                 {user?.role && <RoleBadge role={user.role} />}
               </div>
             </div>
+          </div>
+          
+          {/* Role Switcher (Demo Purpose) */}
+          <div className="mt-2">
+            <RoleSwitcher />
+          </div>
+          
+          <div className="mt-2 text-xs text-muted-foreground">
+            <p>ID: {user?.id} | For testing only</p>
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ interface AuthContextType {
   error: Error | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  switchRole: (brokerId: number) => Promise<void>;
 }
 
 export interface User {
@@ -82,8 +83,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  // Switch to a different broker ID
+  const switchRole = async (brokerId: number) => {
+    try {
+      // Fetch broker info based on ID
+      const response = await fetch(`/api/brokers/${brokerId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch broker with ID ${brokerId}`);
+      }
+      
+      const brokerData = await response.json();
+      
+      // Determine role based on broker ID
+      let role = UserRole.BROKER;
+      if (brokerId === 13) {
+        role = UserRole.ADMIN;
+      } else if (brokerId === 10) {
+        role = UserRole.SYSTEM_ADMIN;
+      } else if (brokerId === 7) {
+        role = UserRole.AGENCY_ADMIN;
+      }
+      
+      // Set user with proper role
+      setUser({
+        ...brokerData,
+        role,
+      });
+    } catch (error) {
+      console.error("Error switching roles:", error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, error, login, logout, switchRole }}>
       {children}
     </AuthContext.Provider>
   );
