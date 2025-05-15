@@ -30,7 +30,9 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         
         // Temporarily determine role based on broker ID until we migrate the database
         let role = 'broker';
-        if (broker.id === 10) {
+        if (broker.id === 13) {
+          role = 'admin'; // Full access admin account
+        } else if (broker.id === 10) {
           role = 'system_admin';
         } else if (broker.id === 7) {
           role = 'agency_admin';
