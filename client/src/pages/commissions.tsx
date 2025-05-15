@@ -188,11 +188,11 @@ export default function Commissions() {
             </CardHeader>
             <CardContent className="p-0">
               <CommissionsTable 
-                commissions={commissionsData?.data || []}
+                commissions={(commissionsData?.data || []).filter(commission => commission.status === "pending")}
                 isLoading={isLoading}
                 showPagination={true}
                 currentPage={currentPage}
-                totalItems={commissionsData?.meta?.total || 0}
+                totalItems={(commissionsData?.data || []).filter(commission => commission.status === "pending").length}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
               />
@@ -210,11 +210,11 @@ export default function Commissions() {
             </CardHeader>
             <CardContent className="p-0">
               <CommissionsTable 
-                commissions={commissionsData?.data || []}
+                commissions={(commissionsData?.data || []).filter(commission => commission.status === "approved")}
                 isLoading={isLoading}
                 showPagination={true}
                 currentPage={currentPage}
-                totalItems={commissionsData?.meta?.total || 0}
+                totalItems={(commissionsData?.data || []).filter(commission => commission.status === "approved").length}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
               />
