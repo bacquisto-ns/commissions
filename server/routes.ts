@@ -473,8 +473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Create a new commission structure
-  app.post(`${apiPrefix}/commission-structures`, async (req, res) => {
+  // Create a new commission structure (Admin only)
+  app.post(`${apiPrefix}/commission-structures`, authenticate, authorizeAdmin, async (req, res) => {
     try {
       const validatedData = commissionStructureInsertSchema.parse(req.body);
       
@@ -489,8 +489,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Update a commission structure
-  app.patch(`${apiPrefix}/commission-structures/:id`, async (req, res) => {
+  // Update a commission structure (Admin only)
+  app.patch(`${apiPrefix}/commission-structures/:id`, authenticate, authorizeAdmin, async (req, res) => {
     try {
       const structureId = parseInt(req.params.id);
       if (isNaN(structureId)) {
@@ -500,7 +500,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schema = z.object({
         name: z.string().min(2).optional(),
         structureType: z.enum(['flat_rate', 'per_participant', 'tiered_participant', 'percentage']).optional(),
-        configJson: z.string().optional(),
+        configData: z.string().optional(),
         description: z.string().optional().nullable(),
         active: z.boolean().optional()
       });
@@ -519,6 +519,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ errors: error.errors });
       }
       console.error("Error updating commission structure:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Delete a commission structure (Admin only)
+  app.delete(`${apiPrefix}/commission-structures/:id`, authenticate, authorizeAdmin, async (req, res) => {
+    try {
+      const structureId = parseInt(req.params.id);
+      if (isNaN(structureId)) {
+        return res.status(400).json({ message: "Invalid structure ID" });
+      }
+      
+      // Instead of deleting, we'll just deactivate the structure
+      const updatedStructure = await storage.updateCommissionStructure(structureId, { active: false });
+      
+      if (!updatedStructure) {
+        return res.status(404).json({ message: "Commission structure not found" });
+      }
+      
+      return res.json({ message: "Commission structure successfully deactivated" });
+    } catch (error) {
+      console.error("Error deactivating commission structure:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
