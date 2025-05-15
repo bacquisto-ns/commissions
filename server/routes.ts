@@ -109,6 +109,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get broker by ID
+  app.get(`${apiPrefix}/brokers/:id`, async (req, res) => {
+    try {
+      const brokerId = parseInt(req.params.id);
+      
+      // Handle special case for "No Broker/Unassigned" (id 0)
+      if (brokerId === 0) {
+        return res.json({
+          id: 0,
+          firstName: "No Broker",
+          lastName: "Unassigned",
+          email: "",
+          username: "nobroker",
+          agencyId: null
+        });
+      }
+      
+      // Handle special case for "Admin" (id 13) if it doesn't exist in DB
+      if (brokerId === 13) {
+        const broker = await storage.getBrokerById(brokerId);
+        if (!broker) {
+          return res.json({
+            id: 13,
+            firstName: "System",
+            lastName: "Admin",
+            email: "admin@example.com",
+            username: "admin",
+            agencyId: null,
+            role: "admin"
+          });
+        }
+        
+        return res.json({
+          ...broker,
+          role: "admin"
+        });
+      }
+      
+      const broker = await storage.getBrokerById(brokerId);
+      
+      if (!broker) {
+        return res.status(404).json({ message: "Broker not found" });
+      }
+      
+      // Add role information based on broker ID
+      let role = 'broker';
+      if (brokerId === 10) {
+        role = 'system_admin';
+      } else if (brokerId === 7) {
+        role = 'agency_admin';
+      }
+      
+      return res.json({
+        ...broker,
+        role
+      });
+    } catch (error) {
+      console.error('Error fetching broker:', error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
   // --- Agency Management Routes ---
   
   // Get all agencies
