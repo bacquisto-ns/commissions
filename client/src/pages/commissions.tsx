@@ -17,7 +17,7 @@ export default function Commissions() {
   // In a real app, we'd get the brokerId from authentication context
   // Use broker ID 10 (Michael Chang) since we assigned commissions to this broker
   const brokerId = 10;
-  const [status, setStatus] = useState<string>("all");
+  const [status, setStatus] = useState<string>("pending");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [date, setDate] = useState<Date | undefined>(undefined);
@@ -105,7 +105,7 @@ export default function Commissions() {
         </div>
       </div>
 
-      <Tabs defaultValue="all" onValueChange={(value) => setStatus(value)}>
+      <Tabs defaultValue="pending" onValueChange={(value) => setStatus(value)}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
