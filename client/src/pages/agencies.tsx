@@ -468,6 +468,7 @@ export default function Agencies() {
                       <TableHead>Agency</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead>Location</TableHead>
+                      <TableHead>Brokers</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -521,6 +522,14 @@ export default function Agencies() {
                           {!agency.city && !agency.state && !agency.address && (
                             <div className="text-muted-foreground">No location data</div>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <Link href={`/agency-dashboard/${agency.id}`} className="hover:text-primary hover:underline">
+                              {typeof agency.brokerCount === 'number' ? agency.brokerCount : 0} broker{(agency.brokerCount !== 1) ? 's' : ''}
+                            </Link>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant={agency.active ? "success" : "destructive"}>
