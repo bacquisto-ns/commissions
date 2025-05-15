@@ -520,7 +520,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get commissions for a broker
   app.get(`${apiPrefix}/commissions`, async (req, res) => {
     try {
-      const brokerId = parseInt(req.query.brokerId as string) || 7; // Default to Sarah Johnson (ID 7)
+      const brokerId = parseInt(req.query.brokerId as string) || 10; // Default to Michael Chang (ID 10)
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = parseInt(req.query.offset as string) || 0;
       const status = req.query.status as string || undefined;
