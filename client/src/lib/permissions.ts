@@ -3,6 +3,7 @@ export enum UserRole {
   BROKER = 'broker',
   AGENCY_ADMIN = 'agency_admin',
   SYSTEM_ADMIN = 'system_admin',
+  ADMIN = 'admin', // Full access administrator role
 }
 
 // Define permissions as string constants
@@ -72,6 +73,24 @@ const rolePermissions: Record<UserRole, string[]> = {
     Permissions.VIEW_AGENCY_DASHBOARD,
     Permissions.VIEW_SYSTEM_DASHBOARD,
   ],
+  [UserRole.ADMIN]: [
+    // Admin has ALL permissions
+    Permissions.VIEW_AGENCIES,
+    Permissions.CREATE_AGENCY,
+    Permissions.EDIT_AGENCY,
+    Permissions.VIEW_BROKERS,
+    Permissions.CREATE_BROKER,
+    Permissions.EDIT_BROKER,
+    Permissions.EDIT_OWN_PROFILE,
+    Permissions.VIEW_COMMISSIONS,
+    Permissions.CREATE_COMMISSION,
+    Permissions.APPROVE_COMMISSION,
+    Permissions.MANAGE_PRODUCTS,
+    Permissions.MANAGE_COMMISSION_STRUCTURES,
+    Permissions.VIEW_DASHBOARD,
+    Permissions.VIEW_AGENCY_DASHBOARD,
+    Permissions.VIEW_SYSTEM_DASHBOARD,
+  ],
 };
 
 // Check if a role has a specific permission
@@ -88,8 +107,8 @@ export function canAccessBroker(
   targetBrokerId: number,
   targetBrokerAgencyId?: number | null
 ): boolean {
-  // System admins can access all brokers
-  if (currentUser.role === UserRole.SYSTEM_ADMIN) {
+  // Admin and system admins can access all brokers
+  if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SYSTEM_ADMIN) {
     return true;
   }
   

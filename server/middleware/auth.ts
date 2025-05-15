@@ -68,6 +68,11 @@ export const authorize = (allowedRoles: string[]) => {
       return next();
     }
 
+    // Admin always has full access to everything
+    if (req.userRole === 'admin') {
+      return next();
+    }
+
     if (allowedRoles.includes(req.userRole)) {
       return next();
     }
@@ -85,8 +90,8 @@ export const authorizeAgencyAccess = async (req: Request, res: Response, next: N
     return next();
   }
 
-  // System admins can access any agency
-  if (req.userRole === 'system_admin') {
+  // Admin and system admins can access any agency
+  if (req.userRole === 'admin' || req.userRole === 'system_admin') {
     return next();
   }
 
@@ -112,8 +117,8 @@ export const authorizeBrokerAccess = async (req: Request, res: Response, next: N
     return next();
   }
 
-  // System admins can access any broker
-  if (req.userRole === 'system_admin') {
+  // Admin and system admins can access any broker
+  if (req.userRole === 'admin' || req.userRole === 'system_admin') {
     return next();
   }
 
