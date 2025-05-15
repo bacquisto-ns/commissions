@@ -1,6 +1,6 @@
 import { UserRole } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
-import { Shield, User, Building2 } from "lucide-react";
+import { Shield, User, Building2, Key } from "lucide-react";
 
 interface RoleBadgeProps {
   role: UserRole | string;
@@ -9,6 +9,12 @@ interface RoleBadgeProps {
 
 export default function RoleBadge({ role, className = "" }: RoleBadgeProps) {
   switch (role) {
+    case UserRole.ADMIN:
+      return (
+        <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">
+          <Key className="h-3 w-3 mr-1" /> Administrator
+        </Badge>
+      );
     case UserRole.SYSTEM_ADMIN:
       return (
         <Badge variant="default" className="bg-red-500 hover:bg-red-600">

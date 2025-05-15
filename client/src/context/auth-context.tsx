@@ -41,8 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // This is a temporary solution until we have the role field in the database
       let role = UserRole.BROKER;
       
+      // Admin (ID 13)
+      if (data.id === 13) {
+        role = UserRole.ADMIN;
+      }
       // System admin (ID 10)
-      if (data.id === 10) {
+      else if (data.id === 10) {
         role = UserRole.SYSTEM_ADMIN;
       } 
       // Agency admin (ID 7)

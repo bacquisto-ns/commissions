@@ -134,8 +134,8 @@ export function canAccessAgency(
   currentUser: { role: string; agencyId?: number | null },
   targetAgencyId: number
 ): boolean {
-  // System admins can access all agencies
-  if (currentUser.role === UserRole.SYSTEM_ADMIN) {
+  // Admin and system admins can access all agencies
+  if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SYSTEM_ADMIN) {
     return true;
   }
   
