@@ -11,6 +11,7 @@ import {
   productInsertSchema,
   commissionStructureInsertSchema
 } from "@shared/schema";
+import { authenticate, authorizeAdmin, authorize } from "./middleware/auth";
 
 const apiPrefix = "/api";
 
@@ -362,8 +363,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Create a new product
-  app.post(`${apiPrefix}/products`, async (req, res) => {
+  // Create a new product (Admin only)
+  app.post(`${apiPrefix}/products`, authenticate, authorizeAdmin, async (req, res) => {
     try {
       const validatedData = productInsertSchema.parse(req.body);
       
@@ -378,8 +379,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Update a product
-  app.patch(`${apiPrefix}/products/:id`, async (req, res) => {
+  // Update a product (Admin only)
+  app.patch(`${apiPrefix}/products/:id`, authenticate, authorizeAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
@@ -394,6 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           z.number().min(0).transform(val => val.toString()),
           z.string().min(1)
         ]).optional(),
+        commissionStructureId: z.number().int().positive().optional().nullable(),
         active: z.boolean().optional()
       });
       
@@ -411,6 +413,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ errors: error.errors });
       }
       console.error("Error updating product:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete a product (Admin only)
+  app.delete(`${apiPrefix}/products/:id`, authenticate, authorizeAdmin, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+      }
+      
+      // Instead of deleting, we'll just deactivate the product
+      const updatedProduct = await storage.updateProduct(productId, { active: false });
+      
+      if (!updatedProduct) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      
+      return res.json({ message: "Product successfully deactivated" });
+    } catch (error) {
+      console.error("Error deactivating product:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
