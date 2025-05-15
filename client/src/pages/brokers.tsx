@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Users, UserPlus, Mail, Phone, Edit, Trash, Check, X, Building2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -288,12 +289,12 @@ export default function Brokers() {
                           {broker.agencyId ? (
                             <div className="flex items-center gap-2">
                               <Building2 className="h-4 w-4 text-muted-foreground" />
-                              <Link 
+                              <a 
                                 href={`/agency-dashboard/${broker.agencyId}`} 
                                 className="hover:text-primary hover:underline"
                               >
                                 {agencies?.find(a => a.id === broker.agencyId)?.name || "Unknown Agency"}
-                              </Link>
+                              </a>
                             </div>
                           ) : (
                             <span className="text-muted-foreground text-sm">No Agency</span>
