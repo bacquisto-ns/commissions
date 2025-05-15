@@ -14,6 +14,9 @@ import { format } from "date-fns";
 import ExportMenu from "@/components/export-menu";
 
 export default function Commissions() {
+  // In a real app, we'd get the brokerId from authentication context
+  // Use broker ID 10 (Michael Chang) since we assigned commissions to this broker
+  const brokerId = 10;
   const [status, setStatus] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -64,7 +67,7 @@ export default function Commissions() {
     queryKey: [
       "/api/commissions", 
       { 
-        brokerId: 10, // Explicitly use broker ID 10 (Michael Chang) to match our data
+        brokerId, // Use the brokerId from the component state
         status, 
         offset: (currentPage - 1) * pageSize, 
         limit: pageSize, 
