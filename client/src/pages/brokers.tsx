@@ -288,7 +288,12 @@ export default function Brokers() {
                           {broker.agencyId ? (
                             <div className="flex items-center gap-2">
                               <Building2 className="h-4 w-4 text-muted-foreground" />
-                              {agencies?.find(a => a.id === broker.agencyId)?.name || "Unknown Agency"}
+                              <Link 
+                                href={`/agency-dashboard/${broker.agencyId}`} 
+                                className="hover:text-primary hover:underline"
+                              >
+                                {agencies?.find(a => a.id === broker.agencyId)?.name || "Unknown Agency"}
+                              </Link>
                             </div>
                           ) : (
                             <span className="text-muted-foreground text-sm">No Agency</span>

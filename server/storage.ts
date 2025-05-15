@@ -17,6 +17,7 @@ import {
   type Product,
   type ProductInsert,
   type Agency,
+  type AgencyWithBrokerCount,
   type AgencyInsert,
   type CommissionStructure,
   type CommissionStructureInsert,
@@ -132,7 +133,7 @@ export const storage = {
   },
 
   // Agency operations
-  async getAllAgencies(): Promise<Agency[]> {
+  async getAllAgencies(): Promise<AgencyWithBrokerCount[]> {
     const allAgencies = await db.select().from(agencies).orderBy(agencies.name);
     
     // For each agency, count the number of brokers
@@ -147,14 +148,14 @@ export const storage = {
         return {
           ...agency,
           brokerCount
-        };
+        } as AgencyWithBrokerCount;
       })
     );
     
     return agenciesWithBrokerCount;
   },
 
-  async getAgencyById(id: number): Promise<Agency | undefined> {
+  async getAgencyById(id: number): Promise<AgencyWithBrokerCount | undefined> {
     const result = await db.select().from(agencies).where(eq(agencies.id, id));
     
     if (!result[0]) {
@@ -171,7 +172,7 @@ export const storage = {
     return {
       ...result[0],
       brokerCount
-    };
+    } as AgencyWithBrokerCount;
   },
 
   async createAgency(agencyData: AgencyInsert): Promise<Agency> {
