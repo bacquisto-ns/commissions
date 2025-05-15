@@ -51,6 +51,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     req.method === 'GET' || 
     req.path.startsWith('/api/auth') ||
     req.path === '/api/brokers' ||
+    req.path === '/api/admin-login' ||
     req.path === '/'
   ) {
     return next();

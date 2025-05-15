@@ -15,6 +15,22 @@ import {
 const apiPrefix = "/api";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Admin access endpoint (demonstration purposes only)
+  app.get(`${apiPrefix}/admin-login`, (req, res) => {
+    res.json({
+      message: 'Admin credentials - use these to simulate admin access',
+      adminInfo: {
+        id: 13,
+        username: 'admin',
+        password: 'admin123', // In a real application, passwords would never be exposed!
+        firstName: 'System',
+        lastName: 'Admin',
+        email: 'admin@example.com',
+        role: 'admin'
+      }
+    });
+  });
+
   // --- Broker Routes ---
   
   // Get authenticated broker profile
