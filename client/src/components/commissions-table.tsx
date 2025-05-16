@@ -13,7 +13,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import StatusBadge from "@/components/status-badge";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronsLeft, 
+  ChevronsRight,
+  ChevronDown,
+  ChevronUp,
+  ArrowUpDown
+} from "lucide-react";
 
 interface Commission {
   id: number;
@@ -75,6 +83,9 @@ export default function CommissionsTable({
   selectable = false,
   selectedIds = [],
   onSelectionChange = () => {},
+  sortField,
+  sortDirection = 'desc',
+  onSortChange,
 }: CommissionsTableProps) {
   // Calculate pagination info
   const totalPages = Math.ceil(totalItems / pageSize);
@@ -121,12 +132,72 @@ export default function CommissionsTable({
                   />
                 </TableHead>
               )}
-              <TableHead>Employer Details</TableHead>
-              <TableHead>Transaction</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>
+                <div 
+                  className="flex items-center cursor-pointer"
+                  onClick={() => onSortChange?.('employer', sortField === 'employer' ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc')}
+                >
+                  Employer Details
+                  {sortField === 'employer' ? (
+                    sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                  ) : (
+                    <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead>
+                <div 
+                  className="flex items-center cursor-pointer"
+                  onClick={() => onSortChange?.('transaction', sortField === 'transaction' ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc')}
+                >
+                  Transaction
+                  {sortField === 'transaction' ? (
+                    sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                  ) : (
+                    <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead>
+                <div 
+                  className="flex items-center cursor-pointer"
+                  onClick={() => onSortChange?.('date', sortField === 'date' ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc')}
+                >
+                  Date
+                  {sortField === 'date' ? (
+                    sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                  ) : (
+                    <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
               <TableHead>Split With</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>
+                <div 
+                  className="flex items-center cursor-pointer"
+                  onClick={() => onSortChange?.('amount', sortField === 'amount' ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc')}
+                >
+                  Amount
+                  {sortField === 'amount' ? (
+                    sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                  ) : (
+                    <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead>
+                <div 
+                  className="flex items-center cursor-pointer"
+                  onClick={() => onSortChange?.('status', sortField === 'status' ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc')}
+                >
+                  Status
+                  {sortField === 'status' ? (
+                    sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                  ) : (
+                    <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
               <TableHead className="text-right"></TableHead>
             </TableRow>
           </TableHeader>

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CommissionsTable from "@/components/commissions-table";
+import CommissionsTable, { SortField, SortDirection } from "@/components/commissions-table";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Plus, Search, CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -25,6 +25,8 @@ export default function Commissions() {
   const [searchQuery, setSearchQuery] = useState("");
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [selectedCommissions, setSelectedCommissions] = useState<number[]>([]);
+  const [sortField, setSortField] = useState<SortField | undefined>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const { toast } = useToast();
   const pageSize = 10;
 
@@ -67,7 +69,7 @@ export default function Commissions() {
     };
   }
 
-  // Fetch commissions with filters
+  // Fetch commissions with filters and sorting
   const { data: commissionsData = { data: [], meta: { total: 0, limit: pageSize, offset: 0 } }, isLoading } = useQuery<CommissionsResponse>({
     queryKey: [
       "/api/commissions", 
@@ -77,7 +79,9 @@ export default function Commissions() {
         offset: (currentPage - 1) * pageSize, 
         limit: pageSize, 
         search: searchQuery,
-        date: date ? format(date, "yyyy-MM-dd") : undefined
+        date: date ? format(date, "yyyy-MM-dd") : undefined,
+        sortField,
+        sortDirection
       }
     ],
   });
@@ -85,6 +89,14 @@ export default function Commissions() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     setSelectedCommissions([]); // Clear selection on page change
+  };
+  
+  // Handle sorting changes
+  const handleSortChange = (field: SortField, direction: SortDirection) => {
+    setSortField(field);
+    setSortDirection(direction);
+    setCurrentPage(1); // Reset to first page when sort changes
+    setSelectedCommissions([]); // Clear selections
   };
   
   // Mutation for bulk approval of commissions
@@ -222,6 +234,9 @@ export default function Commissions() {
                 selectable={true}
                 selectedIds={selectedCommissions}
                 onSelectionChange={setSelectedCommissions}
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSortChange={handleSortChange}
               />
             </CardContent>
           </Card>
