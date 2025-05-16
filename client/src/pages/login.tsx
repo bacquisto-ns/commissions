@@ -33,7 +33,7 @@ export default function LoginPage() {
           title: "Login successful",
           description: "Welcome back!",
         });
-        setLocation('/dashboard');
+        setLocation('/');
       } else {
         toast({
           variant: "destructive",

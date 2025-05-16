@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "../context/auth-context";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,8 +12,8 @@ import CommissionBreakdown from "@/components/commission-breakdown";
 import { DollarSign, Clock, PercentIcon, FileText, ChevronUp } from "lucide-react";
 
 export default function Dashboard() {
-  // In a real app, we'd get the brokerId from authentication
-  // Use broker ID 10 (Michael Chang) since we assigned commissions to this broker
+  const { user } = useAuth();
+  // Default to broker ID 10 if not logged in as another user/broker
   const brokerId = 10;
   const [chartTimeframe, setChartTimeframe] = useState("6months");
 
