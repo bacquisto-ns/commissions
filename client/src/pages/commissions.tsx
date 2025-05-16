@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,11 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CommissionsTable from "@/components/commissions-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Plus, Search, CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import ExportMenu from "@/components/export-menu";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Commissions() {
   // In a real app, we'd get the brokerId from authentication context
@@ -21,6 +24,8 @@ export default function Commissions() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const [selectedCommissions, setSelectedCommissions] = useState<number[]>([]);
+  const { toast } = useToast();
   const pageSize = 10;
 
   // Define commission data type
@@ -79,6 +84,47 @@ export default function Commissions() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    setSelectedCommissions([]); // Clear selection on page change
+  };
+  
+  // Mutation for bulk approval of commissions
+  const bulkApprove = useMutation({
+    mutationFn: async (commissionIds: number[]) => {
+      // For each commission in the array, send a request to approve it
+      const promises = commissionIds.map(id => 
+        apiRequest('PATCH', `/api/commissions/${id}/status`, { 
+          status: 'approved', 
+          paymentDate: new Date() 
+        })
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${brokerId}`] });
+      
+      toast({
+        title: "Commissions Approved",
+        description: `Successfully approved ${selectedCommissions.length} commissions`,
+      });
+      
+      // Clear selection after successful operation
+      setSelectedCommissions([]);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to approve commissions",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const handleBulkApprove = () => {
+    if (selectedCommissions.length > 0) {
+      bulkApprove.mutate(selectedCommissions);
+    }
   };
 
   return (
@@ -173,6 +219,9 @@ export default function Commissions() {
                 totalItems={commissionsData?.meta?.total || 0}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
+                selectable={true}
+                selectedIds={selectedCommissions}
+                onSelectionChange={setSelectedCommissions}
               />
             </CardContent>
           </Card>
