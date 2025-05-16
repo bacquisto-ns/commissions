@@ -121,6 +121,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create a new broker
+  app.post(`${apiPrefix}/brokers`, async (req, res) => {
+    try {
+      // Define validation schema for new broker
+      const schema = z.object({
+        firstName: z.string().min(1),
+        lastName: z.string().min(1),
+        email: z.string().email(),
+        phoneNumber: z.string(),
+        username: z.string().min(1),
+        password: z.string().min(1),
+        agencyId: z.union([z.number(), z.string(), z.null()]),
+        active: z.boolean().optional()
+      });
+      
+      // Validate request body
+      const validatedData = schema.parse(req.body);
+      
+      // Process agencyId - convert string to number or null
+      let processedAgencyId = null;
+      if (validatedData.agencyId && validatedData.agencyId !== 'null') {
+        // Convert string ID to number if needed
+        processedAgencyId = typeof validatedData.agencyId === 'string' 
+          ? parseInt(validatedData.agencyId) 
+          : validatedData.agencyId;
+      }
+      
+      // Create broker in database
+      const newBroker = await storage.createBroker({
+        ...validatedData,
+        agencyId: processedAgencyId
+      });
+      
+      return res.json(newBroker);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error creating broker:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Get all brokers
   app.get(`${apiPrefix}/brokers`, async (req, res) => {
     try {
