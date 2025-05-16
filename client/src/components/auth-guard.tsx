@@ -17,12 +17,8 @@ export default function AuthGuard({ children, requiredPermission }: AuthGuardPro
   const { user, isAuthenticated, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      // Redirect to login if not authenticated
-      setLocation('/login');
-    }
-  }, [isLoading, isAuthenticated, setLocation]);
+  // Removed the auto-redirect to login
+  // Only show protected content when authenticated
 
   // If we're still loading, show a spinner
   if (isLoading) {

@@ -37,15 +37,8 @@ function ProtectedRoute({
 }
 
 function RouterContent() {
-  const { isAuthenticated } = useAuth();
-  const [, navigate] = useLocation();
-  
-  // Check auth on app load and redirect if needed
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-    }
-  }, [isAuthenticated, navigate]);
+  // Removed automatic redirect to login page
+  // Let users navigate freely once logged in
 
   return (
     <Switch>

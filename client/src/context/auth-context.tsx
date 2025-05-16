@@ -46,26 +46,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [, setLocation] = useLocation();
 
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await fetch('/api/auth/user');
-        
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
+  // Define fetchCurrentUser outside of useEffect so we can reuse it
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/auth/me'); // Using /me endpoint instead of /user
+      
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        return true;
+      } else {
+        // Don't set user to null on failure - let's keep the current user
+        console.log('Auth check failed, keeping current session');
+        return false;
       }
-    };
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Check auth status when component mounts
+  useEffect(() => {
     fetchCurrentUser();
+    
+    // Set up interval to refresh auth status every minute
+    const intervalId = setInterval(() => {
+      fetchCurrentUser();
+    }, 60000); // Every minute
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
