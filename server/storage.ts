@@ -149,7 +149,9 @@ export const storage = {
           firstName: userData.firstName,
           lastName: userData.lastName,
           email: userData.email,
-          role: userData.role || 'broker',
+          role: (userData.role === 'admin' || userData.role === 'system_admin' || 
+                userData.role === 'agency_admin' || userData.role === 'broker') ? 
+                userData.role : 'broker',
           status: 'active'
         })
         .returning();
@@ -194,33 +196,51 @@ export const storage = {
       // Convert null to empty string for phoneNumber since the type doesn't match
       const phoneValue = brokerData.phoneNumber === null ? "" : brokerData.phoneNumber;
       
-      console.log("Inserting broker with data:", {
-        first_name: brokerData.firstName,
-        last_name: brokerData.lastName,
-        username: brokerData.username,
-        password: brokerData.password,
-        email: brokerData.email,
-        phone_number: phoneValue,
-        agency_id: brokerData.agencyId || null,
-        active: brokerData.active ?? true
+      // Start a transaction to ensure both broker and user creation succeed together
+      const newBroker = await db.transaction(async (tx) => {
+        // First create the broker
+        const [broker] = await tx
+          .insert(brokers)
+          .values({
+            firstName: brokerData.firstName,
+            lastName: brokerData.lastName,
+            username: brokerData.username,
+            password: brokerData.password,
+            email: brokerData.email,
+            phoneNumber: phoneValue,
+            agencyId: brokerData.agencyId || null,
+            active: brokerData.active ?? true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
+          
+        // Create a corresponding user account with broker role
+        await tx
+          .insert(users)
+          .values({
+            username: brokerData.username,
+            password: brokerData.password,
+            firstName: brokerData.firstName,
+            lastName: brokerData.lastName,
+            email: brokerData.email,
+            role: 'broker',
+            status: 'active'
+          })
+          .onConflictDoUpdate({
+            target: users.username,
+            set: {
+              firstName: brokerData.firstName,
+              lastName: brokerData.lastName,
+              email: brokerData.email,
+              updatedAt: new Date()
+            }
+          });
+          
+        return broker;
       });
       
-      const [newBroker] = await db
-        .insert(brokers)
-        .values({
-          firstName: brokerData.firstName,
-          lastName: brokerData.lastName,
-          username: brokerData.username,
-          password: brokerData.password,
-          email: brokerData.email,
-          phoneNumber: phoneValue,
-          agencyId: brokerData.agencyId || null,
-          active: brokerData.active ?? true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
-      
+      console.log("Successfully created broker with ID:", newBroker.id);
       return newBroker;
     } catch (error) {
       console.error("Error creating broker:", error);
@@ -229,13 +249,43 @@ export const storage = {
   },
   
   async updateBroker(brokerId: number, brokerData: Partial<Broker>): Promise<Broker | undefined> {
-    const [updatedBroker] = await db
-      .update(brokers)
-      .set(brokerData)
-      .where(eq(brokers.id, brokerId))
-      .returning();
-    
-    return updatedBroker;
+    try {
+      // Start a transaction to ensure data consistency between broker and user tables
+      const updatedBroker = await db.transaction(async (tx) => {
+        // Update the broker record
+        const [broker] = await tx
+          .update(brokers)
+          .set({
+            ...brokerData,
+            updatedAt: new Date()
+          })
+          .where(eq(brokers.id, brokerId))
+          .returning();
+        
+        // If username, name or email is being updated, also update the corresponding user account
+        if (brokerData.username || brokerData.firstName || brokerData.lastName || brokerData.email) {
+          const updates: any = { updatedAt: new Date() };
+          if (brokerData.firstName) updates.firstName = brokerData.firstName;
+          if (brokerData.lastName) updates.lastName = brokerData.lastName;
+          if (brokerData.email) updates.email = brokerData.email;
+          
+          // Only update the user if we have the username to identify them
+          if (broker.username) {
+            await tx
+              .update(users)
+              .set(updates)
+              .where(eq(users.username, broker.username));
+          }
+        }
+        
+        return broker;
+      });
+      
+      return updatedBroker;
+    } catch (error) {
+      console.error("Error updating broker:", error);
+      throw error;
+    }
   },
   
   async deleteBroker(brokerId: number): Promise<boolean> {
