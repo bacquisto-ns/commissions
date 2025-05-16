@@ -14,6 +14,7 @@ import Agencies from "./pages/agencies";
 import AgencyDashboard from "./pages/agency-dashboard";
 import Products from "./pages/products";
 import CommissionStructures from "./pages/commission-structures";
+import ImportPage from "./pages/import";
 import Reports from "./pages/reports";
 import Settings from "./pages/settings";
 import Login from "./pages/login";

@@ -15,7 +15,8 @@ import {
   Package, 
   Building2, 
   Shield,
-  LogOut
+  LogOut,
+  Upload
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useMobile } from "@/hooks/use-mobile";
