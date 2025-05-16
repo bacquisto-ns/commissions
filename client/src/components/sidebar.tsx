@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import UserAvatar from "@/components/user-avatar";
 import RoleBadge from "@/components/role-badge";
-import RoleSwitcher from "@/components/role-switcher";
 import { 
   LayoutDashboard, 
   DollarSign, 
@@ -137,10 +136,8 @@ export default function Sidebar({ className }: SidebarProps) {
             </div>
           </div>
           
-          {/* Role Switcher (Demo Purpose) */}
+          {/* Logout Button */}
           <div className="mt-3 space-y-2">
-            <RoleSwitcher />
-            
             <Button 
               variant="outline" 
               size="sm" 
