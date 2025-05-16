@@ -1,96 +1,89 @@
-import React, { ReactNode } from "react";
-import { cn } from "@/lib/utils";
-import { CheckIcon } from "lucide-react";
+import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface StepsProps {
-  children: ReactNode;
-  currentStep: number;
+  current: number;
+  children: React.ReactNode;
   className?: string;
 }
 
 interface StepProps {
   title: string;
   description?: string;
+  className?: string;
 }
 
-export function Steps({ children, currentStep, className }: StepsProps) {
-  // Convert children to array for proper handling
-  const childrenArray = Array.isArray(children) ? children : [children];
-  
+export function Steps({ current, children, className }: StepsProps) {
+  const childrenArray = React.Children.toArray(children).filter(Boolean);
+  const totalSteps = childrenArray.length;
+
   return (
-    <div className={cn("flex flex-col sm:flex-row w-full", className)}>
-      {childrenArray.map((child, index) => {
-        // Clone the child with additional props
-        const stepNumber = index + 1;
-        const status = 
-          currentStep > stepNumber 
-            ? "completed" 
-            : currentStep === stepNumber
-              ? "current"
-              : "upcoming";
-              
-        // Add props to the child
-        return (
-          <div 
-            key={index} 
-            className={cn(
-              "flex flex-1 items-center gap-2 sm:flex-col sm:items-start",
-              index < childrenArray.length - 1 && "mb-4 sm:mb-0",
-              // For horizontal layout, add connecting lines
-              index < childrenArray.length - 1 && "sm:after:content-[''] sm:after:w-full sm:after:h-[1px] sm:after:border-b sm:after:border-gray-200 sm:after:mt-4"
-            )}
-          >
-            {/* Step indicator */}
-            <div className="flex-shrink-0 flex items-center justify-center">
-              <div
-                className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium",
-                  status === "completed" && "bg-primary text-primary-foreground",
-                  status === "current" && "bg-primary text-primary-foreground",
-                  status === "upcoming" && "bg-muted text-muted-foreground"
+    <div className={cn('flex flex-col', className)}>
+      <div className="flex items-center">
+        {childrenArray.map((child, index) => {
+          const isActive = index === current;
+          const isCompleted = index < current;
+          const isLast = index === totalSteps - 1;
+
+          // Clone the child element and add props
+          if (React.isValidElement(child)) {
+            const childElement = child as React.ReactElement<StepProps>;
+            const stepNumber = index + 1;
+
+            return (
+              <React.Fragment key={index}>
+                <div className="flex items-center relative">
+                  {/* Step circle */}
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border transition-colors',
+                      isActive && 'bg-primary text-white border-primary',
+                      isCompleted && 'bg-primary text-white border-primary',
+                      !isActive && !isCompleted && 'bg-gray-100 text-gray-500 border-gray-300'
+                    )}
+                  >
+                    {stepNumber}
+                  </div>
+
+                  {/* Step content */}
+                  <div className="ml-3">
+                    <div
+                      className={cn(
+                        'text-sm font-medium',
+                        isActive && 'text-gray-900',
+                        isCompleted && 'text-gray-900',
+                        !isActive && !isCompleted && 'text-gray-500'
+                      )}
+                    >
+                      {childElement.props.title}
+                    </div>
+                    {childElement.props.description && (
+                      <div className="text-xs text-gray-500">
+                        {childElement.props.description}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Connector line between steps */}
+                {!isLast && (
+                  <div
+                    className={cn(
+                      'flex-1 h-0.5 mx-2',
+                      isCompleted ? 'bg-primary' : 'bg-gray-300'
+                    )}
+                  />
                 )}
-              >
-                {status === "completed" ? (
-                  <CheckIcon className="h-4 w-4" />
-                ) : (
-                  stepNumber
-                )}
-              </div>
-            </div>
-            
-            {/* Clone the child with additional props */}
-            {React.isValidElement(child) 
-              ? React.cloneElement(child, {
-                  status: status,
-                  stepNumber,
-                } as any)
-              : child}
-          </div>
-        );
-      })}
+              </React.Fragment>
+            );
+          }
+          return null;
+        })}
+      </div>
     </div>
   );
 }
 
-export function Step({ title, description, status }: StepProps & { status?: string; stepNumber?: number; [key: string]: any }) {
-  return (
-    <div className="flex flex-col sm:mt-3">
-      <span 
-        className={cn(
-          "text-sm font-medium",
-          status === "completed" && "text-primary",
-          status === "current" && "text-primary",
-          status === "upcoming" && "text-muted-foreground"
-        )}
-      >
-        {title}
-      </span>
-      
-      {description && (
-        <span className="text-xs text-muted-foreground">
-          {description}
-        </span>
-      )}
-    </div>
-  );
+export function Step({ title, description, className }: StepProps) {
+  return null; // This is a dummy component, actual rendering is handled by Steps
 }

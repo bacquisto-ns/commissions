@@ -1,220 +1,251 @@
-import { useState } from "react";
-import { Upload, FileText } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ImportPreviewTable } from "@/components/import-preview-table";
-import Papa from 'papaparse';
+import React, { useState, useRef } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
+import { useToast } from '@/hooks/use-toast';
+import { Upload, FileType, AlertCircle, Download } from 'lucide-react';
+import { parse } from 'papaparse';
+import { ImportType } from '@/pages/enhanced-import';
 
 interface FileImportProps {
-  type: "agencies" | "brokers" | "commissions";
-  onDataParsed: (data: any[], headers: string[], errors: Record<number, string[]>) => void;
-  requiredFields: string[];
+  importType: ImportType;
+  onDataParsed: (data: any[], file: File) => void;
 }
 
-export function FileImport({ type, onDataParsed, requiredFields }: FileImportProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [parsedData, setParsedData] = useState<any[]>([]);
-  const [headers, setHeaders] = useState<string[]>([]);
-  const [validationErrors, setValidationErrors] = useState<Record<number, string[]>>({});
+export function FileImport({ importType, onDataParsed }: FileImportProps) {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFileError(null);
-    if (e.target.files && e.target.files.length > 0) {
-      const selectedFile = e.target.files[0];
-      
-      // Validate file type
-      if (!selectedFile.name.toLowerCase().endsWith('.csv')) {
-        setFileError("Please select a CSV file");
-        setFile(null);
-        return;
-      }
-      
-      setFile(selectedFile);
-      parseCSV(selectedFile);
+  // Handle click on the upload button
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
-  const parseCSV = (file: File) => {
-    setIsLoading(true);
-    setValidationErrors({});
+  // Download template CSV file
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await fetch(`/api/import/templates/${importType}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to download template: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${importType}-template.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: 'Template Downloaded',
+        description: `${importType.charAt(0).toUpperCase() + importType.slice(1)} template downloaded successfully.`,
+      });
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      toast({
+        title: 'Download Failed',
+        description: error instanceof Error ? error.message : 'Failed to download template',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle file change
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
     
-    Papa.parse(file, {
+    if (!files || files.length === 0) {
+      return;
+    }
+    
+    const file = files[0];
+    
+    // Validate file type
+    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+      setFileError('Please upload a CSV file');
+      return;
+    }
+    
+    setUploadedFile(file);
+    setFileError(null);
+    setIsUploading(true);
+    
+    // Parse CSV file
+    parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const data = results.data as any[];
-        
-        if (data.length === 0) {
-          setFileError("The uploaded CSV file contains no data");
-          setParsedData([]);
-          setHeaders([]);
-          setIsLoading(false);
+        if (results.errors.length > 0) {
+          const errorMessage = results.errors.map(err => `${err.message} at row ${err.row || 'unknown'}`).join('; ');
+          setFileError(`Error parsing CSV: ${errorMessage}`);
+          setIsUploading(false);
           return;
         }
         
-        const fileHeaders = Object.keys(data[0]);
-        setHeaders(fileHeaders);
-        setParsedData(data);
-        
-        // Validate required fields in headers
-        const missingFields = requiredFields.filter(field => !fileHeaders.includes(field));
-        if (missingFields.length > 0) {
-          setFileError(`The CSV is missing required fields: ${missingFields.join(', ')}`);
-        } else {
-          setFileError(null);
-          // Validate data rows
-          const errors = validateData(data, fileHeaders);
-          onDataParsed(data, fileHeaders, errors);
+        if (results.data.length === 0) {
+          setFileError('The CSV file is empty');
+          setIsUploading(false);
+          return;
         }
         
-        setIsLoading(false);
+        onDataParsed(results.data, file);
+        setIsUploading(false);
       },
       error: (error) => {
-        console.error("CSV Parse Error:", error);
-        setFileError("Failed to parse the CSV file. Please check the format.");
-        setIsLoading(false);
+        setFileError(`Error parsing CSV: ${error.message}`);
+        setIsUploading(false);
       }
     });
   };
 
-  const validateData = (data: any[], headers: string[]): Record<number, string[]> => {
-    const errors: Record<number, string[]> = {};
+  // Handle drag and drop
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
     
-    // Validate each row
-    data.forEach((row, index) => {
-      const rowErrors: string[] = [];
-      
-      // Check required fields
-      requiredFields.forEach(field => {
-        if (!row[field] || String(row[field]).trim() === '') {
-          rowErrors.push(`Missing required field: ${field}`);
+    const files = event.dataTransfer.files;
+    
+    if (files.length === 0) {
+      return;
+    }
+    
+    const file = files[0];
+    
+    // Validate file type
+    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+      setFileError('Please upload a CSV file');
+      return;
+    }
+    
+    setUploadedFile(file);
+    setFileError(null);
+    setIsUploading(true);
+    
+    // Parse CSV file
+    parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        if (results.errors.length > 0) {
+          const errorMessage = results.errors.map(err => `${err.message} at row ${err.row || 'unknown'}`).join('; ');
+          setFileError(`Error parsing CSV: ${errorMessage}`);
+          setIsUploading(false);
+          return;
         }
-      });
-      
-      // Add type-specific validations
-      if (type === 'agencies') {
-        if (row.zipCode && !/^\d{5}(-\d{4})?$/.test(String(row.zipCode))) {
-          rowErrors.push('Invalid zip code format');
+        
+        if (results.data.length === 0) {
+          setFileError('The CSV file is empty');
+          setIsUploading(false);
+          return;
         }
-      }
-      
-      if (type === 'brokers') {
-        if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(row.email))) {
-          rowErrors.push('Invalid email format');
-        }
-        if (row.agencyId && isNaN(Number(row.agencyId))) {
-          rowErrors.push('Agency ID must be a number');
-        }
-      }
-      
-      if (type === 'commissions') {
-        if (row.amount && isNaN(Number(row.amount))) {
-          rowErrors.push('Amount must be a number');
-        }
-        if (row.transactionDate && !/^\d{4}-\d{2}-\d{2}$/.test(String(row.transactionDate))) {
-          rowErrors.push('Transaction date must be in YYYY-MM-DD format');
-        }
-      }
-      
-      if (rowErrors.length > 0) {
-        errors[index] = rowErrors;
+        
+        onDataParsed(results.data, file);
+        setIsUploading(false);
+      },
+      error: (error) => {
+        setFileError(`Error parsing CSV: ${error.message}`);
+        setIsUploading(false);
       }
     });
-    
-    setValidationErrors(errors);
-    return errors;
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-primary" />
-          {type === "agencies" && "Import Agencies"}
-          {type === "brokers" && "Import Brokers"}
-          {type === "commissions" && "Import Commissions"}
-        </CardTitle>
-        <CardDescription>
-          Upload a CSV file with {type} data
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
-            <div className="flex flex-col items-center justify-center">
-              <Upload className="h-10 w-10 text-gray-400 mb-2" />
-              <p className="text-sm text-muted-foreground mb-4">
-                Drag and drop your CSV file here, or click to browse
-              </p>
-              <Input
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-                className="w-full max-w-xs"
-                disabled={isLoading}
-              />
-              {file && (
-                <p className="text-sm text-primary mt-2">
-                  Selected file: {file.name}
-                </p>
-              )}
-            </div>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleDownloadTemplate}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Download Template
+        </Button>
+      </div>
+      
+      <Card>
+        <CardContent className="pt-6">
+          <div
+            className="border-2 border-dashed rounded-lg p-10 text-center"
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            {isUploading ? (
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <Spinner className="h-8 w-8" />
+                <p className="text-sm text-gray-500">Processing file...</p>
+              </div>
+            ) : uploadedFile ? (
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <div className="flex items-center p-2 bg-blue-50 rounded-lg">
+                  <FileType className="h-8 w-8 text-blue-500 mr-2" />
+                  <div className="text-left">
+                    <p className="font-medium">{uploadedFile.name}</p>
+                    <p className="text-xs text-gray-500">{(uploadedFile.size / 1024).toFixed(2)} KB</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500">File uploaded successfully</p>
+                <Button size="sm" onClick={handleUploadClick}>
+                  Choose Another File
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <Upload className="h-10 w-10 text-gray-400" />
+                <div>
+                  <p className="font-medium">Drag and drop your CSV file here, or</p>
+                  <p className="text-sm text-gray-500">
+                    Upload a CSV file with {importType} data
+                  </p>
+                </div>
+                <Button onClick={handleUploadClick}>
+                  Browse Files
+                </Button>
+              </div>
+            )}
+            
+            {fileError && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Upload Error</AlertTitle>
+                <AlertDescription>
+                  {fileError}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".csv"
+              className="hidden"
+            />
           </div>
-
-          {fileError && (
-            <Alert variant="destructive">
-              <AlertDescription>{fileError}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Format information */}
-          <div className="bg-muted rounded-lg p-4">
-            <h3 className="font-medium mb-2">CSV Format Guidelines</h3>
-            {type === "agencies" && (
-              <p className="text-sm">
-                Required columns: {requiredFields.join(', ')}
-              </p>
-            )}
-            {type === "brokers" && (
-              <p className="text-sm">
-                Required columns: {requiredFields.join(', ')}
-              </p>
-            )}
-            {type === "commissions" && (
-              <p className="text-sm">
-                Required columns: {requiredFields.join(', ')}
-              </p>
-            )}
-            <p className="text-sm mt-2">
-              <Button variant="link" className="p-0 h-auto" asChild>
-                <a
-                  href={`/api/import/templates/${type}`}
-                  download={`${type}-template.csv`}
-                  className="text-primary hover:underline"
-                >
-                  Download template
-                </a>
-              </Button>
-            </p>
-          </div>
-          
-          {/* Preview data if file is uploaded */}
-          {parsedData.length > 0 && (
-            <div className="mt-6">
-              <h3 className="font-medium mb-4">Data Preview</h3>
-              <ImportPreviewTable 
-                headers={headers}
-                data={parsedData}
-                validationErrors={validationErrors}
-              />
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      
+      <div className="text-sm text-gray-500">
+        <p className="mb-2">File Requirements:</p>
+        <ul className="list-disc pl-6 space-y-1">
+          <li>File must be in CSV format</li>
+          <li>First row must contain column headers</li>
+          <li>Required columns vary by import type</li>
+          <li>Maximum file size: 10MB</li>
+          <li>For reference, download the template using the button above</li>
+        </ul>
+      </div>
+    </div>
   );
 }
