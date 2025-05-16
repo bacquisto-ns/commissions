@@ -20,8 +20,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Save, FileText, Calendar, DollarSign, Percent } from "lucide-react";
+import { ArrowLeft, Save, FileText, Calendar, DollarSign, Percent, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 // Commission edit form schema
@@ -72,6 +83,8 @@ export default function EditCommission() {
   const { id } = useParams();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
+  const [formValues, setFormValues] = useState<FormValues | null>(null);
 
   // Fetch commission details
   const { data: commission, isLoading } = useQuery<CommissionDetails>({
@@ -126,7 +139,22 @@ export default function EditCommission() {
   });
 
   const onSubmit = (values: FormValues) => {
-    updateCommission.mutate(values);
+    // If status is changing to approved, show confirmation dialog
+    if (values.status === "approved" && commission?.status === "pending") {
+      setFormValues(values);
+      setShowApprovalDialog(true);
+    } else {
+      // Otherwise, proceed with update
+      updateCommission.mutate(values);
+    }
+  };
+  
+  const handleConfirmApproval = () => {
+    if (formValues) {
+      updateCommission.mutate(formValues);
+      setShowApprovalDialog(false);
+      setFormValues(null);
+    }
   };
 
   if (isLoading) {

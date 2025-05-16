@@ -152,7 +152,7 @@ export default function CommissionDetails() {
           <div>
             <h1 className="text-xl font-semibold text-foreground">Commission Details</h1>
             <p className="text-sm text-muted-foreground">
-              View and manage commission for {organization.address}
+              View and manage commission for {organization.name}
             </p>
           </div>
         </div>
