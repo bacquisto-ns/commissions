@@ -183,12 +183,12 @@ export default function AgencyDashboard() {
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <Link href="/agencies">
+              <a href="/agencies">
                 <Button variant="ghost" size="sm" className="gap-1">
                   <ChevronLeft className="h-4 w-4" /> 
                   Back to Agencies
                 </Button>
-              </Link>
+              </a>
             </div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
               <Building2 className="h-6 w-6 text-primary" />
@@ -325,10 +325,10 @@ export default function AgencyDashboard() {
                       return (
                         <tr key={broker.id} className="border-b hover:bg-muted/50">
                           <td className="py-3 px-4">
-                            <Link href={`/dashboard/${broker.id}`} className="hover:text-primary">
+                            <a href={`/dashboard/${broker.id}`} className="hover:text-primary">
                               <div className="font-medium">{broker.firstName} {broker.lastName}</div>
                               <div className="text-sm text-muted-foreground">{broker.email}</div>
-                            </Link>
+                            </a>
                           </td>
                           <td className="py-3 px-4">
                             <span className={`text-xs px-2 py-1 rounded-full ${broker.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
