@@ -80,11 +80,63 @@ export default function Brokers() {
     broker.email.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
   
-  const handleNewBroker = () => {
-    toast({
-      title: "Broker added",
-      description: "New broker has been successfully added.",
-    });
+  const handleNewBroker = async (formData: HTMLFormElement) => {
+    try {
+      const formElements = formData.elements;
+      
+      // Extract form values
+      const firstName = (formElements.namedItem('firstName') as HTMLInputElement).value;
+      const lastName = (formElements.namedItem('lastName') as HTMLInputElement).value;
+      const email = (formElements.namedItem('email') as HTMLInputElement).value;
+      const phoneNumber = (formElements.namedItem('phone') as HTMLInputElement).value;
+      const agencyId = (formElements.namedItem('agency') as HTMLSelectElement)?.value;
+      
+      // Generate a default username from first and last name
+      const defaultUsername = `${firstName.toLowerCase()}${lastName.toLowerCase()}`;
+      
+      // Create payload for API
+      const payload = {
+        firstName,
+        lastName,
+        email,
+        phoneNumber,
+        agencyId: agencyId === 'null' ? null : parseInt(agencyId),
+        username: defaultUsername,
+        password: "password123", // Default password, should be changed by user
+        active: true
+      };
+      
+      // Make API request to create broker
+      const response = await fetch(`/api/brokers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create broker');
+      }
+      
+      // Show success message
+      toast({
+        title: "Broker added",
+        description: "New broker has been successfully added.",
+      });
+      
+      // Refresh the data
+      window.location.reload();
+      
+    } catch (error) {
+      // Show error message
+      toast({
+        title: "Creation failed",
+        description: "There was a problem creating the broker.",
+        variant: "destructive"
+      });
+      console.error("Error creating broker:", error);
+    }
   };
   
   const handleEditBroker = async (brokerId: number, formData: HTMLFormElement) => {
@@ -183,41 +235,58 @@ export default function Brokers() {
                     Enter the details of the new broker
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="firstName" className="text-right">
-                      First Name
-                    </Label>
-                    <Input id="firstName" className="col-span-3" />
+                <form id="add-broker-form" onSubmit={(e) => {
+                  e.preventDefault();
+                  handleNewBroker(e.currentTarget);
+                }}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="firstName" className="text-right">
+                        First Name
+                      </Label>
+                      <Input id="firstName" name="firstName" className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="lastName" className="text-right">
+                        Last Name
+                      </Label>
+                      <Input id="lastName" name="lastName" className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="email" className="text-right">
+                        Email
+                      </Label>
+                      <Input id="email" name="email" type="email" className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="phone" className="text-right">
+                        Phone
+                      </Label>
+                      <Input id="phone" name="phone" type="tel" className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="agency" className="text-right">
+                        Agency
+                      </Label>
+                      <Select name="agency" defaultValue="null">
+                        <SelectTrigger id="agency" className="col-span-3">
+                          <SelectValue placeholder="Select agency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="null">No Agency</SelectItem>
+                          {agencies?.map(agency => (
+                            <SelectItem key={agency.id} value={agency.id.toString()}>
+                              {agency.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="lastName" className="text-right">
-                      Last Name
-                    </Label>
-                    <Input id="lastName" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">
-                      Email
-                    </Label>
-                    <Input id="email" type="email" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="phone" className="text-right">
-                      Phone
-                    </Label>
-                    <Input id="phone" type="tel" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="username" className="text-right">
-                      Username
-                    </Label>
-                    <Input id="username" className="col-span-3" />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" onClick={handleNewBroker}>Add Broker</Button>
-                </DialogFooter>
+                  <DialogFooter>
+                    <Button type="submit">Add Broker</Button>
+                  </DialogFooter>
+                </form>
               </DialogContent>
             </Dialog>
           </div>
