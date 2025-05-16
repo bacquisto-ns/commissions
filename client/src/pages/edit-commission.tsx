@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -120,9 +120,26 @@ export default function EditCommission() {
       return apiRequest('PATCH', `/api/commissions/${id}`, values);
     },
     onSuccess: () => {
+      // Invalidate the specific commission details
       queryClient.invalidateQueries({ queryKey: [`/api/commissions/${id}`] });
+      
+      // Invalidate all commissions lists
       queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/10'] }); // Using default broker ID 10
+      
+      // Invalidate broker dashboard data - get broker ID from commission if available
+      const brokerId = commission?.broker?.id || 10;
+      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${brokerId}`] });
+      
+      // Invalidate agency dashboard data if this commission is associated with an agency
+      if (commission?.broker?.agencyId) {
+        queryClient.invalidateQueries({ 
+          queryKey: [`/api/agency-dashboard/${commission.broker.agencyId}`] 
+        });
+      }
+      
+      // Invalidate any other related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/statistics'] });
+      
       toast({
         title: "Commission updated",
         description: "Commission has been successfully updated",
@@ -323,6 +340,27 @@ export default function EditCommission() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Approval Confirmation Dialog */}
+      <AlertDialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5 text-warning" />
+              Approve Commission
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to approve this commission? This will mark it as paid and set the payment date to today.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmApproval}>
+              Yes, Approve
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
