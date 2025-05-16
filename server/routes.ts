@@ -667,12 +667,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const brokerId = parseInt(req.query.brokerId as string) || 10; // Default to Michael Chang (ID 10)
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = parseInt(req.query.offset as string) || 0;
-      const status = req.query.status as string || undefined;
+      const status = req.query.status as string;
+      const search = req.query.search as string;
+      const date = req.query.date as string;
       
-      console.log(`Fetching commissions for broker ID: ${brokerId}, status: ${status || 'all'}`);
+      console.log(`Fetching commissions for broker ID: ${brokerId}, status: ${status || 'all'}, search: ${search || 'none'}, date: ${date || 'none'}`);
       
-      const commissions = await storage.getBrokerCommissions(brokerId, { limit, offset, status });
-      const totalCount = await storage.getBrokerCommissionsCount(brokerId, status);
+      // Build query parameters
+      const queryParams: any = { 
+        limit, 
+        offset, 
+        status: status === 'all' ? undefined : status 
+      };
+      
+      // Add search if provided
+      if (search) {
+        queryParams.search = search;
+      }
+      
+      // Add date if provided
+      if (date) {
+        queryParams.date = date;
+      }
+      
+      const commissions = await storage.getBrokerCommissions(brokerId, queryParams);
+      const totalCount = await storage.getBrokerCommissionsCount(brokerId, queryParams.status, queryParams.search, queryParams.date);
       
       console.log(`Found ${commissions.length} commissions, total count: ${totalCount}`);
       
@@ -686,6 +705,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error getting broker commissions:", error);
+      
+      // Provide more specific error messages when possible
+      if (error instanceof Error) {
+        return res.status(500).json({ 
+          message: "Error retrieving commissions", 
+          details: error.message 
+        });
+      }
+      
       return res.status(500).json({ message: "Internal server error" });
     }
   });
