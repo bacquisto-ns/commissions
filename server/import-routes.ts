@@ -183,7 +183,15 @@ router.post("/commissions", authenticate, authorizeAdmin, upload.single("file"),
       fs.unlinkSync(req.file.path);
     }
     
-    return res.status(500).json({ message: "Error importing commissions" });
+    // Provide more specific error message if possible
+    const errorMessage = error instanceof Error 
+      ? `Error importing commissions: ${error.message}`
+      : "Error importing commissions";
+    
+    return res.status(500).json({ 
+      message: errorMessage,
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
