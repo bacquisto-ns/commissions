@@ -1021,6 +1021,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete commission
+  app.delete(`${apiPrefix}/commissions/:id`, async (req, res) => {
+    try {
+      const commissionId = parseInt(req.params.id);
+      if (isNaN(commissionId)) {
+        return res.status(400).json({ message: "Invalid commission ID" });
+      }
+      
+      // Get the commission to check if it exists
+      const commission = await storage.getCommissionById(commissionId);
+      if (!commission) {
+        return res.status(404).json({ message: "Commission not found" });
+      }
+      
+      // Delete the commission through storage
+      const success = await storage.deleteCommission(commissionId);
+      
+      return res.json({ 
+        success: true, 
+        message: "Commission deleted successfully",
+        id: commissionId
+      });
+    } catch (error) {
+      console.error("Error deleting commission:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Get commission statistics (by property type, by month, etc.)
   app.get(`${apiPrefix}/statistics/:brokerId`, async (req, res) => {
     try {
