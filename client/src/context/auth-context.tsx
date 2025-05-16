@@ -65,17 +65,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Login function
   const login = async (username: string, password: string) => {
-    // In a real app, this would make a request to your backend
-    // For now, we'll just set a demo user
-    setUser({
-      id: 7,
-      username: 'sarahjohnson',
-      firstName: 'Sarah',
-      lastName: 'Johnson',
-      email: 'sarah@example.com',
-      role: UserRole.BROKER,
-      agencyId: 1,
-    });
+    // Simple login for demo purposes
+    if (username === 'admin' || username === 'adminuser') {
+      setUser({
+        id: 13,
+        username: 'adminuser',
+        firstName: 'Admin',
+        lastName: 'User',
+        email: 'admin@example.com',
+        role: UserRole.ADMIN,
+        agencyId: null,
+      });
+    } else {
+      // Default to Sarah Johnson (for demo)
+      setUser({
+        id: 7,
+        username: 'sarahjohnson',
+        firstName: 'Sarah',
+        lastName: 'Johnson',
+        email: 'sarah@example.com',
+        role: UserRole.AGENCY_ADMIN,
+        agencyId: 1,
+      });
+    }
   };
 
   // Logout function
