@@ -262,6 +262,9 @@ export default function Commissions() {
                 totalItems={(commissionsData?.data || []).filter(commission => commission.status === "pending").length}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSortChange={handleSortChange}
               />
             </CardContent>
           </Card>
@@ -284,6 +287,9 @@ export default function Commissions() {
                 totalItems={(commissionsData?.data || []).filter(commission => commission.status === "approved").length}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSortChange={handleSortChange}
               />
             </CardContent>
           </Card>
