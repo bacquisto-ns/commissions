@@ -321,11 +321,15 @@ router.get("/templates/:type", (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid template type" });
   }
   
-  res.setHeader("Content-Type", "text/csv");
-  res.setHeader("Content-Disposition", `attachment; filename=${templateType}-template.csv`);
+  // Ensure proper MIME type and force download as CSV
+  res.writeHead(200, {
+    'Content-Type': 'text/csv',
+    'Content-Disposition': `attachment; filename="${templateType}-template.csv"`,
+    'Content-Length': Buffer.byteLength(headers + "\n" + sampleData)
+  });
   
   // Send headers and sample data row
-  return res.send(headers + "\n" + sampleData);
+  return res.end(headers + "\n" + sampleData);
 });
 
 export default router;
