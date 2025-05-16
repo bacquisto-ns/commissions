@@ -215,8 +215,8 @@ async function importBrokers(brokers: any[]): Promise<number> {
       const mappedData = {
         firstName: brokerData.firstName,
         lastName: brokerData.lastName,
-        email: brokerData.email || null,
-        phone: brokerData.phone || null,
+        email: brokerData.email || `${brokerData.firstName.toLowerCase()}.${brokerData.lastName.toLowerCase()}@example.com`,
+        phoneNumber: brokerData.phone || brokerData.phoneNumber || "",
         agencyId: parseInt(brokerData.agencyId) || null,
         active: brokerData.active === "true" || brokerData.active === "1" || true,
         username: brokerData.username || `${brokerData.firstName.toLowerCase()}${brokerData.lastName.toLowerCase()}`,
@@ -251,13 +251,20 @@ async function importCommissions(commissions: any[]): Promise<number> {
           address: commissionData.employerAddress || "123 Main St",
           city: commissionData.employerCity || "Anytown",
           state: commissionData.employerState || "CA",
-          zipCode: commissionData.employerZipCode || "12345"
+          zipCode: commissionData.employerZipCode || "12345",
+          contactName: commissionData.contactName || "Contact Person",
+          contactEmail: commissionData.contactEmail || "contact@example.com",
+          contactPhone: commissionData.contactPhone || null
         },
         benefitProgram: {
           programName: commissionData.programName,
           programType: commissionData.programType,
           programGroup: commissionData.programGroup || commissionData.programType, // Default to programType if not provided
-          participantCount: parseInt(commissionData.participantCount) || 100
+          participantCount: parseInt(commissionData.participantCount) || 100,
+          participantMinimum: parseInt(commissionData.participantMinimum) || 0,
+          startDate: commissionData.startDate ? new Date(commissionData.startDate) : new Date(),
+          endDate: commissionData.endDate ? new Date(commissionData.endDate) : undefined,
+          notes: commissionData.notes || null
         },
         transaction: {
           transactionDate: commissionData.transactionDate,

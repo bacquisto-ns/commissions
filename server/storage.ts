@@ -180,6 +180,40 @@ export const storage = {
     });
   },
   
+  async createBroker(brokerData: {
+    firstName: string;
+    lastName: string;
+    username: string;
+    password: string;
+    email: string;
+    phoneNumber?: string;
+    agencyId?: number | null;
+    active?: boolean;
+  }): Promise<Broker> {
+    try {
+      const [newBroker] = await db
+        .insert(brokers)
+        .values({
+          firstName: brokerData.firstName,
+          lastName: brokerData.lastName,
+          username: brokerData.username,
+          password: brokerData.password,
+          email: brokerData.email,
+          phoneNumber: brokerData.phoneNumber || null,
+          agencyId: brokerData.agencyId || null,
+          active: brokerData.active ?? true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      return newBroker;
+    } catch (error) {
+      console.error("Error creating broker:", error);
+      throw error;
+    }
+  },
+  
   async updateBroker(brokerId: number, brokerData: Partial<Broker>): Promise<Broker | undefined> {
     const [updatedBroker] = await db
       .update(brokers)
