@@ -1,18 +1,16 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet";
-import { FileText, Upload, FileUp, ChevronRight, RotateCw, CheckCircle, X } from "lucide-react";
+import { FileUp, ChevronRight, CheckCircle, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { ImportPreviewTable } from "@/components/import-preview-table";
 import { Progress } from "@/components/ui/progress";
 import { Steps, Step } from "@/components/ui/steps";
-import Papa from 'papaparse';
+import { FileImport } from "@/components/file-import";
 
 export default function EnhancedImport() {
   const [activeTab, setActiveTab] = useState("agencies");

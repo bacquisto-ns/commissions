@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import React, { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CheckIcon } from "lucide-react";
 
@@ -60,7 +60,7 @@ export function Steps({ children, currentStep, className }: StepsProps) {
             
             {/* Clone the child with additional props */}
             {React.isValidElement(child) 
-              ? React.cloneElement(child as React.ReactElement<StepProps>, {
+              ? React.cloneElement(child, {
                   status,
                   stepNumber,
                 })
@@ -72,7 +72,7 @@ export function Steps({ children, currentStep, className }: StepsProps) {
   );
 }
 
-export function Step({ title, description, status }: StepProps & { status?: string; stepNumber?: number }) {
+export function Step({ title, description, status }: StepProps & { status?: string; stepNumber?: number; [key: string]: any }) {
   return (
     <div className="flex flex-col sm:mt-3">
       <span 

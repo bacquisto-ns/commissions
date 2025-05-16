@@ -16,6 +16,7 @@ import AgencyDashboard from "./pages/agency-dashboard";
 import Products from "./pages/products";
 import CommissionStructures from "./pages/commission-structures";
 import ImportPage from "./pages/import";
+import EnhancedImport from "./pages/enhanced-import";
 import Reports from "./pages/reports";
 import AgencyReports from "./pages/agency-reports";
 import Settings from "./pages/settings";
@@ -110,7 +111,7 @@ function RouterContent() {
         path="/import" 
         component={() => 
           <ProtectedRoute 
-            component={ImportPage} 
+            component={EnhancedImport} 
             permission={Permissions.EDIT_COMMISSIONS} 
           />
         } 
