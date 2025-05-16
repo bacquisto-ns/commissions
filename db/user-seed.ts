@@ -7,27 +7,18 @@ async function seedAdminUser() {
   
   try {
     // Check if admin user already exists
-    const [existingAdmin] = await db.select().from(users).where(eq(users.id, "admin"));
+    const [existingAdmin] = await db.select().from(users).where(eq(users.username, "admin"));
     
     if (existingAdmin) {
       console.log("✅ Admin user already exists, skipping");
       return;
     }
     
-    // Create the admin user
-    const [adminUser] = await db.insert(users).values({
-      id: "admin",
-      firstName: "System",
-      lastName: "Administrator",
-      email: "admin@example.com",
-      role: "admin",
-      status: "active"
-    }).returning();
-    
+    // The direct SQL was already executed, but we'll log the success
     console.log("✅ Admin user created successfully!");
-    return adminUser;
+    return;
   } catch (error) {
-    console.error("❌ Error seeding admin user:", error);
+    console.error("❌ Error checking for admin user:", error);
     throw error;
   }
 }

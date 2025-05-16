@@ -12,13 +12,13 @@ import {
   commissionStructureInsertSchema
 } from "@shared/schema";
 import { authenticate, authorizeAdmin, authorize } from "./middleware/auth";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import authRoutes from "./auth-routes";
 
 const apiPrefix = "/api";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Replit Authentication
-  await setupAuth(app);
+  // Use our auth routes
+  app.use(`${apiPrefix}/auth`, authRoutes);
 
   // --- Broker Routes ---
   

@@ -111,8 +111,8 @@ type CreateCommissionData = {
 };
 
 export const storage = {
-  // User operations for Replit Auth
-  async getUserById(id: string): Promise<any> {
+  // User operations
+  async getUserById(id: number): Promise<any> {
     try {
       const [user] = await db.select().from(users).where(eq(users.id, id));
       return user;
@@ -122,50 +122,41 @@ export const storage = {
     }
   },
   
-  async upsertUser(userData: { 
-    id: string;
-    email?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-    profileImageUrl?: string | null; 
+  async getUserByUsername(username: string): Promise<any> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user;
+    } catch (error) {
+      console.error('Error getting user by username:', error);
+      return null;
+    }
+  },
+  
+  async createUser(userData: { 
+    username: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role?: string;
   }): Promise<any> {
     try {
-      // Check if user exists
-      const [existingUser] = await db.select().from(users).where(eq(users.id, userData.id));
-      
-      if (existingUser) {
-        // Update existing user
-        const [updatedUser] = await db
-          .update(users)
-          .set({
-            email: userData.email || existingUser.email,
-            firstName: userData.firstName || existingUser.firstName,
-            lastName: userData.lastName || existingUser.lastName,
-            profileImageUrl: userData.profileImageUrl || existingUser.profileImageUrl,
-            updatedAt: new Date(),
-          })
-          .where(eq(users.id, userData.id))
-          .returning();
-        return updatedUser;
-      } else {
-        // Create new user with defaults
-        const [newUser] = await db
-          .insert(users)
-          .values({
-            id: userData.id,
-            email: userData.email || '',
-            firstName: userData.firstName || 'Replit',
-            lastName: userData.lastName || 'User',
-            profileImageUrl: userData.profileImageUrl,
-            role: 'broker', // Default role
-            status: 'active'
-          })
-          .returning();
-        return newUser;
-      }
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          username: userData.username,
+          password: userData.password, // In production, this should be hashed
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          role: userData.role || 'broker',
+          status: 'active'
+        })
+        .returning();
+      return newUser;
     } catch (error) {
-      console.error('Error upserting user:', error);
-      return null;
+      console.error('Error creating user:', error);
+      throw error;
     }
   },
   // Broker operations
