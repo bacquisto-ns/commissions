@@ -33,7 +33,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
+import { invalidateQueries, InvalidationScope } from "@/lib/queryUtils";
 
 // Commission edit form schema
 const formSchema = z.object({
@@ -122,25 +123,16 @@ export default function EditCommission() {
       return apiRequest('PATCH', `/api/commissions/${id}`, values);
     },
     onSuccess: () => {
-      // Invalidate the specific commission details
-      queryClient.invalidateQueries({ queryKey: [`/api/commissions/${id}`] });
+      // Use our new smart invalidation utility for more targeted updates
+      import { invalidateQueries, InvalidationScope } from "@/lib/queryUtils";
       
-      // Invalidate all commissions lists
-      queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
+      const relatedIds = {
+        brokerId: commission?.broker?.id || 10,
+        agencyId: commission?.broker?.agencyId
+      };
       
-      // Invalidate broker dashboard data - get broker ID from commission if available
-      const brokerId = commission?.broker?.id || 10;
-      queryClient.invalidateQueries({ queryKey: [`/api/dashboard/${brokerId}`] });
-      
-      // Invalidate agency dashboard data if this commission is associated with an agency
-      if (commission?.broker?.agencyId) {
-        queryClient.invalidateQueries({ 
-          queryKey: [`/api/agency-dashboard/${commission.broker.agencyId}`] 
-        });
-      }
-      
-      // Invalidate any other related queries
-      queryClient.invalidateQueries({ queryKey: ['/api/statistics'] });
+      // This will intelligently invalidate the commission and related data
+      invalidateQueries('commission', InvalidationScope.RELATED, id, relatedIds);
       
       toast({
         title: "Commission updated",
