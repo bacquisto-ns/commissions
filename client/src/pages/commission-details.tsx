@@ -21,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import StatusBadge from "@/components/status-badge";
 import { format } from "date-fns";
-import { ArrowLeft, FileText, Home, User, Calendar, DollarSign, Percent, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, FileText, Home, User, Calendar, DollarSign, Percent, CheckCircle, AlertCircle, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ExportMenu from "@/components/export-menu";
 
@@ -156,12 +156,18 @@ export default function CommissionDetails() {
             </p>
           </div>
         </div>
-        <ExportMenu
-          data={[formatCommissionForExport(commission)]}
-          filename={`commission-${commission.id}`}
-          label="Export Details"
-          variant="outline"
-        />
+        <div className="flex space-x-3">
+          <Button variant="outline" onClick={() => navigate(`/commissions/${id}/edit`)}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit Commission
+          </Button>
+          <ExportMenu
+            data={[formatCommissionForExport(commission)]}
+            filename={`commission-${commission.id}`}
+            label="Export Details"
+            variant="outline"
+          />
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
