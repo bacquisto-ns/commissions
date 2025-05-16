@@ -72,6 +72,12 @@ export default function Sidebar({ className }: SidebarProps) {
       permission: Permissions.MANAGE_COMMISSION_STRUCTURES,
     },
     {
+      label: "Import Data",
+      icon: <Upload className="mr-3 h-5 w-5" />,
+      href: "/import",
+      permission: Permissions.EDIT_COMMISSIONS,
+    },
+    {
       label: "Reports",
       icon: <BarChart3 className="mr-3 h-5 w-5" />,
       href: "/reports",

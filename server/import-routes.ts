@@ -278,7 +278,9 @@ async function importCommissions(commissions: any[]): Promise<number> {
           {
             brokerId: parseInt(commissionData.brokerId),
             splitPercentage: commissionData.splitPercentage || "100.00", // Default to 100% if not provided
-            status: commissionData.status || "pending" // Default to pending if not provided
+            status: commissionData.status || "pending", // Default to pending if not provided
+            notes: commissionData.notes || null,
+            amount: commissionData.amount || commissionData.totalCommission || "0.00"
           }
         ]
       };
