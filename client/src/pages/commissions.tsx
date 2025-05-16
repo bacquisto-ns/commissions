@@ -27,6 +27,9 @@ export default function Commissions() {
   const [selectedCommissions, setSelectedCommissions] = useState<number[]>([]);
   const [sortField, setSortField] = useState<SortField | undefined>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [transactionType, setTransactionType] = useState<string>("all");
+  const [productType, setProductType] = useState<string>("all");
+  const [employerName, setEmployerName] = useState<string>("");
   const { toast } = useToast();
   const pageSize = 10;
 
@@ -69,7 +72,7 @@ export default function Commissions() {
     };
   }
 
-  // Fetch commissions with filters and sorting
+  // Fetch commissions with enhanced filters and sorting
   const { data: commissionsData = { data: [], meta: { total: 0, limit: pageSize, offset: 0 } }, isLoading } = useQuery<CommissionsResponse>({
     queryKey: [
       "/api/commissions", 
@@ -81,7 +84,10 @@ export default function Commissions() {
         search: searchQuery,
         date: date ? format(date, "yyyy-MM-dd") : undefined,
         sortField,
-        sortDirection
+        sortDirection,
+        transactionType: transactionType !== "all" ? transactionType : undefined,
+        productType: productType !== "all" ? productType : undefined,
+        employerName: employerName || undefined
       }
     ],
   });
