@@ -1,0 +1,63 @@
+Warning: %s contains an input of type %s with both value and defaultValue props. Input elements must be either controlled or uncontrolled (specify either the value prop, or the defaultValue prop, but not both). Decide between using a controlled or uncontrolled input element and remove one of these props. More info: https://reactjs.org/link/controlled-components%s Input undefined 
+    at input
+    at _c (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/input.tsx:20:11)
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=15c1bd9f:79:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=15c1bd9f:56:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/form.tsx:129:9
+    at div
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/form.tsx:71:6
+    at Controller (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=15c1bd9f:298:35)
+    at FormField (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/form.tsx:32:6)
+    at form
+    at FormProvider (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=15c1bd9f:102:11)
+    at div
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-Q6YJROYD.js?v=15c1bd9f:42:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RLLCIQWN.js?v=15c1bd9f:61:7
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=15c1bd9f:79:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=15c1bd9f:56:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-Q6YJROYD.js?v=15c1bd9f:42:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PMBXZ7OV.js?v=15c1bd9f:29:5
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FFU3V5PB.js?v=15c1bd9f:235:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FFU3V5PB.js?v=15c1bd9f:158:58
+    at Presence (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-E4UC4BFD.js?v=15c1bd9f:24:11)
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FFU3V5PB.js?v=15c1bd9f:149:64
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=15c1bd9f:79:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=15c1bd9f:56:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-Q6YJROYD.js?v=15c1bd9f:42:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RLLCIQWN.js?v=15c1bd9f:260:22
+    at Presence (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-E4UC4BFD.js?v=15c1bd9f:24:11)
+    at Provider (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=15c1bd9f:38:15)
+    at DialogPortal (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FFU3V5PB.js?v=15c1bd9f:111:11)
+    at _c3 (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/dialog.tsx:51:12)
+    at Provider (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=15c1bd9f:38:15)
+    at Dialog (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FFU3V5PB.js?v=15c1bd9f:52:5)
+    at td
+    at _c13 (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/table.tsx:152:13)
+    at tr
+    at _c9 (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/table.tsx:102:12)
+    at tbody
+    at _c5 (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/table.tsx:55:12)
+    at table
+    at div
+    at _c (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/table.tsx:20:11)
+    at div
+    at div
+    at _c9 (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/card.tsx:114:12)
+    at div
+    at _c (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at Products (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/pages/products.tsx:72:41)
+    at AuthGuard (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/auth-guard.tsx?t=1747421134271:21:37)
+    at ProtectedRoute (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/App.tsx?t=1747421184715&v=u7Xl60lAf8ESFw-3zep-C:43:14)
+    at component
+    at Route (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=15c1bd9f:280:16)
+    at Switch (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=15c1bd9f:336:17)
+    at RouterContent
+    at main
+    at div
+    at div
+    at Layout (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/layout.tsx?t=1747419837520:23:34)
+    at AppContent (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/App.tsx?t=1747421184715&v=u7Xl60lAf8ESFw-3zep-C:372:31)
+    at AuthProvider (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/context/auth-context.tsx:38:32)
+    at QueryClientProvider (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=15c1bd9f:2879:3)
+    at App

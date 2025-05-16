@@ -284,7 +284,11 @@ export default function Products() {
                                 step="0.01" 
                                 className="pl-8" 
                                 placeholder="0.00" 
-                                {...field} 
+                                onChange={(e) => field.onChange(e.target.value)}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
+                                value={field.value}
                               />
                             </div>
                           </FormControl>
@@ -432,8 +436,11 @@ export default function Products() {
                                           <FormLabel>Product Name</FormLabel>
                                           <FormControl>
                                             <Input 
-                                              defaultValue={editingProduct.name} 
-                                              {...field} 
+                                              value={field.value}
+                                              onChange={field.onChange}
+                                              onBlur={field.onBlur}
+                                              name={field.name}
+                                              ref={field.ref}
                                             />
                                           </FormControl>
                                           <FormMessage />
