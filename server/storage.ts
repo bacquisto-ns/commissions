@@ -143,7 +143,7 @@ export const storage = {
           .select({ count: sql<number>`count(*)` })
           .from(brokers)
           .where(eq(brokers.agencyId, agency.id))
-          .then(result => result[0]?.count || 0);
+          .then(result => Number(result[0]?.count) || 0);
         
         return {
           ...agency,
@@ -167,7 +167,7 @@ export const storage = {
       .select({ count: sql<number>`count(*)` })
       .from(brokers)
       .where(eq(brokers.agencyId, id))
-      .then(result => result[0]?.count || 0);
+      .then(result => Number(result[0]?.count) || 0);
     
     return {
       ...result[0],
