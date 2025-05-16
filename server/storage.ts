@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { and, asc, count, desc, eq, gt, gte, lte, sql, sum, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, gte, lte, sql, sum, isNull, inArray } from "drizzle-orm";
 import {
   brokers, 
   commissions, 
@@ -345,6 +345,7 @@ export const storage = {
     });
     
     const brokerIds = agencyBrokers.map(broker => broker.id);
+    console.log("Agency broker IDs:", brokerIds);
     
     // Skip additional calculations if there are no brokers in this agency
     if (brokerIds.length === 0) {
