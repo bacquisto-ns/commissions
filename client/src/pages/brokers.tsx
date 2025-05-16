@@ -192,11 +192,38 @@ export default function Brokers() {
     }
   };
   
-  const handleDeleteBroker = () => {
-    toast({
-      title: "Broker deleted",
-      description: "Broker has been successfully removed.",
-    });
+  const handleDeleteBroker = async (brokerId: number) => {
+    try {
+      // Make API request to delete broker
+      const response = await fetch(`/api/brokers/${brokerId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete broker');
+      }
+      
+      // Show success message
+      toast({
+        title: "Broker deleted",
+        description: "Broker has been successfully removed.",
+      });
+      
+      // Refresh the data
+      window.location.reload();
+      
+    } catch (error) {
+      // Show error message
+      toast({
+        title: "Deletion failed",
+        description: "There was a problem removing the broker.",
+        variant: "destructive"
+      });
+      console.error("Error deleting broker:", error);
+    }
   };
 
   return (
@@ -370,7 +397,7 @@ export default function Brokers() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={broker.active ? "success" : "destructive"}>
+                          <Badge variant={broker.active ? "default" : "destructive"}>
                             {broker.active ? (
                               <span className="flex items-center gap-1">
                                 <Check className="h-3 w-3" /> Active
@@ -492,7 +519,12 @@ export default function Brokers() {
                               </DialogHeader>
                               <DialogFooter>
                                 <Button variant="outline">Cancel</Button>
-                                <Button variant="destructive" onClick={handleDeleteBroker}>Delete</Button>
+                                <Button 
+                                  variant="destructive" 
+                                  onClick={() => handleDeleteBroker(broker.id)}
+                                >
+                                  Delete
+                                </Button>
                               </DialogFooter>
                             </DialogContent>
                           </Dialog>

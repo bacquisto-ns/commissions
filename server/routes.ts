@@ -98,6 +98,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Internal server error" });
     }
   });
+  
+  // Delete broker
+  app.delete(`${apiPrefix}/brokers/:id`, async (req, res) => {
+    try {
+      const brokerId = parseInt(req.params.id);
+      if (isNaN(brokerId)) {
+        return res.status(400).json({ message: "Invalid broker ID" });
+      }
+      
+      // Delete broker from database
+      const success = await storage.deleteBroker(brokerId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Broker not found" });
+      }
+      
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting broker:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   // Get all brokers
   app.get(`${apiPrefix}/brokers`, async (req, res) => {

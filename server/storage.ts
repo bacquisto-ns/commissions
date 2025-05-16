@@ -226,6 +226,26 @@ export const storage = {
     
     return updatedBroker;
   },
+  
+  async deleteBroker(brokerId: number): Promise<boolean> {
+    try {
+      // First, check if the broker exists
+      const broker = await this.getBrokerById(brokerId);
+      if (!broker) {
+        return false;
+      }
+      
+      // Delete the broker
+      const result = await db
+        .delete(brokers)
+        .where(eq(brokers.id, brokerId));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting broker:', error);
+      return false;
+    }
+  },
 
   // Agency operations
   async getAllAgencies(): Promise<AgencyWithBrokerCount[]> {
