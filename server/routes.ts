@@ -124,6 +124,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new broker
   app.post(`${apiPrefix}/brokers`, async (req, res) => {
     try {
+      console.log("Received broker creation request:", req.body);
+      
       // Define validation schema for new broker
       const schema = z.object({
         firstName: z.string().min(1),
@@ -132,12 +134,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phoneNumber: z.string(),
         username: z.string().min(1),
         password: z.string().min(1),
-        agencyId: z.union([z.number(), z.string(), z.null()]),
+        agencyId: z.union([z.number(), z.string(), z.null()]).optional(),
         active: z.boolean().optional()
       });
       
       // Validate request body
       const validatedData = schema.parse(req.body);
+      console.log("Validated data:", validatedData);
       
       // Process agencyId - convert string to number or null
       let processedAgencyId = null;
@@ -146,17 +149,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         processedAgencyId = typeof validatedData.agencyId === 'string' 
           ? parseInt(validatedData.agencyId) 
           : validatedData.agencyId;
+        
+        console.log("Processed agency ID:", processedAgencyId);
+        
+        // Verify that the agency exists
+        const agency = await storage.getAgencyById(processedAgencyId);
+        if (!agency) {
+          return res.status(400).json({ message: `Agency with ID ${processedAgencyId} does not exist` });
+        }
       }
       
+      // Prepare broker data
+      const brokerData = {
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        email: validatedData.email,
+        phoneNumber: validatedData.phoneNumber,
+        username: validatedData.username,
+        password: validatedData.password,
+        agencyId: processedAgencyId,
+        active: validatedData.active ?? true
+      };
+      
+      console.log("Creating broker with data:", brokerData);
+      
       // Create broker in database
-      const newBroker = await storage.createBroker({
-        ...validatedData,
-        agencyId: processedAgencyId
-      });
+      const newBroker = await storage.createBroker(brokerData);
+      console.log("New broker created:", newBroker);
       
       return res.json(newBroker);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation error:", error.errors);
         return res.status(400).json({ errors: error.errors });
       }
       console.error("Error creating broker:", error);

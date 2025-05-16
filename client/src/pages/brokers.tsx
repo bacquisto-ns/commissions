@@ -262,58 +262,93 @@ export default function Brokers() {
                     Enter the details of the new broker
                   </DialogDescription>
                 </DialogHeader>
-                <form id="add-broker-form" onSubmit={(e) => {
-                  e.preventDefault();
-                  handleNewBroker(e.currentTarget);
-                }}>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="firstName" className="text-right">
-                        First Name
-                      </Label>
-                      <Input id="firstName" name="firstName" className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="lastName" className="text-right">
-                        Last Name
-                      </Label>
-                      <Input id="lastName" name="lastName" className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="email" className="text-right">
-                        Email
-                      </Label>
-                      <Input id="email" name="email" type="email" className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="phone" className="text-right">
-                        Phone
-                      </Label>
-                      <Input id="phone" name="phone" type="tel" className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="agency" className="text-right">
-                        Agency
-                      </Label>
-                      <Select name="agency" defaultValue="null">
-                        <SelectTrigger id="agency" className="col-span-3">
-                          <SelectValue placeholder="Select agency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="null">No Agency</SelectItem>
-                          {agencies?.map(agency => (
-                            <SelectItem key={agency.id} value={agency.id.toString()}>
-                              {agency.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="firstName" className="text-right">
+                      First Name
+                    </Label>
+                    <Input id="firstName" className="col-span-3" required />
                   </div>
-                  <DialogFooter>
-                    <Button type="submit">Add Broker</Button>
-                  </DialogFooter>
-                </form>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="lastName" className="text-right">
+                      Last Name
+                    </Label>
+                    <Input id="lastName" className="col-span-3" required />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">
+                      Email
+                    </Label>
+                    <Input id="email" type="email" className="col-span-3" required />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="phone" className="text-right">
+                      Phone
+                    </Label>
+                    <Input id="phone" type="tel" className="col-span-3" required />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="agency" className="text-right">
+                      Agency
+                    </Label>
+                    <Select id="agency-select" defaultValue="null">
+                      <SelectTrigger id="agency" className="col-span-3">
+                        <SelectValue placeholder="Select agency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="null">No Agency</SelectItem>
+                        {agencies?.map(agency => (
+                          <SelectItem key={agency.id} value={agency.id.toString()}>
+                            {agency.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={() => {
+                    // Get the form data
+                    const firstName = (document.getElementById('firstName') as HTMLInputElement).value;
+                    const lastName = (document.getElementById('lastName') as HTMLInputElement).value;
+                    const email = (document.getElementById('email') as HTMLInputElement).value;
+                    const phone = (document.getElementById('phone') as HTMLInputElement).value;
+                    
+                    // Get the select value for agency
+                    const agencySelect = document.getElementById('agency-select') as any;
+                    const agencyId = agencySelect?.value || 'null';
+                    
+                    // Create a fake form with these elements and submit
+                    const fakeForm = document.createElement('form');
+                    const firstNameInput = document.createElement('input');
+                    firstNameInput.name = 'firstName';
+                    firstNameInput.value = firstName;
+                    
+                    const lastNameInput = document.createElement('input');
+                    lastNameInput.name = 'lastName';
+                    lastNameInput.value = lastName;
+                    
+                    const emailInput = document.createElement('input');
+                    emailInput.name = 'email';
+                    emailInput.value = email;
+                    
+                    const phoneInput = document.createElement('input');
+                    phoneInput.name = 'phone';
+                    phoneInput.value = phone;
+                    
+                    const agencyInput = document.createElement('input');
+                    agencyInput.name = 'agency';
+                    agencyInput.value = agencyId;
+                    
+                    fakeForm.appendChild(firstNameInput);
+                    fakeForm.appendChild(lastNameInput);
+                    fakeForm.appendChild(emailInput);
+                    fakeForm.appendChild(phoneInput);
+                    fakeForm.appendChild(agencyInput);
+                    
+                    handleNewBroker(fakeForm);
+                  }}>Add Broker</Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
