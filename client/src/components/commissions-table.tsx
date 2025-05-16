@@ -313,9 +313,22 @@ export default function CommissionsTable({
                   <TableCell>
                     <StatusBadge status={commission.status} />
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right flex items-center justify-end space-x-2">
                     <Button variant="link" asChild>
                       <Link href={`/commissions/${commission.id}`}>Details</Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCommissionToDelete(commission.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
