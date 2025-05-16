@@ -1,7 +1,6 @@
 import { ReactNode, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/context/auth-context";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "../hooks/useAuth";
 
 interface AuthGuardProps {
   children: ReactNode;
@@ -14,41 +13,54 @@ interface AuthGuardProps {
  * Can also check for specific permissions
  */
 export default function AuthGuard({ children, requiredPermission }: AuthGuardProps) {
-  const { isAuthenticated, hasPermission, user, isLoading } = useAuth();
-  const [location, navigate] = useLocation();
-  const { toast } = useToast();
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Don't redirect while auth is loading
-    if (isLoading) return;
-
-    // If not authenticated, redirect to login
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to access this page",
-        variant: "destructive",
-      });
-      navigate("/login", { replace: true });
-      return;
+    if (!isLoading && !isAuthenticated) {
+      // Redirect to login page
+      window.location.href = "/api/login";
     }
+  }, [isLoading, isAuthenticated, setLocation]);
 
-    // If permission check is required
-    if (requiredPermission && !hasPermission(requiredPermission)) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access this page",
-        variant: "destructive",
-      });
-      navigate("/", { replace: true });
-      return;
-    }
-  }, [isAuthenticated, hasPermission, requiredPermission, location, navigate, toast, isLoading, user]);
+  // If we're still loading the auth state, don't render children yet
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
-  // Show nothing while checking auth
-  if (isLoading || !isAuthenticated || (requiredPermission && !hasPermission(requiredPermission))) {
+  // If user is not authenticated, don't render children
+  if (!isAuthenticated) {
     return null;
   }
 
+  // If we require a specific permission, check if the user has it
+  if (requiredPermission && user) {
+    // For now, we'll just check if the user's role matches the required permission
+    // This can be extended later to support more complex permission checks
+    const hasPermission = user.role === requiredPermission;
+    
+    if (!hasPermission) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen p-4">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-center mb-6">
+            You do not have the required permissions to access this page.
+          </p>
+          <button
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            onClick={() => setLocation("/")}
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      );
+    }
+  }
+
+  // Otherwise, render the children
   return <>{children}</>;
 }

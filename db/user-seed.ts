@@ -7,7 +7,7 @@ async function seedAdminUser() {
   
   try {
     // Check if admin user already exists
-    const [existingAdmin] = await db.select().from(users).where(eq(users.username, "admin"));
+    const [existingAdmin] = await db.select().from(users).where(eq(users.id, "admin"));
     
     if (existingAdmin) {
       console.log("✅ Admin user already exists, skipping");
@@ -16,8 +16,7 @@ async function seedAdminUser() {
     
     // Create the admin user
     const [adminUser] = await db.insert(users).values({
-      username: "admin",
-      password: "admin123", // This would be hashed in a real application
+      id: "admin",
       firstName: "System",
       lastName: "Administrator",
       email: "admin@example.com",

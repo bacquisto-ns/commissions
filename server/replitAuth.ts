@@ -44,28 +44,6 @@ export function getSession() {
   });
 }
 
-function updateUserSession(
-  user: any,
-  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
-) {
-  user.claims = tokens.claims();
-  user.access_token = tokens.access_token;
-  user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
-}
-
-async function upsertUser(
-  claims: any,
-) {
-  await storage.upsertUser({
-    id: claims["sub"],
-    email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
-  });
-}
-
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
@@ -79,13 +57,32 @@ export async function setupAuth(app: Express) {
     verified: passport.AuthenticateCallback
   ) => {
     const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
+    // Add user claims to session
+    const claims = tokens.claims();
+    Object.assign(user, { 
+      claims,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_at: claims?.exp
+    });
+    
+    // Store or update user in the database for persistence
+    try {
+      await storage.upsertUser({
+        id: claims["sub"],
+        email: claims["email"],
+        firstName: claims["first_name"],
+        lastName: claims["last_name"],
+        profileImageUrl: claims["profile_image_url"],
+      });
+    } catch (error) {
+      console.error("Error storing user data:", error);
+    }
+    
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  for (const domain of process.env.REPLIT_DOMAINS!.split(",")) {
     const strategy = new Strategy(
       {
         name: `replitauth:${domain}`,
@@ -125,12 +122,30 @@ export async function setupAuth(app: Express) {
       );
     });
   });
+  
+  // Current user endpoint
+  app.get("/api/auth/user", isAuthenticated, async (req, res) => {
+    const user = req.user as any;
+    const claims = user.claims;
+    
+    // Return user info from claims
+    res.json({
+      id: claims.sub,
+      email: claims.email,
+      firstName: claims.first_name || "",
+      lastName: claims.last_name || "",
+      profileImageUrl: claims.profile_image_url,
+      // For compatibility with existing code
+      role: "broker", // Default role
+      username: claims.email || claims.sub // Use email as username or fall back to sub
+    });
+  });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
@@ -147,7 +162,13 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   try {
     const config = await getOidcConfig();
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
+    
+    // Update user session with new tokens
+    user.claims = tokenResponse.claims();
+    user.access_token = tokenResponse.access_token;
+    user.refresh_token = tokenResponse.refresh_token;
+    user.expires_at = user.claims?.exp;
+    
     return next();
   } catch (error) {
     return res.redirect("/api/login");

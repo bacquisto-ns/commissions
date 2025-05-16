@@ -111,15 +111,15 @@ type CreateCommissionData = {
 };
 
 export const storage = {
-  // User operations
-  async getUserById(id: string | number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  },
-  
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+  // User operations for Replit Auth
+  async getUserById(id: string): Promise<any> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error('Error getting user by ID:', error);
+      return null;
+    }
   },
   
   async upsertUser(userData: { 
@@ -141,6 +141,7 @@ export const storage = {
             email: userData.email || existingUser.email,
             firstName: userData.firstName || existingUser.firstName,
             lastName: userData.lastName || existingUser.lastName,
+            profileImageUrl: userData.profileImageUrl || existingUser.profileImageUrl,
             updatedAt: new Date(),
           })
           .where(eq(users.id, userData.id))
@@ -155,10 +156,9 @@ export const storage = {
             email: userData.email || '',
             firstName: userData.firstName || 'Replit',
             lastName: userData.lastName || 'User',
-            username: `user_${userData.id}`,
-            password: 'replit_auth', // Not used with Replit Auth
+            profileImageUrl: userData.profileImageUrl,
             role: 'broker', // Default role
-            status: 'active',
+            status: 'active'
           })
           .returning();
         return newUser;
@@ -167,11 +167,6 @@ export const storage = {
       console.error('Error upserting user:', error);
       return null;
     }
-  },
-  
-  async createUser(userData: typeof users.$inferInsert): Promise<User> {
-    const [user] = await db.insert(users).values(userData).returning();
-    return user;
   },
   // Broker operations
   async getBrokerById(id: number): Promise<BrokerWithAgency | undefined> {
