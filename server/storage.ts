@@ -112,7 +112,7 @@ type CreateCommissionData = {
 
 export const storage = {
   // User operations
-  async getUserById(id: number): Promise<User | undefined> {
+  async getUserById(id: string | number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   },
@@ -120,6 +120,53 @@ export const storage = {
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
+  },
+  
+  async upsertUser(userData: { 
+    id: string;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    profileImageUrl?: string | null; 
+  }): Promise<any> {
+    try {
+      // Check if user exists
+      const [existingUser] = await db.select().from(users).where(eq(users.id, userData.id));
+      
+      if (existingUser) {
+        // Update existing user
+        const [updatedUser] = await db
+          .update(users)
+          .set({
+            email: userData.email || existingUser.email,
+            firstName: userData.firstName || existingUser.firstName,
+            lastName: userData.lastName || existingUser.lastName,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userData.id))
+          .returning();
+        return updatedUser;
+      } else {
+        // Create new user with defaults
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            id: userData.id,
+            email: userData.email || '',
+            firstName: userData.firstName || 'Replit',
+            lastName: userData.lastName || 'User',
+            username: `user_${userData.id}`,
+            password: 'replit_auth', // Not used with Replit Auth
+            role: 'broker', // Default role
+            status: 'active',
+          })
+          .returning();
+        return newUser;
+      }
+    } catch (error) {
+      console.error('Error upserting user:', error);
+      return null;
+    }
   },
   
   async createUser(userData: typeof users.$inferInsert): Promise<User> {

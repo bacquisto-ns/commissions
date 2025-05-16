@@ -18,9 +18,22 @@ export const userStatusEnum = pgEnum("user_status", [
   "pending"
 ]);
 
+// Sessions table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: text("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => ({
+    expireIdx: index("sessions_expire_idx").on(table.expire),
+  })
+);
+
 // Users table for authentication
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+  id: varchar("id", { length: 255 }).primaryKey(),
   username: varchar("username", { length: 255 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(),
   firstName: varchar("first_name", { length: 255 }).notNull(),
@@ -28,6 +41,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   role: userRoleEnum("role").default("broker").notNull(),
   status: userStatusEnum("status").default("active").notNull(),
+  profileImageUrl: varchar("profile_image_url", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -65,7 +79,7 @@ export const commissionStructureTypeEnum = pgEnum("commission_structure_type", [
   "percentage"
 ]);
 
-// User role enum is already defined above
+// User role enum is defined at the top of the file
 
 // Tables
 export const agencies = pgTable("agencies", {
