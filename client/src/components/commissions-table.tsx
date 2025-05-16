@@ -44,6 +44,10 @@ interface Commission {
   } | null;
 }
 
+// Define sorting fields and directions
+export type SortField = 'employer' | 'transaction' | 'date' | 'amount' | 'status';
+export type SortDirection = 'asc' | 'desc';
+
 interface CommissionsTableProps {
   commissions: any[]; // Use 'any' to avoid type conflicts between different commission formats
   isLoading: boolean;
@@ -55,6 +59,9 @@ interface CommissionsTableProps {
   selectable?: boolean;
   selectedIds?: number[];
   onSelectionChange?: (ids: number[]) => void;
+  sortField?: SortField;
+  sortDirection?: SortDirection;
+  onSortChange?: (field: SortField, direction: SortDirection) => void;
 }
 
 export default function CommissionsTable({

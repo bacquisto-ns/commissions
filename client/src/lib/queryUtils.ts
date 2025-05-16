@@ -6,6 +6,7 @@ export type ResourceType =
   | 'broker' 
   | 'agency' 
   | 'dashboard' 
+  | 'agency-dashboard'
   | 'product';
 
 // Cache invalidation strategies
