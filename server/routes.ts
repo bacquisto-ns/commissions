@@ -933,6 +933,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update commission details
+  app.patch(`${apiPrefix}/commissions/:id`, async (req, res) => {
+    try {
+      const commissionId = parseInt(req.params.id);
+      if (isNaN(commissionId)) {
+        return res.status(400).json({ message: "Invalid commission ID" });
+      }
+      
+      const schema = z.object({
+        splitPercentage: z.string().min(1, "Split percentage is required"),
+        amount: z.string().min(1, "Amount is required"),
+        notes: z.string().optional(),
+        status: z.enum(["pending", "approved"]),
+      });
+      
+      try {
+        const validatedData = schema.parse(req.body);
+        
+        // Prepare update data and handle payment date based on status
+        const updateData: any = {
+          splitPercentage: validatedData.splitPercentage,
+          amount: validatedData.amount,
+          notes: validatedData.notes,
+          status: validatedData.status,
+        };
+        
+        // If status is changed to approved, set payment date
+        if (validatedData.status === 'approved') {
+          updateData.paymentDate = new Date();
+        }
+        
+        const updatedCommission = await storage.updateCommission(commissionId, updateData);
+        
+        if (!updatedCommission) {
+          return res.status(404).json({ message: "Commission not found" });
+        }
+        
+        return res.json(updatedCommission);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          return res.status(400).json({ errors: validationError.errors });
+        }
+        throw validationError;
+      }
+    } catch (error) {
+      console.error("Error updating commission:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Update a commission's status
   app.patch(`${apiPrefix}/commissions/:id/status`, async (req, res) => {
     try {

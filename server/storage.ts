@@ -1064,6 +1064,36 @@ export const storage = {
     });
   },
 
+  async updateCommission(
+    id: number,
+    data: Partial<Commission>
+  ): Promise<CommissionWithDetails | undefined> {
+    try {
+      // Always update the updatedAt timestamp
+      const updateData: Partial<Commission> = {
+        ...data,
+        updatedAt: new Date(),
+      };
+      
+      // Update the commission
+      const [updated] = await db
+        .update(commissions)
+        .set(updateData)
+        .where(eq(commissions.id, id))
+        .returning();
+      
+      if (!updated) {
+        return undefined;
+      }
+      
+      // Fetch the full commission with details to return
+      return await this.getCommissionById(id);
+    } catch (error) {
+      console.error("Error updating commission:", error);
+      throw error;
+    }
+  },
+  
   async updateCommissionStatus(
     id: number, 
     status: string,
