@@ -30,18 +30,12 @@ export default function Layout({ children }: LayoutProps) {
               <h1 className="ml-3 text-lg font-medium text-primary">BrokerCommissions</h1>
             </div>
             
-            <div className="flex items-center ml-auto space-x-4">
+            <div className="flex items-center ml-auto">
               <div className="relative">
                 <Button size="icon" variant="ghost">
                   <Bell className="h-5 w-5" />
                   <span className="sr-only">Notifications</span>
                 </Button>
-              </div>
-              <div className="hidden md:flex md:items-center">
-                <UserAvatar user={user} className="h-8 w-8" />
-                <span className="ml-2 text-sm font-medium text-foreground">
-                  {user?.firstName} {user?.lastName}
-                </span>
               </div>
             </div>
           </div>
