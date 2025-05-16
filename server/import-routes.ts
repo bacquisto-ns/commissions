@@ -75,7 +75,15 @@ router.post("/agencies", authenticate, authorizeAdmin, upload.single("file"), as
       fs.unlinkSync(req.file.path);
     }
     
-    return res.status(500).json({ message: "Error importing agencies" });
+    // Provide more specific error message if possible
+    const errorMessage = error instanceof Error 
+      ? `Error importing agencies: ${error.message}`
+      : "Error importing agencies";
+    
+    return res.status(500).json({ 
+      message: errorMessage,
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
@@ -121,7 +129,15 @@ router.post("/brokers", authenticate, authorizeAdmin, upload.single("file"), asy
       fs.unlinkSync(req.file.path);
     }
     
-    return res.status(500).json({ message: "Error importing brokers" });
+    // Provide more specific error message if possible
+    const errorMessage = error instanceof Error 
+      ? `Error importing brokers: ${error.message}`
+      : "Error importing brokers";
+    
+    return res.status(500).json({ 
+      message: errorMessage,
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
@@ -174,9 +190,35 @@ router.post("/commissions", authenticate, authorizeAdmin, upload.single("file"),
 // Helper function to import agencies
 async function importAgencies(agencies: any[]): Promise<number> {
   let importedCount = 0;
+  let errorCount = 0;
 
   for (const agencyData of agencies) {
     try {
+      // Validate required fields first
+      const requiredFields = ['name', 'address', 'city', 'state', 'zipCode'];
+      const missingFields = requiredFields.filter(field => 
+        !agencyData[field] || String(agencyData[field]).trim() === ''
+      );
+      
+      if (missingFields.length > 0) {
+        console.error(`Error importing agency: Missing required fields: ${missingFields.join(', ')}`);
+        errorCount++;
+        continue;
+      }
+      
+      // Additional field validations
+      if (agencyData.zipCode && !/^\d{5}(-\d{4})?$/.test(String(agencyData.zipCode))) {
+        console.error(`Error importing agency ${agencyData.name}: Invalid zip code format`);
+        errorCount++;
+        continue;
+      }
+      
+      if (agencyData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(agencyData.email))) {
+        console.error(`Error importing agency ${agencyData.name}: Invalid email format`);
+        errorCount++;
+        continue;
+      }
+      
       // Map CSV columns to agency schema
       const mappedData = {
         name: agencyData.name,
@@ -190,7 +232,7 @@ async function importAgencies(agencies: any[]): Promise<number> {
         active: agencyData.active === "true" || agencyData.active === "1" || true,
       };
 
-      // Validate data
+      // Validate data against schema
       const validatedData = agencyInsertSchema.parse(mappedData);
       
       // Create agency
@@ -198,24 +240,63 @@ async function importAgencies(agencies: any[]): Promise<number> {
       importedCount++;
     } catch (error) {
       console.error(`Error importing agency ${agencyData.name}:`, error);
+      errorCount++;
       // Continue with the next agency
     }
   }
 
+  console.log(`Import completed: ${importedCount} agencies imported, ${errorCount} failed`);
   return importedCount;
 }
 
 // Helper function to import brokers
 async function importBrokers(brokers: any[]): Promise<number> {
   let importedCount = 0;
+  let errorCount = 0;
 
   for (const brokerData of brokers) {
     try {
+      // Validate required fields first
+      const requiredFields = ['firstName', 'lastName', 'email', 'agencyId'];
+      const missingFields = requiredFields.filter(field => 
+        !brokerData[field] || String(brokerData[field]).trim() === ''
+      );
+      
+      if (missingFields.length > 0) {
+        console.error(`Error importing broker: Missing required fields: ${missingFields.join(', ')}`);
+        errorCount++;
+        continue;
+      }
+      
+      // Additional field validations
+      if (brokerData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(brokerData.email))) {
+        console.error(`Error importing broker ${brokerData.firstName} ${brokerData.lastName}: Invalid email format`);
+        errorCount++;
+        continue;
+      }
+      
+      if (brokerData.agencyId && isNaN(Number(brokerData.agencyId))) {
+        console.error(`Error importing broker ${brokerData.firstName} ${brokerData.lastName}: Agency ID must be a number`);
+        errorCount++;
+        continue;
+      }
+
+      // Check if agency exists
+      if (brokerData.agencyId) {
+        const agencyId = parseInt(brokerData.agencyId);
+        const agency = await storage.getAgencyById(agencyId);
+        if (!agency) {
+          console.error(`Error importing broker ${brokerData.firstName} ${brokerData.lastName}: Agency with ID ${agencyId} not found`);
+          errorCount++;
+          continue;
+        }
+      }
+      
       // Map CSV columns to broker schema
       const mappedData = {
         firstName: brokerData.firstName,
         lastName: brokerData.lastName,
-        email: brokerData.email || `${brokerData.firstName.toLowerCase()}.${brokerData.lastName.toLowerCase()}@example.com`,
+        email: brokerData.email,
         phoneNumber: brokerData.phone || brokerData.phoneNumber || "",
         agencyId: parseInt(brokerData.agencyId) || null,
         active: brokerData.active === "true" || brokerData.active === "1" || true,
@@ -223,7 +304,7 @@ async function importBrokers(brokers: any[]): Promise<number> {
         password: brokerData.password || "broker123", // Default password
       };
 
-      // Validate data
+      // Validate data against schema
       const validatedData = brokerInsertSchema.parse(mappedData);
       
       // Create broker
@@ -231,19 +312,60 @@ async function importBrokers(brokers: any[]): Promise<number> {
       importedCount++;
     } catch (error) {
       console.error(`Error importing broker ${brokerData.firstName} ${brokerData.lastName}:`, error);
+      errorCount++;
       // Continue with the next broker
     }
   }
 
+  console.log(`Import completed: ${importedCount} brokers imported, ${errorCount} failed`);
   return importedCount;
 }
 
 // Helper function to import commissions
 async function importCommissions(commissions: any[]): Promise<number> {
   let importedCount = 0;
+  let errorCount = 0;
 
   for (const commissionData of commissions) {
     try {
+      // Validate required fields first
+      const requiredFields = ['amount', 'transactionDate', 'transactionType', 'programName', 'programType', 'employerName'];
+      const missingFields = requiredFields.filter(field => 
+        !commissionData[field] || String(commissionData[field]).trim() === ''
+      );
+      
+      if (missingFields.length > 0) {
+        console.error(`Error importing commission: Missing required fields: ${missingFields.join(', ')}`);
+        errorCount++;
+        continue;
+      }
+      
+      // Additional field validations
+      if (commissionData.amount && isNaN(Number(commissionData.amount))) {
+        console.error(`Error importing commission: Amount must be a number`);
+        errorCount++;
+        continue;
+      }
+      
+      if (commissionData.transactionDate && !/^\d{4}-\d{2}-\d{2}$/.test(String(commissionData.transactionDate))) {
+        console.error(`Error importing commission: Transaction date must be in YYYY-MM-DD format`);
+        errorCount++;
+        continue;
+      }
+      
+      // Check if broker exists (if a broker is specified)
+      if (commissionData.brokerId) {
+        const brokerId = parseInt(commissionData.brokerId);
+        if (!isNaN(brokerId)) {
+          const broker = await storage.getBrokerById(brokerId);
+          if (!broker && brokerId > 0) {
+            console.error(`Error importing commission: Broker with ID ${brokerId} not found`);
+            errorCount++;
+            continue;
+          }
+        }
+      }
+      
       // Create organization, benefit program, transaction and commission
       const importData = {
         organization: {
@@ -276,7 +398,7 @@ async function importCommissions(commissions: any[]): Promise<number> {
         },
         commissions: [
           {
-            brokerId: parseInt(commissionData.brokerId),
+            brokerId: commissionData.brokerId ? parseInt(commissionData.brokerId) : null, // Allow null for unassigned
             splitPercentage: commissionData.splitPercentage || "100.00", // Default to 100% if not provided
             status: commissionData.status || "pending", // Default to pending if not provided
             notes: commissionData.notes || null,
@@ -290,10 +412,12 @@ async function importCommissions(commissions: any[]): Promise<number> {
       importedCount++;
     } catch (error) {
       console.error(`Error importing commission:`, error);
+      errorCount++;
       // Continue with the next commission
     }
   }
 
+  console.log(`Import completed: ${importedCount} commissions imported, ${errorCount} failed`);
   return importedCount;
 }
 
@@ -302,31 +426,55 @@ router.get("/templates/:type", (req: Request, res: Response) => {
   const templateType = req.params.type;
   
   let headers = "";
-  let sampleData = "";
+  let sampleRows = [];
+  let filename = `${templateType}-template.csv`;
   
   switch (templateType) {
     case "agencies":
-      headers = "name,address,city,state,zipCode,contactName,contactEmail,contactPhone,website,active";
-      sampleData = "ABC Insurance,123 Main St,New York,NY,10001,John Smith,john@example.com,555-123-4567,www.example.com,true";
+      headers = "name,address,city,state,zipCode,phone,email,website,active";
+      sampleRows = [
+        "ABC Insurance Agency,123 Main St,New York,NY,10001,555-123-4567,info@abcinsurance.com,www.abcinsurance.com,true",
+        "XYZ Benefits Group,456 Park Ave,Boston,MA,02108,555-987-6543,contact@xyzbenefits.com,www.xyzbenefits.com,true"
+      ];
       break;
     case "brokers":
       headers = "firstName,lastName,email,phone,agencyId,active,username,password";
-      sampleData = "John,Smith,john.smith@example.com,555-123-4567,1,true,johnsmith,password123";
+      sampleRows = [
+        "John,Smith,john.smith@example.com,555-123-4567,1,true,johnsmith,password123",
+        "Jane,Doe,jane.doe@example.com,555-987-6543,1,true,janedoe,password123",
+        "Michael,Johnson,michael.johnson@example.com,555-456-7890,2,true,michaelj,password123"
+      ];
       break;
     case "commissions":
-      headers = "brokerId,amount,status,transactionDate,transactionType,programName,programType,programGroup,employerName,employerAddress,employerCity,employerState,employerZipCode,participantCount,commissionRate,splitPercentage";
-      sampleData = "1,1000.00,pending,2023-01-15,enrollment,Employee Benefits,hsa,health,ACME Corp,100 Business Ave,Chicago,IL,60601,50,2.00,100.00";
+      headers = "amount,status,transactionDate,transactionType,programName,programType,employerName,brokerId,participantCount,commissionRate,splitPercentage";
+      sampleRows = [
+        "1000.00,pending,2023-01-15,enrollment,Employee HSA Plan,hsa,ACME Corp,1,50,2.00,100.00",
+        "750.00,pending,2023-01-20,renewal,COBRA Administration,cobra,Global Industries,2,35,2.50,100.00",
+        "500.00,pending,2023-01-25,adjustment,FSA Benefits,fsa,Sunshine LLC,,25,2.00,100.00"
+      ];
       break;
     default:
       return res.status(400).json({ message: "Invalid template type" });
   }
   
-    // Create the CSV content
-  const csvContent = headers + "\n" + sampleData;
+  // Create the CSV content with header and multiple sample rows
+  let csvContent = headers + "\n" + sampleRows.join("\n");
+  
+  // Add a comment line at the top explaining required fields
+  let requiredFields = "";
+  if (templateType === "agencies") {
+    requiredFields = "# Required fields: name, address, city, state, zipCode";
+  } else if (templateType === "brokers") {
+    requiredFields = "# Required fields: firstName, lastName, email, agencyId";
+  } else if (templateType === "commissions") {
+    requiredFields = "# Required fields: amount, transactionDate, transactionType, programName, programType, employerName";
+  }
+  
+  csvContent = requiredFields + "\n" + csvContent;
   
   // Send as an actual file using Express's download method
   res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="${templateType}-template.csv"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   
   // Send the CSV content
   return res.send(csvContent);
