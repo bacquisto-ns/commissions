@@ -7,6 +7,12 @@ import path from "path";
 import {
   agencyInsertSchema,
   brokerInsertSchema,
+  AgencyInsert,
+  BrokerInsert,
+  Organization,
+  BenefitProgram,
+  Transaction,
+  Commission
 } from "@shared/schema";
 import { authenticate, authorizeAdmin } from "./middleware/auth";
 

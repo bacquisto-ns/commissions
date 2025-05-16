@@ -103,6 +103,16 @@ function RouterContent() {
         } 
       />
       
+      <Route 
+        path="/import" 
+        component={() => 
+          <ProtectedRoute 
+            component={ImportPage} 
+            permission={Permissions.EDIT_COMMISSIONS} 
+          />
+        } 
+      />
+      
       <Route path="/reports" component={() => <ProtectedRoute component={Reports} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
       <Route component={NotFound} />
