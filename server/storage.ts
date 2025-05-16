@@ -432,7 +432,7 @@ export const storage = {
       .where(
         and(
           eq(commissions.status, "pending"),
-          sql`${commissions.brokerId} IN (${brokerIds.join(',')})`
+          inArray(commissions.brokerId, brokerIds)
         )
       );
     
@@ -446,7 +446,7 @@ export const storage = {
         commissions,
         eq(commissions.transactionId, transactions.id)
       )
-      .where(sql`${commissions.brokerId} IN (${brokerIds.join(',')})`)
+      .where(inArray(commissions.brokerId, brokerIds))
       .limit(1);
     
     // Count total transactions
@@ -459,7 +459,7 @@ export const storage = {
         commissions,
         eq(commissions.transactionId, transactions.id)
       )
-      .where(sql`${commissions.brokerId} IN (${brokerIds.join(',')})`);
+      .where(inArray(commissions.brokerId, brokerIds));
     
     // Get monthly earnings for current year
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
