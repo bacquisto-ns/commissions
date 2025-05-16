@@ -183,11 +183,50 @@ export default function Commissions() {
               <Input
                 type="search"
                 placeholder="Search commissions..."
-                className="pl-8 w-full sm:w-[250px]"
+                className="pl-8 w-full sm:w-[200px]"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            
+            {/* Employer Name Filter */}
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Employer name..."
+                className="w-full sm:w-[200px]"
+                value={employerName}
+                onChange={(e) => setEmployerName(e.target.value)}
+              />
+            </div>
+            
+            {/* Transaction Type Filter */}
+            <Select value={transactionType} onValueChange={setTransactionType}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Transaction type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="enrollment">Enrollment</SelectItem>
+                <SelectItem value="renewal">Renewal</SelectItem>
+                <SelectItem value="adjustment">Adjustment</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Product Type Filter */}
+            <Select value={productType} onValueChange={setProductType}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Product type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Products</SelectItem>
+                <SelectItem value="hsa">HSA</SelectItem>
+                <SelectItem value="fsa">FSA</SelectItem>
+                <SelectItem value="cobra">COBRA</SelectItem>
+                <SelectItem value="hra">HRA</SelectItem>
+                <SelectItem value="consolidated_billing">Consolidated Billing</SelectItem>
+              </SelectContent>
+            </Select>
             
             <Popover>
               <PopoverTrigger asChild>
@@ -206,12 +245,15 @@ export default function Commissions() {
               </PopoverContent>
             </Popover>
             
-            {(searchQuery || date) && (
+            {(searchQuery || date || employerName || transactionType !== "all" || productType !== "all") && (
               <Button 
                 variant="ghost" 
                 onClick={() => {
                   setSearchQuery("");
                   setDate(undefined);
+                  setEmployerName("");
+                  setTransactionType("all");
+                  setProductType("all");
                 }}
               >
                 Clear Filters

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { 
   Select, 
@@ -19,27 +20,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Check, AlertCircle } from "lucide-react";
+import { Check, AlertCircle, UserPlus } from "lucide-react";
 
 interface BulkActionBarProps {
   selectedIds: number[];
   onApproveSelected: () => void;
   onClearSelection: () => void;
+  onAssignBroker?: (brokerId: number) => void;
+  brokers?: any[]; // List of brokers for assignment
 }
 
 export function BulkActionBar({ 
   selectedIds, 
   onApproveSelected,
-  onClearSelection
+  onClearSelection,
+  onAssignBroker,
+  brokers = []
 }: BulkActionBarProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showBrokerDialog, setShowBrokerDialog] = useState(false);
   const [selectedAction, setSelectedAction] = useState<string | undefined>(undefined);
+  const [selectedBrokerId, setSelectedBrokerId] = useState<number | undefined>(undefined);
+  
+  // For broker selection - will be fetched in the parent component
+  const brokers: any[] = [];
   
   const handleActionSelect = (action: string) => {
     setSelectedAction(action);
     
     if (action === "approve") {
       setShowConfirmDialog(true);
+    } else if (action === "assign_broker") {
+      setShowBrokerDialog(true);
     }
   };
   
@@ -50,6 +62,14 @@ export function BulkActionBar({
     
     setShowConfirmDialog(false);
     setSelectedAction(undefined);
+  };
+  
+  const handleBrokerAssign = () => {
+    if (selectedBrokerId && onAssignBroker) {
+      onAssignBroker(selectedBrokerId);
+      setShowBrokerDialog(false);
+      setSelectedBrokerId(undefined);
+    }
   };
   
   if (selectedIds.length === 0) return null;
