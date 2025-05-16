@@ -4,6 +4,13 @@ import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 // Enums
+export const userRoleEnum = pgEnum("user_role", [
+  "admin",
+  "system_admin",
+  "agency_admin",
+  "broker"
+]);
+
 export const benefitProgramTypeEnum = pgEnum("benefit_program_type", [
   "hsa",
   "fsa",

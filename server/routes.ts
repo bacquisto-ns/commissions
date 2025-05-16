@@ -25,18 +25,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       username = username.trim().replace(/^["']|["']$/g, '');
     }
 
-    console.log("Login attempt cleaned:", username);
+    console.log("Login attempt:", username);
     
     try {
+      // Import the authentication module
+      const { authenticateSystemUser, getSystemUserById } = await import("@shared/auth");
+      
+      // First try to authenticate against system users (admin)
+      const systemUser = authenticateSystemUser(username, password);
+      
+      if (systemUser) {
+        // Authenticated as system user (admin)
+        console.log(`Authenticated as system user: ${systemUser.username} (${systemUser.role})`);
+        
+        // Set session data
+        req.session.userId = systemUser.id;
+        req.session.userRole = systemUser.role;
+        req.session.isSystemUser = true;
+        
+        // Return user details
+        return res.json({
+          success: true,
+          user: {
+            ...systemUser,
+            password: undefined
+          }
+        });
+      }
+      
+      // If not a system user, fall back to regular broker authentication
       let userId = 7; // Default to Sarah Johnson
       let userRole = 'broker';
       
-      // Simple demo authentication logic
-      if (typeof username === 'string' && username.toLowerCase() === 'admin') {
-        userId = 13;
-        userRole = 'admin';
-        console.log("Logged in as admin");
-      } else if (typeof username === 'string' && username.toLowerCase() === 'systemadmin') {
+      // Simple demo authentication logic for regular users
+      if (typeof username === 'string' && username.toLowerCase() === 'systemadmin') {
         userId = 10;
         userRole = 'system_admin';
       } else if (typeof username === 'string' && username.toLowerCase() === 'broker') {
@@ -47,9 +69,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userRole = 'agency_admin';
       }
       
-      // Set session data
+      // Set session data for regular users
       req.session.userId = userId;
       req.session.userRole = userRole;
+      req.session.isSystemUser = false;
       
       // Get user details from storage
       const user = await storage.getBrokerById(userId);

@@ -19,14 +19,40 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   if (req.path === '/api/brokers/me') {
     // Get userId from session
     const userId = req.session?.userId;
+    const isSystemUser = req.session?.isSystemUser || false;
     
     if (!userId) {
       console.log('No user session found for /api/brokers/me');
       return res.status(401).json({ message: 'Authentication required' });
     }
-    
+
     try {
-      // Fetch broker from database using session userId
+      // If this is a system user (permanent admin)
+      if (isSystemUser) {
+        const { getSystemUserById } = await import("@shared/auth");
+        const systemUser = getSystemUserById(userId);
+        
+        if (!systemUser) {
+          console.log(`System user not found with ID ${userId}`);
+          return res.status(404).json({ message: 'User not found' });
+        }
+        
+        // Use system user data
+        req.broker = {
+          id: systemUser.id,
+          username: systemUser.username,
+          firstName: systemUser.firstName,
+          lastName: systemUser.lastName,
+          email: systemUser.email,
+          active: systemUser.isActive,
+          agencyId: null
+        };
+        req.userRole = systemUser.role;
+        
+        return next();
+      }
+      
+      // Otherwise, fetch broker from database using session userId
       const broker = await db.query.brokers.findFirst({
         where: eq(brokers.id, userId),
       });
