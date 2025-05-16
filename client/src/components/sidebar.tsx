@@ -90,7 +90,7 @@ export default function Sidebar({ className }: SidebarProps) {
               }
               
               return (
-                <Link
+                <a
                   key={route.href}
                   href={route.href}
                   className={cn(
@@ -102,7 +102,7 @@ export default function Sidebar({ className }: SidebarProps) {
                 >
                   {route.icon}
                   {route.label}
-                </Link>
+                </a>
               );
             })}
           </nav>
