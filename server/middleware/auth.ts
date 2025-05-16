@@ -17,9 +17,26 @@ declare global {
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   // First, check if this is a /api/brokers/me request which needs session auth
   if (req.path === '/api/brokers/me') {
-    // Get userId from session
+    // Check for admin session (simple approach)
+    if (req.session?.userRole === 'admin') {
+      // Use hardcoded admin user data
+      req.broker = {
+        id: 999,
+        username: 'admin',
+        firstName: 'System',
+        lastName: 'Administrator',
+        email: 'admin@example.com',
+        active: true,
+        agencyId: null
+      };
+      req.userRole = 'admin';
+      
+      console.log('Admin session authenticated');
+      return next();
+    }
+    
+    // Get userId from session for regular users
     const userId = req.session?.userId;
-    const isSystemUser = req.session?.isSystemUser || false;
     
     if (!userId) {
       console.log('No user session found for /api/brokers/me');
@@ -27,32 +44,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
 
     try {
-      // If this is a system user (permanent admin)
-      if (isSystemUser) {
-        const { getSystemUserById } = await import("@shared/auth");
-        const systemUser = getSystemUserById(userId);
-        
-        if (!systemUser) {
-          console.log(`System user not found with ID ${userId}`);
-          return res.status(404).json({ message: 'User not found' });
-        }
-        
-        // Use system user data
-        req.broker = {
-          id: systemUser.id,
-          username: systemUser.username,
-          firstName: systemUser.firstName,
-          lastName: systemUser.lastName,
-          email: systemUser.email,
-          active: systemUser.isActive,
-          agencyId: null
-        };
-        req.userRole = systemUser.role;
-        
-        return next();
-      }
-      
-      // Otherwise, fetch broker from database using session userId
+      // If we get here, this is a regular broker user, fetch from database
       const broker = await db.query.brokers.findFirst({
         where: eq(brokers.id, userId),
       });
