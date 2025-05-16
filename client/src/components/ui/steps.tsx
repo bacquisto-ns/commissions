@@ -61,9 +61,9 @@ export function Steps({ children, currentStep, className }: StepsProps) {
             {/* Clone the child with additional props */}
             {React.isValidElement(child) 
               ? React.cloneElement(child, {
-                  status,
+                  status: status,
                   stepNumber,
-                })
+                } as any)
               : child}
           </div>
         );

@@ -13,7 +13,7 @@ import { Steps, Step } from "@/components/ui/steps";
 import { FileImport } from "@/components/file-import";
 
 export default function EnhancedImport() {
-  const [activeTab, setActiveTab] = useState("agencies");
+  const [activeTab, setActiveTab] = useState<"agencies" | "brokers" | "commissions">("agencies");
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -32,111 +32,11 @@ export default function EnhancedImport() {
     commissions: ['amount', 'transactionDate', 'transactionType', 'programName', 'programType', 'employerName']
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
-      parseCSV(selectedFile);
-      setImportStatus('idle');
-      setImportMessage("");
-      setCurrentStep(1);
-    }
-  };
-
-  const parseCSV = (file: File) => {
-    setIsLoading(true);
-    setValidationErrors({});
-    
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const data = results.data as any[];
-        if (data.length > 0) {
-          const headers = Object.keys(data[0]);
-          setHeaders(headers);
-          setParsedData(data);
-          validateData(data, headers);
-        } else {
-          setParsedData([]);
-          setHeaders([]);
-          toast({
-            title: "Empty file",
-            description: "The uploaded CSV file contains no data",
-            variant: "destructive",
-          });
-        }
-        setIsLoading(false);
-      },
-      error: (error) => {
-        console.error("CSV Parse Error:", error);
-        setIsLoading(false);
-        toast({
-          title: "Parse error",
-          description: "Failed to parse the CSV file. Please check the format.",
-          variant: "destructive",
-        });
-      }
-    });
-  };
-
-  const validateData = (data: any[], headers: string[]) => {
-    const errors: Record<number, string[]> = {};
-    const required = requiredFields[activeTab as keyof typeof requiredFields] || [];
-    
-    // Check for required fields in headers
-    const missingFields = required.filter(field => !headers.includes(field));
-    if (missingFields.length > 0) {
-      toast({
-        title: "Missing required fields",
-        description: `The CSV is missing required fields: ${missingFields.join(', ')}`,
-        variant: "destructive",
-      });
-    }
-    
-    // Validate each row
-    data.forEach((row, index) => {
-      const rowErrors: string[] = [];
-      
-      // Check required fields
-      required.forEach(field => {
-        if (!row[field] || row[field].trim() === '') {
-          rowErrors.push(`Missing required field: ${field}`);
-        }
-      });
-      
-      // Add type-specific validations
-      if (activeTab === 'agencies') {
-        if (row.zipCode && !/^\d{5}(-\d{4})?$/.test(row.zipCode)) {
-          rowErrors.push('Invalid zip code format');
-        }
-      }
-      
-      if (activeTab === 'brokers') {
-        if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
-          rowErrors.push('Invalid email format');
-        }
-        if (row.agencyId && isNaN(Number(row.agencyId))) {
-          rowErrors.push('Agency ID must be a number');
-        }
-      }
-      
-      if (activeTab === 'commissions') {
-        if (row.amount && isNaN(Number(row.amount))) {
-          rowErrors.push('Amount must be a number');
-        }
-        if (row.transactionDate && !/^\d{4}-\d{2}-\d{2}$/.test(row.transactionDate)) {
-          rowErrors.push('Transaction date must be in YYYY-MM-DD format');
-        }
-      }
-      
-      if (rowErrors.length > 0) {
-        errors[index] = rowErrors;
-      }
-    });
-    
+  const handleDataParsed = (data: any[], fileHeaders: string[], errors: Record<number, string[]>) => {
+    setParsedData(data);
+    setHeaders(fileHeaders);
     setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    setCurrentStep(1);
   };
 
   const proceedToConfirmation = () => {
@@ -232,6 +132,12 @@ export default function EnhancedImport() {
     setValidationErrors({});
     setImportProgress(0);
   };
+  
+  const onTabChange = (value: string) => {
+    // Cast is safe because we control the tab values
+    setActiveTab(value as "agencies" | "brokers" | "commissions");
+    resetImport();
+  };
 
   return (
     <>
@@ -247,10 +153,7 @@ export default function EnhancedImport() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(value) => {
-          setActiveTab(value);
-          resetImport();
-        }}>
+        <Tabs value={activeTab} onValueChange={onTabChange}>
           <TabsList className="mb-4">
             <TabsTrigger value="agencies">Agencies</TabsTrigger>
             <TabsTrigger value="brokers">Brokers</TabsTrigger>
@@ -259,11 +162,8 @@ export default function EnhancedImport() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                {activeTab === "agencies" && "Import Agencies"}
-                {activeTab === "brokers" && "Import Brokers"}
-                {activeTab === "commissions" && "Import Commissions"}
+              <CardTitle>
+                Import {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
               </CardTitle>
               <CardDescription>
                 Import your data in three simple steps: upload, validate, and import.
@@ -279,64 +179,21 @@ export default function EnhancedImport() {
               
               {currentStep === 1 && (
                 <div className="space-y-6">
-                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Drag and drop your CSV file here, or click to browse
-                      </p>
-                      <Input
-                        type="file"
-                        accept=".csv"
-                        onChange={handleFileChange}
-                        className="w-full max-w-xs"
-                      />
-                      {file && (
-                        <p className="text-sm text-primary mt-2">
-                          Selected file: {file.name}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Format information */}
-                  <div className="bg-muted rounded-lg p-4">
-                    <h3 className="font-medium mb-2">CSV Format Guidelines</h3>
-                    {activeTab === "agencies" && (
-                      <p className="text-sm">
-                        Required columns: name, address, city, state, zipCode
-                      </p>
-                    )}
-                    {activeTab === "brokers" && (
-                      <p className="text-sm">
-                        Required columns: firstName, lastName, email, agencyId
-                      </p>
-                    )}
-                    {activeTab === "commissions" && (
-                      <p className="text-sm">
-                        Required columns: amount, transactionDate, transactionType, programName, programType, employerName
-                      </p>
-                    )}
-                    <p className="text-sm mt-2">
-                      <a
-                        href={`/api/import/templates/${activeTab}`}
-                        download={`${activeTab}-template.csv`}
-                        className="text-primary hover:underline"
-                      >
-                        Download template
-                      </a>
-                    </p>
-                  </div>
-                  
-                  {/* Preview data if file is uploaded */}
+                  <FileImport
+                    type={activeTab}
+                    onDataParsed={handleDataParsed}
+                    requiredFields={requiredFields[activeTab]}
+                  />
                   {parsedData.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="font-medium mb-4">Data Preview</h3>
-                      <ImportPreviewTable 
-                        headers={headers}
-                        data={parsedData}
-                        validationErrors={validationErrors}
-                      />
+                    <div className="flex justify-end">
+                      <Button 
+                        onClick={proceedToConfirmation} 
+                        disabled={parsedData.length === 0 || Object.keys(validationErrors).length > 0}
+                        className="flex items-center gap-2"
+                      >
+                        Proceed to Review
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
                     </div>
                   )}
                 </div>
