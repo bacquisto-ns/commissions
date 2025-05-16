@@ -98,6 +98,12 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
   }
   
+  // Check for user session - this is important for admin operations
+  if (req.session?.userRole === 'admin') {
+    req.userRole = 'admin';
+    return next();
+  }
+  
   // Skip auth for non-protected routes
   if (
     req.method === 'GET' || 
