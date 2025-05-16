@@ -1,151 +1,53 @@
-// Define roles and their hierarchy
-export enum UserRole {
-  BROKER = 'broker',
-  AGENCY_ADMIN = 'agency_admin',
-  SYSTEM_ADMIN = 'system_admin',
-  ADMIN = 'admin', // Full access administrator role
-}
-
-// Define permissions as string constants
+// Define permissions as constants to avoid typos
 export const Permissions = {
-  // Agency permissions
-  VIEW_AGENCIES: 'view_agencies',
-  CREATE_AGENCY: 'create_agency',
-  EDIT_AGENCY: 'edit_agency',
-  
-  // Broker permissions
-  VIEW_BROKERS: 'view_brokers',
-  CREATE_BROKER: 'create_broker',
-  EDIT_BROKER: 'edit_broker',
-  EDIT_OWN_PROFILE: 'edit_own_profile',
-  
-  // Commission permissions
+  VIEW_DASHBOARD: 'view_dashboard',
   VIEW_COMMISSIONS: 'view_commissions',
-  CREATE_COMMISSION: 'create_commission',
-  APPROVE_COMMISSION: 'approve_commission',
-  
-  // Product and Structure permissions
+  EDIT_COMMISSIONS: 'edit_commissions',
+  VIEW_BROKERS: 'view_brokers',
+  EDIT_BROKERS: 'edit_brokers',
+  VIEW_AGENCIES: 'view_agencies',
+  EDIT_AGENCIES: 'edit_agencies',
   MANAGE_PRODUCTS: 'manage_products',
   MANAGE_COMMISSION_STRUCTURES: 'manage_commission_structures',
-  
-  // Dashboard permissions
-  VIEW_DASHBOARD: 'view_dashboard',
-  VIEW_AGENCY_DASHBOARD: 'view_agency_dashboard',
-  VIEW_SYSTEM_DASHBOARD: 'view_system_dashboard',
+  VIEW_REPORTS: 'view_reports',
+  MANAGE_SYSTEM_SETTINGS: 'manage_system_settings',
 };
 
-// Define what permissions each role has
-const rolePermissions: Record<UserRole, string[]> = {
-  [UserRole.BROKER]: [
-    Permissions.VIEW_AGENCIES,
-    Permissions.VIEW_BROKERS,
-    Permissions.EDIT_OWN_PROFILE,
-    Permissions.VIEW_COMMISSIONS,
-    Permissions.CREATE_COMMISSION,
+// Map roles to their permissions
+export const RolePermissions: Record<string, string[]> = {
+  admin: Object.values(Permissions),
+  system_admin: [
     Permissions.VIEW_DASHBOARD,
-  ],
-  [UserRole.AGENCY_ADMIN]: [
-    Permissions.VIEW_AGENCIES,
-    Permissions.VIEW_BROKERS,
-    Permissions.CREATE_BROKER,
-    Permissions.EDIT_BROKER,
-    Permissions.EDIT_OWN_PROFILE,
     Permissions.VIEW_COMMISSIONS,
-    Permissions.CREATE_COMMISSION,
-    Permissions.APPROVE_COMMISSION,
-    Permissions.VIEW_DASHBOARD,
-    Permissions.VIEW_AGENCY_DASHBOARD,
-  ],
-  [UserRole.SYSTEM_ADMIN]: [
-    Permissions.VIEW_AGENCIES,
-    Permissions.CREATE_AGENCY,
-    Permissions.EDIT_AGENCY,
+    Permissions.EDIT_COMMISSIONS,
     Permissions.VIEW_BROKERS,
-    Permissions.CREATE_BROKER,
-    Permissions.EDIT_BROKER,
-    Permissions.EDIT_OWN_PROFILE,
-    Permissions.VIEW_COMMISSIONS,
-    Permissions.CREATE_COMMISSION,
-    Permissions.APPROVE_COMMISSION,
+    Permissions.EDIT_BROKERS,
+    Permissions.VIEW_AGENCIES,
+    Permissions.EDIT_AGENCIES,
     Permissions.MANAGE_PRODUCTS,
     Permissions.MANAGE_COMMISSION_STRUCTURES,
-    Permissions.VIEW_DASHBOARD,
-    Permissions.VIEW_AGENCY_DASHBOARD,
-    Permissions.VIEW_SYSTEM_DASHBOARD,
+    Permissions.VIEW_REPORTS,
   ],
-  [UserRole.ADMIN]: [
-    // Admin has ALL permissions
-    Permissions.VIEW_AGENCIES,
-    Permissions.CREATE_AGENCY,
-    Permissions.EDIT_AGENCY,
-    Permissions.VIEW_BROKERS,
-    Permissions.CREATE_BROKER,
-    Permissions.EDIT_BROKER,
-    Permissions.EDIT_OWN_PROFILE,
-    Permissions.VIEW_COMMISSIONS,
-    Permissions.CREATE_COMMISSION,
-    Permissions.APPROVE_COMMISSION,
-    Permissions.MANAGE_PRODUCTS,
-    Permissions.MANAGE_COMMISSION_STRUCTURES,
+  agency_admin: [
     Permissions.VIEW_DASHBOARD,
-    Permissions.VIEW_AGENCY_DASHBOARD,
-    Permissions.VIEW_SYSTEM_DASHBOARD,
+    Permissions.VIEW_COMMISSIONS,
+    Permissions.VIEW_BROKERS,
+    Permissions.VIEW_AGENCIES,
+    Permissions.VIEW_REPORTS,
+  ],
+  broker: [
+    Permissions.VIEW_DASHBOARD,
+    Permissions.VIEW_COMMISSIONS,
   ],
 };
 
 // Check if a role has a specific permission
-export function hasPermission(role: UserRole | string | null | undefined, permission: string): boolean {
-  if (!role) return false;
+export function hasPermission(role: string, permission: string): boolean {
+  if (!role || !permission) return false;
   
-  const userRole = role as UserRole;
-  return rolePermissions[userRole]?.includes(permission) || false;
-}
-
-// Check if a user can access a specific broker's data
-export function canAccessBroker(
-  currentUser: { id: number; role: string; agencyId?: number | null },
-  targetBrokerId: number,
-  targetBrokerAgencyId?: number | null
-): boolean {
-  // Admin and system admins can access all brokers
-  if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SYSTEM_ADMIN) {
-    return true;
-  }
+  // Admin has all permissions
+  if (role === 'admin') return true;
   
-  // Agency admins can access brokers in their agency
-  if (
-    currentUser.role === UserRole.AGENCY_ADMIN && 
-    currentUser.agencyId && 
-    targetBrokerAgencyId === currentUser.agencyId
-  ) {
-    return true;
-  }
-  
-  // Brokers can only access themselves
-  if (currentUser.role === UserRole.BROKER && currentUser.id === targetBrokerId) {
-    return true;
-  }
-  
-  return false;
-}
-
-// Check if a user can access a specific agency's data
-export function canAccessAgency(
-  currentUser: { role: string; agencyId?: number | null },
-  targetAgencyId: number
-): boolean {
-  // Admin and system admins can access all agencies
-  if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SYSTEM_ADMIN) {
-    return true;
-  }
-  
-  // Agency admins and brokers can only access their own agency
-  if (
-    (currentUser.role === UserRole.AGENCY_ADMIN || currentUser.role === UserRole.BROKER) && 
-    currentUser.agencyId === targetAgencyId
-  ) {
-    return true;
-  }
-  
-  return false;
+  // Check if the role exists and has the permission
+  return RolePermissions[role]?.includes(permission) || false;
 }

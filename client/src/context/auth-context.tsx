@@ -1,256 +1,117 @@
-import { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { UserRole, Permissions, hasPermission } from '@/lib/permissions';
-import { useLocation, useRoute } from 'wouter';
+import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import { useLocation } from 'wouter';
 
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  error: Error | null;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
-  switchRole: (brokerId: number) => Promise<void>;
-  hasPermission: (permission: string) => boolean;
-  isAuthenticated: boolean;
-}
-
-export interface User {
+interface User {
   id: number;
   username: string;
   firstName: string;
   lastName: string;
   email: string;
-  role: UserRole;
-  agencyId: number | null;
-  agencyName?: string;
-  image?: string;
-  permissions?: string[];
+  role: string;
+  status: string;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+}
 
-// Get stored auth from localStorage
-const getStoredAuth = (): User | null => {
-  const stored = localStorage.getItem('auth_user');
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error('Failed to parse stored auth', e);
-      localStorage.removeItem('auth_user');
-    }
-  }
-  return null;
-};
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+  login: async () => false,
+  logout: async () => {},
+});
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  // Initialize from localStorage
-  const [user, setUser] = useState<User | null>(getStoredAuth());
-  const [, navigate] = useLocation();
-  const queryClient = useQueryClient();
-  
-  // Use this query to check if the session is valid on page load
-  const { data, isLoading, error } = useQuery<User>({
-    queryKey: ['/api/brokers/me'],
-    retry: false,
-    // Only run if we already have a user (to verify token validity) or if we're loading from localStorage
-    enabled: !!user || !!getStoredAuth()
-  });
+export const useAuth = () => useContext(AuthContext);
 
-  // Store auth state in localStorage when it changes
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [, setLocation] = useLocation();
+
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('auth_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('auth_user');
-    }
-  }, [user]);
-
-  // Update user when data changes (backend verification)
-  useEffect(() => {
-    if (data) {
-      // Determine role based on broker ID
-      let role = UserRole.BROKER;
-      
-      // Admin (ID 13)
-      if (data.id === 13) {
-        role = UserRole.ADMIN;
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/user');
+        
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      // System admin (ID 10)
-      else if (data.id === 10) {
-        role = UserRole.SYSTEM_ADMIN;
-      } 
-      // Agency admin (ID 7)
-      else if (data.id === 7) {
-        role = UserRole.AGENCY_ADMIN;
-      }
-      
-      const userWithRole = {
-        ...data,
-        role,
-      };
-      setUser(userWithRole);
-    }
-  }, [data]);
+    };
 
-  // Login function that authenticates the user
-  const login = async (username: string, password: string) => {
-    console.log("Login attempted with:", username);
+    fetchCurrentUser();
+  }, []);
+
+  const login = async (username: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
     
     try {
-      // Clear any existing user data first to ensure clean state
-      setUser(null);
-      localStorage.removeItem('auth_user');
-      
-      // Make API request to backend
-      const response = await fetch('/api/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username, password }),
-        credentials: 'include', // Include cookies for session
       });
-      
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-      
+
       const data = await response.json();
-      
-      if (!data.success || !data.user) {
-        throw new Error('Invalid response from server');
+
+      if (response.ok && data.success) {
+        setUser(data.user);
+        return true;
       }
       
-      console.log("Login successful:", data.user);
-      
-      // Transform server role to UserRole enum
-      let role = UserRole.BROKER;
-      switch (data.user.role) {
-        case 'admin':
-          role = UserRole.ADMIN;
-          break;
-        case 'system_admin':
-          role = UserRole.SYSTEM_ADMIN;
-          break;
-        case 'agency_admin':
-          role = UserRole.AGENCY_ADMIN;
-          break;
-        default:
-          role = UserRole.BROKER;
-      }
-      
-      const userData: User = {
-        ...data.user,
-        role
-      };
-      
-      // Update user state
-      console.log("Setting user data:", userData);
-      setUser(userData);
-      
-      // Store in localStorage
-      localStorage.setItem('auth_user', JSON.stringify(userData));
-      
-      // Redirect to dashboard
-      navigate("/");
+      return false;
     } catch (error) {
-      console.error("Login error:", error);
-      throw error;
+      console.error('Login error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Logout function
-  const logout = async () => {
-    console.log("Logging out");
-    
+  const logout = async (): Promise<void> => {
     try {
-      // Call logout endpoint
-      await fetch('/api/logout', {
+      await fetch('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include',
-      });
-    } catch (error) {
-      console.error("Logout API error:", error);
-    }
-    
-    // Always clear client-side data regardless of API success
-    // Clear user data
-    setUser(null);
-    
-    // Clear localStorage
-    localStorage.removeItem('auth_user');
-    
-    // Clear cached queries
-    queryClient.clear();
-    
-    // Redirect to login after a small delay to ensure state updates
-    setTimeout(() => {
-      console.log("Redirecting to login");
-      navigate("/login");
-    }, 100);
-  };
-
-  // Check if user has a specific permission
-  const checkPermission = (permission: string): boolean => {
-    if (!user) return false;
-    return hasPermission(user.role, permission);
-  };
-
-  // Switch to a different broker ID (for demo purposes)
-  const switchRole = async (brokerId: number) => {
-    try {
-      // Fetch broker info based on ID
-      const response = await fetch(`/api/brokers/${brokerId}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch broker with ID ${brokerId}`);
-      }
-      
-      const brokerData = await response.json();
-      
-      // Determine role based on broker ID
-      let role = UserRole.BROKER;
-      if (brokerId === 13) {
-        role = UserRole.ADMIN;
-      } else if (brokerId === 10) {
-        role = UserRole.SYSTEM_ADMIN;
-      } else if (brokerId === 7) {
-        role = UserRole.AGENCY_ADMIN;
-      }
-      
-      // Set user with proper role
-      setUser({
-        ...brokerData,
-        role,
       });
       
-      // Redirect to dashboard
-      navigate("/");
+      setUser(null);
+      setLocation('/login');
     } catch (error) {
-      console.error("Error switching roles:", error);
+      console.error('Logout error:', error);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isLoading, 
-      error, 
-      login, 
-      logout, 
-      switchRole,
-      hasPermission: checkPermission,
-      isAuthenticated: !!user,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+};

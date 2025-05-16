@@ -21,7 +21,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/auth-context";
-import { UserRole, Permissions } from "@/lib/permissions";
+import { Permissions, hasPermission } from "@/lib/permissions";
 
 interface SidebarProps {
   className?: string;
@@ -32,7 +32,7 @@ export default function Sidebar({ className }: SidebarProps) {
   const isMobile = useMobile();
   
   // Get authenticated user from auth context
-  const { user, hasPermission, logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const routes = [
     {
