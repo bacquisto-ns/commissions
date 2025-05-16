@@ -97,9 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // In a real app, this would make a request to your backend
     // For this demo, we'll simulate different users based on username
     
+    console.log("Login attempted with:", username);
+    
     let userData: User;
     
-    if (username.toLowerCase() === 'admin' || username.toLowerCase() === 'adminuser') {
+    // Strict check to ensure admin login works properly
+    if (username.toLowerCase() === 'admin') {
+      console.log("Logging in as admin");
+      
       userData = {
         id: 13,
         username: 'adminuser',
@@ -130,6 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         agencyId: 2,
       };
     } else {
+      console.log("Defaulting to Sarah Johnson");
+      
       // Default to Sarah Johnson (Agency Admin)
       userData = {
         id: 7,
@@ -142,23 +149,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     }
     
-    // Store user data
-    setUser(userData);
+    // Clear any existing user data first to ensure clean state
+    setUser(null);
     
-    // Redirect to dashboard
-    navigate("/");
+    // Then set the new user data with a slight delay to ensure state update
+    setTimeout(() => {
+      console.log("Setting user data:", userData);
+      setUser(userData);
+      
+      // Redirect to dashboard
+      navigate("/");
+    }, 100);
   };
 
   // Logout function
   const logout = () => {
+    console.log("Logging out");
+    
     // Clear user data
     setUser(null);
+    
+    // Clear localStorage
+    localStorage.removeItem('auth_user');
     
     // Clear cached queries
     queryClient.clear();
     
-    // Redirect to login
-    navigate("/login");
+    // Redirect to login after a small delay to ensure state updates
+    setTimeout(() => {
+      console.log("Redirecting to login");
+      navigate("/login");
+    }, 100);
   };
 
   // Check if user has a specific permission
