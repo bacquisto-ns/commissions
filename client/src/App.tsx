@@ -9,6 +9,7 @@ import Dashboard from "./pages/dashboard";
 import Commissions from "./pages/commissions";
 import CommissionDetails from "./pages/commission-details";
 import NewCommission from "./pages/new-commission";
+import EditCommission from "./pages/edit-commission";
 import Brokers from "./pages/brokers";
 import Agencies from "./pages/agencies";
 import AgencyDashboard from "./pages/agency-dashboard";
@@ -51,6 +52,7 @@ function RouterContent() {
       <Route path="/commissions" component={() => <ProtectedRoute component={Commissions} />} />
       <Route path="/commissions/new" component={() => <ProtectedRoute component={NewCommission} />} />
       <Route path="/commissions/:id" component={() => <ProtectedRoute component={CommissionDetails} />} />
+      <Route path="/commissions/:id/edit" component={() => <ProtectedRoute component={EditCommission} />} />
       
       {/* Protected admin routes - require specific permissions */}
       <Route 
