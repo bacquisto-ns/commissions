@@ -171,8 +171,8 @@ export default function ImportPage() {
                   )}
                   <p className="text-sm mt-2">
                     <a
-                      href={`/templates/${activeTab}-template.csv`}
-                      download
+                      href={`/api/import/templates/${activeTab}`}
+                      download={`${activeTab}-template.csv`}
                       className="text-primary hover:underline"
                     >
                       Download template
