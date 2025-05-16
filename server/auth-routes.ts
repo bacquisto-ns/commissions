@@ -2,8 +2,33 @@ import { Router, Request, Response } from "express";
 import { db } from "@db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 
 const router = Router();
+
+// Configure session middleware for the entire app
+export const configureSession = (app: any) => {
+  const PgSession = connectPgSimple(session);
+  const sessionConfig = {
+    store: new PgSession({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true,
+      tableName: 'sessions'
+    }),
+    secret: process.env.SESSION_SECRET || 'broker-commissions-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true,
+      secure: false, // Don't require HTTPS in development
+      sameSite: 'lax' as const
+    }
+  };
+  
+  app.use(session(sessionConfig));
+};
 
 // Login endpoint
 router.post("/login", async (req: Request, res: Response) => {

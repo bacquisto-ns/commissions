@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
-import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { configureSession } from "./auth-routes";
 
 // Custom express session type
 declare module 'express-session' {
@@ -16,16 +16,8 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Add session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'broker-commissions-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: false, // Set to true if using HTTPS
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+// Configure session
+configureSession(app);
 
 app.use((req, res, next) => {
   const start = Date.now();
