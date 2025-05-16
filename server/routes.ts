@@ -13,12 +13,24 @@ import {
 } from "@shared/schema";
 import { authenticate, authorizeAdmin, authorize } from "./middleware/auth";
 import authRoutes from "./auth-routes";
+import importRoutes from "./import-routes";
+import fs from "fs";
+import path from "path";
 
 const apiPrefix = "/api";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Use our auth routes
   app.use(`${apiPrefix}/auth`, authRoutes);
+  
+  // Register import routes
+  app.use(`${apiPrefix}/import`, importRoutes);
+  
+  // Create upload directory if it doesn't exist
+  const uploadDir = path.join(process.cwd(), 'temp/uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
 
   // --- Broker Routes ---
   
