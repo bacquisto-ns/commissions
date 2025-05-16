@@ -1,10 +1,10 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
-import { AuthProvider } from "./context/auth-context";
+import { AuthProvider, useAuth } from "./context/auth-context";
 import { Permissions } from "./lib/permissions";
 import Layout from "./components/layout";
-import ProtectedRoute from "./components/protected-route";
+import AuthGuard from "./components/auth-guard";
 import Dashboard from "./pages/dashboard";
 import Commissions from "./pages/commissions";
 import CommissionDetails from "./pages/commission-details";
@@ -16,18 +16,49 @@ import Products from "./pages/products";
 import CommissionStructures from "./pages/commission-structures";
 import Reports from "./pages/reports";
 import Settings from "./pages/settings";
+import Login from "./pages/login";
 import NotFound from "./pages/not-found";
 import { Toaster } from "@/components/ui/toaster";
+import { useEffect } from "react";
 
-function Router() {
+// Route wrapper with auth guard and permission check
+function ProtectedRoute({ 
+  component: Component, 
+  permission = undefined 
+}: { 
+  component: React.ComponentType; 
+  permission?: string;
+}) {
+  return (
+    <AuthGuard requiredPermission={permission}>
+      <Component />
+    </AuthGuard>
+  );
+}
+
+function RouterContent() {
+  const { isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
+  
+  // Check auth on app load and redirect if needed
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+    }
+  }, [isAuthenticated, navigate]);
+
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/commissions" component={Commissions} />
-      <Route path="/commissions/new" component={NewCommission} />
-      <Route path="/commissions/:id" component={CommissionDetails} />
+      {/* Public routes */}
+      <Route path="/login" component={Login} />
       
-      {/* Protected admin routes */}
+      {/* Protected routes - accessible only when authenticated */}
+      <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
+      <Route path="/commissions" component={() => <ProtectedRoute component={Commissions} />} />
+      <Route path="/commissions/new" component={() => <ProtectedRoute component={NewCommission} />} />
+      <Route path="/commissions/:id" component={() => <ProtectedRoute component={CommissionDetails} />} />
+      
+      {/* Protected admin routes - require specific permissions */}
       <Route 
         path="/brokers" 
         component={() => 
@@ -78,10 +109,26 @@ function Router() {
         } 
       />
       
-      <Route path="/reports" component={Reports} />
-      <Route path="/settings" component={Settings} />
+      <Route path="/reports" component={() => <ProtectedRoute component={Reports} />} />
+      <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
       <Route component={NotFound} />
     </Switch>
+  );
+}
+
+function AppContent() {
+  const { isAuthenticated } = useAuth();
+  const [location] = useLocation();
+  
+  // If user is on login page or not authenticated, don't wrap in Layout
+  if (location === "/login" || !isAuthenticated) {
+    return <RouterContent />;
+  }
+  
+  return (
+    <Layout>
+      <RouterContent />
+    </Layout>
   );
 }
 
@@ -89,9 +136,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Layout>
-          <Router />
-        </Layout>
+        <AppContent />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

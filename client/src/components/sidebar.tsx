@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,22 @@ import { Separator } from "@/components/ui/separator";
 import UserAvatar from "@/components/user-avatar";
 import RoleBadge from "@/components/role-badge";
 import RoleSwitcher from "@/components/role-switcher";
-import { LayoutDashboard, DollarSign, Users, BarChart3, Settings, Menu, Package, Building2, Shield } from "lucide-react";
+import { 
+  LayoutDashboard, 
+  DollarSign, 
+  Users, 
+  BarChart3, 
+  Settings, 
+  Menu, 
+  Package, 
+  Building2, 
+  Shield,
+  LogOut
+} from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/auth-context";
-import { UserRole, Permissions, hasPermission } from "@/lib/permissions";
+import { UserRole, Permissions } from "@/lib/permissions";
 
 interface SidebarProps {
   className?: string;
@@ -21,7 +32,7 @@ export default function Sidebar({ className }: SidebarProps) {
   const isMobile = useMobile();
   
   // Get authenticated user from auth context
-  const { user } = useAuth();
+  const { user, hasPermission, logout } = useAuth();
 
   const routes = [
     {
@@ -85,7 +96,7 @@ export default function Sidebar({ className }: SidebarProps) {
             {routes.map((route) => {
               const userRole = user?.role || UserRole.BROKER;
               // Only show routes the user has permission to access
-              if (route.permission && !hasPermission(userRole, route.permission)) {
+              if (route.permission && !hasPermission(route.permission)) {
                 return null;
               }
               
@@ -124,8 +135,21 @@ export default function Sidebar({ className }: SidebarProps) {
           </div>
           
           {/* Role Switcher (Demo Purpose) */}
-          <div className="mt-2">
+          <div className="mt-3 space-y-2">
             <RoleSwitcher />
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full flex items-center gap-2"
+              onClick={() => {
+                const { logout } = useAuth();
+                logout();
+              }}
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </Button>
           </div>
           
           <div className="mt-2 text-xs text-muted-foreground">

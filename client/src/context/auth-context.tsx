@@ -1,6 +1,7 @@
 import { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { UserRole } from '@/lib/permissions';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { UserRole, Permissions, hasPermission } from '@/lib/permissions';
+import { useLocation, useRoute } from 'wouter';
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +10,8 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   switchRole: (brokerId: number) => Promise<void>;
+  hasPermission: (permission: string) => boolean;
+  isAuthenticated: boolean;
 }
 
 export interface User {
@@ -21,25 +24,51 @@ export interface User {
   agencyId: number | null;
   agencyName?: string;
   image?: string;
+  permissions?: string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Get stored auth from localStorage
+const getStoredAuth = (): User | null => {
+  const stored = localStorage.getItem('auth_user');
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (e) {
+      console.error('Failed to parse stored auth', e);
+      localStorage.removeItem('auth_user');
+    }
+  }
+  return null;
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize from localStorage
+  const [user, setUser] = useState<User | null>(getStoredAuth());
+  const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   
   const { data, isLoading, error } = useQuery<User>({
     queryKey: ['/api/brokers/me'],
     retry: false,
-    // User this to control when the query is run
-    // initialData: { role: UserRole.SYSTEM_ADMIN } as User,
+    // Only run if we already have a user (to verify token validity)
+    enabled: !!user,
   });
 
-  // Update user when data changes
+  // Store auth state in localStorage when it changes
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('auth_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('auth_user');
+    }
+  }, [user]);
+
+  // Update user when data changes (backend verification)
   useEffect(() => {
     if (data) {
-      // Determine role based on broker ID and agencyId
-      // This is a temporary solution until we have the role field in the database
+      // Determine role based on broker ID
       let role = UserRole.BROKER;
       
       // Admin (ID 13)
@@ -63,11 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [data]);
 
-  // Login function
+  // Login function that authenticates the user
   const login = async (username: string, password: string) => {
-    // Simple login for demo purposes
-    if (username === 'admin' || username === 'adminuser') {
-      setUser({
+    // In a real app, this would make a request to your backend
+    // For this demo, we'll simulate different users based on username
+    
+    let userData: User;
+    
+    if (username.toLowerCase() === 'admin' || username.toLowerCase() === 'adminuser') {
+      userData = {
         id: 13,
         username: 'adminuser',
         firstName: 'Admin',
@@ -75,27 +108,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: 'admin@example.com',
         role: UserRole.ADMIN,
         agencyId: null,
-      });
+      };
+    } else if (username.toLowerCase() === 'systemadmin') {
+      userData = {
+        id: 10,
+        username: 'michaelchang',
+        firstName: 'Michael',
+        lastName: 'Chang',
+        email: 'michael.chang@example.com',
+        role: UserRole.SYSTEM_ADMIN,
+        agencyId: 1,
+      };
+    } else if (username.toLowerCase() === 'broker') {
+      userData = {
+        id: 8,
+        username: 'johnsmith',
+        firstName: 'John',
+        lastName: 'Smith',
+        email: 'john.smith@example.com',
+        role: UserRole.BROKER,
+        agencyId: 2,
+      };
     } else {
-      // Default to Sarah Johnson (for demo)
-      setUser({
+      // Default to Sarah Johnson (Agency Admin)
+      userData = {
         id: 7,
         username: 'sarahjohnson',
         firstName: 'Sarah',
         lastName: 'Johnson',
-        email: 'sarah@example.com',
+        email: 'sarah.johnson@example.com',
         role: UserRole.AGENCY_ADMIN,
         agencyId: 1,
-      });
+      };
     }
+    
+    // Store user data
+    setUser(userData);
+    
+    // Redirect to dashboard
+    navigate("/");
   };
 
   // Logout function
   const logout = () => {
+    // Clear user data
     setUser(null);
+    
+    // Clear cached queries
+    queryClient.clear();
+    
+    // Redirect to login
+    navigate("/login");
   };
 
-  // Switch to a different broker ID
+  // Check if user has a specific permission
+  const checkPermission = (permission: string): boolean => {
+    if (!user) return false;
+    return hasPermission(user.role, permission);
+  };
+
+  // Switch to a different broker ID (for demo purposes)
   const switchRole = async (brokerId: number) => {
     try {
       // Fetch broker info based on ID
@@ -121,13 +193,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...brokerData,
         role,
       });
+      
+      // Redirect to dashboard
+      navigate("/");
     } catch (error) {
       console.error("Error switching roles:", error);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, logout, switchRole }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isLoading, 
+      error, 
+      login, 
+      logout, 
+      switchRole,
+      hasPermission: checkPermission,
+      isAuthenticated: !!user,
+    }}>
       {children}
     </AuthContext.Provider>
   );
