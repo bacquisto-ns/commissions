@@ -65,8 +65,7 @@ export const commissionStructureTypeEnum = pgEnum("commission_structure_type", [
   "percentage"
 ]);
 
-// We'll uncomment this when we properly migrate the database
-// export const userRoleEnum = pgEnum("user_role", ["broker", "agency_admin", "system_admin"]);
+// User role enum is already defined above
 
 // Tables
 export const agencies = pgTable("agencies", {
