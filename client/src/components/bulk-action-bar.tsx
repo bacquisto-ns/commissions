@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { 
   Select, 
@@ -26,32 +25,27 @@ interface BulkActionBarProps {
   selectedIds: number[];
   onApproveSelected: () => void;
   onClearSelection: () => void;
-  onAssignBroker?: (brokerId: number) => void;
-  brokers?: any[]; // List of brokers for assignment
+  onAssignBroker?: (brokerId: number | null) => void;
 }
 
 export function BulkActionBar({ 
   selectedIds, 
   onApproveSelected,
   onClearSelection,
-  onAssignBroker,
-  brokers = []
+  onAssignBroker
 }: BulkActionBarProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showBrokerDialog, setShowBrokerDialog] = useState(false);
   const [selectedAction, setSelectedAction] = useState<string | undefined>(undefined);
-  const [selectedBrokerId, setSelectedBrokerId] = useState<number | undefined>(undefined);
-  
-  // For broker selection - will be fetched in the parent component
-  const brokers: any[] = [];
   
   const handleActionSelect = (action: string) => {
     setSelectedAction(action);
     
     if (action === "approve") {
       setShowConfirmDialog(true);
-    } else if (action === "assign_broker") {
-      setShowBrokerDialog(true);
+    } else if (action === "assign_broker" && onAssignBroker) {
+      // Call the parent component's broker assignment handler
+      // The parent will show the broker selection dialog
+      onAssignBroker(null); // Signal the parent to show broker dialog
     }
   };
   
@@ -62,14 +56,6 @@ export function BulkActionBar({
     
     setShowConfirmDialog(false);
     setSelectedAction(undefined);
-  };
-  
-  const handleBrokerAssign = () => {
-    if (selectedBrokerId && onAssignBroker) {
-      onAssignBroker(selectedBrokerId);
-      setShowBrokerDialog(false);
-      setSelectedBrokerId(undefined);
-    }
   };
   
   if (selectedIds.length === 0) return null;
@@ -99,6 +85,9 @@ export function BulkActionBar({
                 <SelectGroup>
                   <SelectLabel>Actions</SelectLabel>
                   <SelectItem value="approve">Mark as Approved</SelectItem>
+                  {onAssignBroker && (
+                    <SelectItem value="assign_broker">Assign Broker</SelectItem>
+                  )}
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -111,6 +100,18 @@ export function BulkActionBar({
               <Check className="h-4 w-4" />
               Approve Selected
             </Button>
+            
+            {onAssignBroker && (
+              <Button 
+                onClick={() => handleActionSelect("assign_broker")}
+                disabled={selectedIds.length === 0}
+                variant="secondary"
+                className="gap-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                Assign Broker
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CommissionsTable, { SortField, SortDirection } from "@/components/commissions-table";
 import { BulkActionBar } from "@/components/bulk-action-bar";
+import { BrokerAssignmentDialog } from "@/components/broker-assignment-dialog";
 import { Plus, Search, CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -30,8 +31,14 @@ export default function Commissions() {
   const [transactionType, setTransactionType] = useState<string>("all");
   const [productType, setProductType] = useState<string>("all");
   const [employerName, setEmployerName] = useState<string>("");
+  const [showBrokerDialog, setShowBrokerDialog] = useState(false);
   const { toast } = useToast();
   const pageSize = 10;
+  
+  // Fetch brokers for assignment dialog
+  const { data: brokers = [] } = useQuery({
+    queryKey: ['/api/brokers'],
+  });
 
   // Define commission data type
   interface CommissionItem {
@@ -139,9 +146,56 @@ export default function Commissions() {
     },
   });
   
+  // Mutation for bulk broker assignment
+  const bulkAssignBroker = useMutation({
+    mutationFn: async ({ commissionIds, brokerId }: { commissionIds: number[], brokerId: number | null }) => {
+      // For each commission in the array, send a request to assign the broker
+      const promises = commissionIds.map(id => 
+        apiRequest('PATCH', `/api/commissions/${id}`, { 
+          brokerId: brokerId 
+        })
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
+      
+      toast({
+        title: "Broker Assigned",
+        description: `Successfully assigned broker to ${selectedCommissions.length} commissions`,
+      });
+      
+      // Close dialog and clear selection
+      setShowBrokerDialog(false);
+      setSelectedCommissions([]);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to assign broker to commissions",
+        variant: "destructive",
+      });
+    },
+  });
+  
   const handleBulkApprove = () => {
     if (selectedCommissions.length > 0) {
       bulkApprove.mutate(selectedCommissions);
+    }
+  };
+  
+  // Handle broker assignment dialog
+  const handleAssignBroker = (brokerId: number | null) => {
+    if (brokerId === null) {
+      // Show the broker assignment dialog
+      setShowBrokerDialog(true);
+    } else {
+      // Execute the broker assignment mutation
+      bulkAssignBroker.mutate({ 
+        commissionIds: selectedCommissions, 
+        brokerId 
+      });
     }
   };
 
@@ -349,6 +403,16 @@ export default function Commissions() {
         selectedIds={selectedCommissions}
         onApproveSelected={handleBulkApprove}
         onClearSelection={() => setSelectedCommissions([])}
+        onAssignBroker={handleAssignBroker}
+      />
+      
+      {/* Broker Assignment Dialog */}
+      <BrokerAssignmentDialog
+        open={showBrokerDialog}
+        onOpenChange={setShowBrokerDialog}
+        onAssign={handleAssignBroker}
+        brokers={brokers}
+        selectedCount={selectedCommissions.length}
       />
     </div>
   );
