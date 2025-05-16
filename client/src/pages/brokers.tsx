@@ -382,11 +382,18 @@ export default function Brokers() {
                           body: JSON.stringify(payload)
                         });
                         
-                        const data = await response.json();
-                        console.log("Response:", data);
+                        let data;
+                        try {
+                          data = await response.json();
+                          console.log("Response:", data);
+                        } catch (e) {
+                          console.error("Error parsing response:", e);
+                          data = { message: "Failed to parse server response" };
+                        }
                         
                         if (!response.ok) {
-                          throw new Error(JSON.stringify(data));
+                          const errorMessage = typeof data === 'object' ? JSON.stringify(data) : data.toString();
+                          throw new Error(errorMessage);
                         }
                         
                         // Show success message
@@ -401,7 +408,7 @@ export default function Brokers() {
                         console.error("Error creating broker:", error);
                         toast({
                           title: "Creation failed",
-                          description: "There was a problem creating the broker.",
+                          description: "Error message: " + (error instanceof Error ? error.message : String(error)),
                           variant: "destructive"
                         });
                       }
