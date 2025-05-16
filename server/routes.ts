@@ -477,9 +477,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Update a product (Admin only)
-  app.patch(`${apiPrefix}/products/:id`, async (req, res) => {
-    // Permanent admin access for product updates
+  // Custom endpoint for product updates
+  app.post(`${apiPrefix}/products/update/:id`, async (req, res) => {
+    // Simplified route for product updates
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {

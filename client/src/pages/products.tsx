@@ -148,7 +148,7 @@ export default function Products() {
   // Mutation for updating an existing product
   const updateProduct = useMutation({
     mutationFn: ({ id, data }: { id: number, data: ProductFormValues }) => {
-      return apiRequest('PATCH', `/api/products/${id}`, data);
+      return apiRequest('POST', `/api/products/update/${id}`, data);
     },
     onSuccess: () => {
       toast({
