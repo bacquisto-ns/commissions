@@ -384,7 +384,7 @@ export const storage = {
       .where(
         and(
           gte(transactions.transactionDate, startOfYear),
-          sql`${commissions.brokerId} IN (${brokerIds.join(',')})`
+          inArray(commissions.brokerId, brokerIds)
         )
       );
     
@@ -406,7 +406,7 @@ export const storage = {
         and(
           gte(transactions.transactionDate, startOfLastYear),
           lte(transactions.transactionDate, endOfLastYear),
-          sql`${commissions.brokerId} IN (${brokerIds.join(',')})`
+          inArray(commissions.brokerId, brokerIds)
         )
       );
     
@@ -419,7 +419,7 @@ export const storage = {
       .where(
         and(
           eq(commissions.status, "pending"),
-          sql`${commissions.brokerId} IN (${brokerIds.join(',')})`
+          inArray(commissions.brokerId, brokerIds)
         )
       );
     
