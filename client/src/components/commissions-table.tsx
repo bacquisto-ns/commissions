@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import StatusBadge from "@/components/status-badge";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
@@ -51,6 +52,9 @@ interface CommissionsTableProps {
   totalItems?: number;
   pageSize?: number;
   onPageChange?: (page: number) => void;
+  selectable?: boolean;
+  selectedIds?: number[];
+  onSelectionChange?: (ids: number[]) => void;
 }
 
 export default function CommissionsTable({
@@ -61,6 +65,9 @@ export default function CommissionsTable({
   totalItems = 0,
   pageSize = 10,
   onPageChange,
+  selectable = false,
+  selectedIds = [],
+  onSelectionChange = () => {},
 }: CommissionsTableProps) {
   // Calculate pagination info
   const totalPages = Math.ceil(totalItems / pageSize);
@@ -91,6 +98,22 @@ export default function CommissionsTable({
         <Table>
           <TableHeader>
             <TableRow>
+              {selectable && (
+                <TableHead className="w-10">
+                  <Checkbox 
+                    checked={commissions.length > 0 && selectedIds.length === commissions.length}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        // Select all visible commissions
+                        onSelectionChange(commissions.map(c => c.id));
+                      } else {
+                        // Deselect all
+                        onSelectionChange([]);
+                      }
+                    }}
+                  />
+                </TableHead>
+              )}
               <TableHead>Employer Details</TableHead>
               <TableHead>Transaction</TableHead>
               <TableHead>Date</TableHead>
@@ -103,13 +126,27 @@ export default function CommissionsTable({
           <TableBody>
             {commissions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={selectable ? 8 : 7} className="h-24 text-center">
                   No commissions found
                 </TableCell>
               </TableRow>
             ) : (
               commissions.map((commission) => (
                 <TableRow key={commission.id} className="hover:bg-muted/50">
+                  {selectable && (
+                    <TableCell className="w-10">
+                      <Checkbox 
+                        checked={selectedIds.includes(commission.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            onSelectionChange([...selectedIds, commission.id]);
+                          } else {
+                            onSelectionChange(selectedIds.filter(id => id !== commission.id));
+                          }
+                        }}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div>
                       <div className="font-medium">
@@ -247,12 +284,17 @@ export default function CommissionsTable({
   );
 }
 
-function CommissionsTableSkeleton() {
+function CommissionsTableSkeleton({ selectable = false }) {
   return (
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
+            {selectable && (
+              <TableHead className="w-10">
+                <Skeleton className="h-4 w-4 rounded" />
+              </TableHead>
+            )}
             <TableHead>Employer Details</TableHead>
             <TableHead>Transaction</TableHead>
             <TableHead>Date</TableHead>
@@ -265,6 +307,11 @@ function CommissionsTableSkeleton() {
         <TableBody>
           {Array.from({ length: 5 }).map((_, i) => (
             <TableRow key={i}>
+              {selectable && (
+                <TableCell className="w-10">
+                  <Skeleton className="h-4 w-4 rounded" />
+                </TableCell>
+              )}
               <TableCell>
                 <Skeleton className="h-5 w-48 mb-1" />
                 <Skeleton className="h-4 w-32" />

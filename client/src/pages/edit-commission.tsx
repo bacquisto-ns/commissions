@@ -73,9 +73,11 @@ interface CommissionDetails {
     };
   };
   broker?: {
+    id?: number;
     firstName: string;
     lastName: string;
     email: string;
+    agencyId?: number;
   } | null;
 }
 
