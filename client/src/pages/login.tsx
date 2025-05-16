@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "../context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,32 +14,26 @@ export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  const { login } = useAuth();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
+      const success = await login(username, password);
+      
+      if (success) {
         toast({
           title: "Login successful",
           description: "Welcome back!",
         });
-        setLocation('/');
+        // Navigation is handled in the login function
       } else {
         toast({
           variant: "destructive",
           title: "Login failed",
-          description: data.message || "Invalid username or password",
+          description: "Invalid username or password",
         });
       }
     } catch (error) {
