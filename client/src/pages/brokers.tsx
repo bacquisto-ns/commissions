@@ -80,19 +80,43 @@ export default function Brokers() {
     broker.email.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
   
-  const handleNewBroker = async (formData: HTMLFormElement) => {
+  const handleNewBroker = async (formData: any) => {
     try {
-      const formElements = formData.elements;
+      // Get values directly from inputs
+      const firstName = (document.getElementById('firstName') as HTMLInputElement).value;
+      const lastName = (document.getElementById('lastName') as HTMLInputElement).value;
+      const email = (document.getElementById('email') as HTMLInputElement).value;
+      const phoneNumber = (document.getElementById('phone') as HTMLInputElement).value;
       
-      // Extract form values
-      const firstName = (formElements.namedItem('firstName') as HTMLInputElement).value;
-      const lastName = (formElements.namedItem('lastName') as HTMLInputElement).value;
-      const email = (formElements.namedItem('email') as HTMLInputElement).value;
-      const phoneNumber = (formElements.namedItem('phone') as HTMLInputElement).value;
-      const agencyId = (formElements.namedItem('agency') as HTMLSelectElement)?.value;
+      // Get the select value from the hidden input
+      const hiddenInput = document.getElementById('agency-id-hidden') as HTMLInputElement;
+      let agencyId: string | number | null = 'null';
+      if (hiddenInput && hiddenInput.value) {
+        agencyId = hiddenInput.value;
+      }
+      
+      // Validate required fields
+      if (!firstName || !lastName || !email || !phoneNumber) {
+        toast({
+          title: "Missing information",
+          description: "Please fill in all required fields.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Generate a default username from first and last name
       const defaultUsername = `${firstName.toLowerCase()}${lastName.toLowerCase()}`;
+      
+      // Log the data we're about to send
+      console.log("Creating broker with data:", {
+        firstName,
+        lastName,
+        email,
+        phoneNumber,
+        agencyId,
+        username: defaultUsername
+      });
       
       // Create payload for API
       const payload = {
@@ -100,7 +124,7 @@ export default function Brokers() {
         lastName,
         email,
         phoneNumber,
-        agencyId: agencyId === 'null' ? null : parseInt(agencyId),
+        agencyId: agencyId === 'null' ? null : parseInt(agencyId as string),
         username: defaultUsername,
         password: "password123", // Default password, should be changed by user
         active: true
@@ -115,8 +139,12 @@ export default function Brokers() {
         body: JSON.stringify(payload)
       });
       
+      // Check the response
+      const responseData = await response.json();
+      console.log("API response:", responseData);
+      
       if (!response.ok) {
-        throw new Error('Failed to create broker');
+        throw new Error('Failed to create broker: ' + JSON.stringify(responseData));
       }
       
       // Show success message
@@ -132,7 +160,7 @@ export default function Brokers() {
       // Show error message
       toast({
         title: "Creation failed",
-        description: "There was a problem creating the broker.",
+        description: "There was a problem creating the broker. Check the console for details.",
         variant: "destructive"
       });
       console.error("Error creating broker:", error);
@@ -291,8 +319,14 @@ export default function Brokers() {
                     <Label htmlFor="agency" className="text-right">
                       Agency
                     </Label>
-                    <Select id="agency-select" defaultValue="null">
-                      <SelectTrigger id="agency" className="col-span-3">
+                    <Select defaultValue="null" onValueChange={(value) => {
+                      // Store the value in a hidden input for later access
+                      const hiddenInput = document.getElementById('agency-id-hidden') as HTMLInputElement;
+                      if (hiddenInput) {
+                        hiddenInput.value = value;
+                      }
+                    }}>
+                      <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="Select agency" />
                       </SelectTrigger>
                       <SelectContent>
@@ -304,6 +338,7 @@ export default function Brokers() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <input type="hidden" id="agency-id-hidden" value="null" />
                   </div>
                 </div>
                 <DialogFooter>
