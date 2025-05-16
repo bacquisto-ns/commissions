@@ -455,8 +455,11 @@ export default function Products() {
                                           <FormLabel>Product Code</FormLabel>
                                           <FormControl>
                                             <Input 
-                                              defaultValue={editingProduct.code} 
-                                              {...field} 
+                                              value={field.value}
+                                              onChange={field.onChange}
+                                              onBlur={field.onBlur}
+                                              name={field.name}
+                                              ref={field.ref}
                                             />
                                           </FormControl>
                                           <FormMessage />
@@ -471,9 +474,11 @@ export default function Products() {
                                           <FormLabel>Description</FormLabel>
                                           <FormControl>
                                             <Textarea 
-                                              defaultValue={editingProduct.description || ""} 
-                                              {...field} 
                                               value={field.value || ""}
+                                              onChange={field.onChange}
+                                              onBlur={field.onBlur}
+                                              name={field.name}
+                                              ref={field.ref}
                                             />
                                           </FormControl>
                                           <FormMessage />
@@ -493,8 +498,11 @@ export default function Products() {
                                                 type="number" 
                                                 step="0.01" 
                                                 className="pl-8" 
-                                                defaultValue={editingProduct.defaultCommissionRate}
-                                                {...field} 
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                onBlur={field.onBlur}
+                                                name={field.name}
+                                                ref={field.ref}
                                               />
                                             </div>
                                           </FormControl>
