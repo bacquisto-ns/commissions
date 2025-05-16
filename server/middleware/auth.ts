@@ -142,8 +142,16 @@ export const authorize = (allowedRoles: string[]) => {
 
 // Admin-only authorization middleware
 export const authorizeAdmin = (req: Request, res: Response, next: NextFunction) => {
+  // Check session first for admin role - this handles the case when userRole isn't set by authenticate middleware
+  if (req.session?.userRole === 'admin') {
+    req.userRole = 'admin';
+    return next();
+  }
+  
+  // Now check if userRole was set during authentication
   if (!req.userRole) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    console.log('No user role found in request');
+    return res.status(401).json({ message: 'Unauthorized - No role found' });
   }
 
   if (req.userRole === 'admin') {
