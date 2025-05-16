@@ -691,7 +691,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const commissions = await storage.getBrokerCommissions(brokerId, queryParams);
-      const totalCount = await storage.getBrokerCommissionsCount(brokerId, queryParams.status, queryParams.search, queryParams.date);
+      const totalCount = await storage.getBrokerCommissionsCount(
+        brokerId, 
+        queryParams.status, 
+        queryParams.search, 
+        queryParams.date
+      );
       
       console.log(`Found ${commissions.length} commissions, total count: ${totalCount}`);
       

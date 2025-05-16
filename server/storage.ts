@@ -100,6 +100,8 @@ type CommissionQueryParams = {
   limit?: number;
   offset?: number;
   status?: string;
+  search?: string;
+  date?: string;
 };
 
 // Type for creating a new commission
@@ -780,27 +782,17 @@ export const storage = {
     brokerId: number, 
     params: CommissionQueryParams = {}
   ): Promise<CommissionWithDetails[]> {
-    let query = db.query.commissions.findMany({
-      with: {
-        transaction: {
-          with: {
-            benefitProgram: {
-              with: {
-                organization: true
-              }
-            }
-          },
-        },
-        broker: true,
-      },
-      where: eq(commissions.brokerId, brokerId),
-      orderBy: [desc(commissions.createdAt)],
-      limit: params.limit || 10,
-      offset: params.offset || 0,
-    });
+    // Start with base condition for broker ID
+    const conditions = [eq(commissions.brokerId, brokerId)];
     
+    // Add status filter if provided
     if (params.status && params.status !== 'all') {
-      query = db.query.commissions.findMany({
+      conditions.push(eq(commissions.status, params.status as any));
+    }
+    
+    // For simple queries without search or date filters
+    if (!params.search && !params.date) {
+      return await db.query.commissions.findMany({
         with: {
           transaction: {
             with: {
@@ -813,33 +805,130 @@ export const storage = {
           },
           broker: true,
         },
-        where: and(
-          eq(commissions.brokerId, brokerId),
-          eq(commissions.status, params.status as any)
-        ),
+        where: and(...conditions),
         orderBy: [desc(commissions.createdAt)],
         limit: params.limit || 10,
         offset: params.offset || 0,
       });
+    } 
+    
+    // For complex queries with search or date filters, we need a different approach
+    // First, build the additional conditions
+    let whereClause = and(...conditions);
+    
+    // Add date filter
+    if (params.date) {
+      whereClause = and(
+        whereClause, 
+        sql`DATE(${transactions.transactionDate}) = ${params.date}`
+      );
     }
     
-    return await query;
-  },
-
-  async getBrokerCommissionsCount(brokerId: number, status?: string): Promise<number> {
-    let query = db.select({ count: count() }).from(commissions).where(eq(commissions.brokerId, brokerId));
-    
-    if (status && status !== 'all') {
-      query = db.select({ count: count() }).from(commissions).where(
-        and(
-          eq(commissions.brokerId, brokerId),
-          eq(commissions.status, status as any)
+    // Add search filter
+    if (params.search) {
+      const searchTerm = `%${params.search.toLowerCase()}%`;
+      whereClause = and(
+        whereClause,
+        or(
+          sql`LOWER(${organizations.name}) LIKE ${searchTerm}`,
+          sql`LOWER(${benefitPrograms.programName}) LIKE ${searchTerm}`,
+          sql`LOWER(${transactions.transactionType}) LIKE ${searchTerm}`
         )
       );
     }
     
-    const result = await query;
-    return result[0]?.count || 0;
+    // Get the IDs of commissions that match the search/date criteria
+    const matchingIds = await db
+      .select({ id: commissions.id })
+      .from(commissions)
+      .innerJoin(transactions, eq(commissions.transactionId, transactions.id))
+      .innerJoin(benefitPrograms, eq(transactions.benefitProgramId, benefitPrograms.id))
+      .innerJoin(organizations, eq(benefitPrograms.organizationId, organizations.id))
+      .where(whereClause)
+      .orderBy(desc(commissions.createdAt))
+      .limit(params.limit || 10)
+      .offset(params.offset || 0);
+      
+    // If no matches, return empty array
+    if (matchingIds.length === 0) {
+      return [];
+    }
+    
+    // Get the full commission details for the matching IDs
+    return await db.query.commissions.findMany({
+      with: {
+        transaction: {
+          with: {
+            benefitProgram: {
+              with: {
+                organization: true
+              }
+            }
+          },
+        },
+        broker: true,
+      },
+      where: inArray(
+        commissions.id, 
+        matchingIds.map(item => item.id)
+      ),
+      orderBy: [desc(commissions.createdAt)],
+    });
+  },
+
+  async getBrokerCommissionsCount(
+    brokerId: number, 
+    status?: string,
+    search?: string,
+    date?: string
+  ): Promise<number> {
+    // Start with base condition of matching broker ID
+    const conditions = [eq(commissions.brokerId, brokerId)];
+    
+    // Add status filter if provided
+    if (status && status !== 'all') {
+      conditions.push(eq(commissions.status, status as any));
+    }
+    
+    // Build the query differently based on whether we need search/date filters
+    if (!search && !date) {
+      // Simple query without joins if no search or date filters needed
+      const result = await db
+        .select({ count: count() })
+        .from(commissions)
+        .where(and(...conditions));
+      
+      return result[0]?.count || 0;
+    } else {
+      // More complex query with joins for search and date filters
+      let whereClause = and(...conditions);
+      
+      // Add date filter if provided
+      if (date) {
+        const dateFilter = sql`DATE(${transactions.transactionDate}) = ${date}`;
+        whereClause = and(whereClause, dateFilter);
+      }
+      
+      // Add search filter if provided
+      if (search) {
+        const searchTerm = `%${search.toLowerCase()}%`;
+        const searchFilter = sql`LOWER(${organizations.name}) LIKE ${searchTerm} OR 
+                                 LOWER(${benefitPrograms.programName}) LIKE ${searchTerm} OR 
+                                 LOWER(${transactions.transactionType}) LIKE ${searchTerm}`;
+        whereClause = and(whereClause, searchFilter);
+      }
+      
+      // Execute the query with all necessary joins for filters
+      const result = await db
+        .select({ count: count() })
+        .from(commissions)
+        .innerJoin(transactions, eq(commissions.transactionId, transactions.id))
+        .innerJoin(benefitPrograms, eq(transactions.benefitProgramId, benefitPrograms.id))
+        .innerJoin(organizations, eq(benefitPrograms.organizationId, organizations.id))
+        .where(whereClause);
+      
+      return result[0]?.count || 0;
+    }
   },
 
   async getCommissionById(id: number): Promise<CommissionWithDetails | undefined> {
