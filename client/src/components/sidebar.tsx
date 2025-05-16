@@ -81,7 +81,7 @@ export default function Sidebar({ className }: SidebarProps) {
       label: "Settings",
       icon: <Settings className="mr-3 h-5 w-5" />,
       href: "/settings",
-      permission: Permissions.EDIT_OWN_PROFILE,
+      permission: Permissions.MANAGE_SYSTEM_SETTINGS,
     },
   ];
 
@@ -94,9 +94,12 @@ export default function Sidebar({ className }: SidebarProps) {
         <ScrollArea className="flex-1">
           <nav className="flex-1 px-2 py-4 space-y-1">
             {routes.map((route) => {
-              const userRole = user?.role || UserRole.BROKER;
-              // Only show routes the user has permission to access
-              if (route.permission && !hasPermission(route.permission)) {
+              // Show all routes if user is admin
+              if (user?.role === 'admin') {
+                // Admin can see all routes
+              } 
+              // For other roles, check permissions
+              else if (route.permission && user?.role && !hasPermission(user.role, route.permission)) {
                 return null;
               }
               

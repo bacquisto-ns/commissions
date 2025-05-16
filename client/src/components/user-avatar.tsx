@@ -1,29 +1,24 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
-  user?: {
-    firstName?: string;
-    lastName?: string;
-    image?: string;
-  } | null;
+  user: any;
   className?: string;
 }
 
 export default function UserAvatar({ user, className }: UserAvatarProps) {
-  const getInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName && !lastName) return "U";
-    return `${firstName?.[0] || ""}${lastName?.[0] || ""}`;
-  };
+  // Get user initials for fallback
+  const initials = user?.firstName && user?.lastName
+    ? `${user.firstName[0]}${user.lastName[0]}`
+    : user?.username?.substring(0, 2).toUpperCase() || "?";
 
   return (
-    <Avatar className={cn("bg-primary/10", className)}>
-      {user?.image ? (
-        <AvatarImage src={user.image} alt={`${user.firstName} ${user.lastName}`} />
-      ) : null}
-      <AvatarFallback className="bg-primary/10 text-primary">
-        {user ? getInitials(user.firstName, user.lastName) : <User className="h-4 w-4" />}
+    <Avatar className={cn("border border-border", className)}>
+      {user?.profileImageUrl && (
+        <AvatarImage src={user.profileImageUrl} alt={`${user?.firstName} ${user?.lastName}`} />
+      )}
+      <AvatarFallback>
+        {initials}
       </AvatarFallback>
     </Avatar>
   );

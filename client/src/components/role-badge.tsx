@@ -1,38 +1,36 @@
-import { UserRole } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
-import { Shield, User, Building2, Key } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface RoleBadgeProps {
-  role: UserRole | string;
+  role: string;
   className?: string;
 }
 
-export default function RoleBadge({ role, className = "" }: RoleBadgeProps) {
-  switch (role) {
-    case UserRole.ADMIN:
-      return (
-        <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">
-          <Key className="h-3 w-3 mr-1" /> Administrator
-        </Badge>
-      );
-    case UserRole.SYSTEM_ADMIN:
-      return (
-        <Badge variant="default" className="bg-red-500 hover:bg-red-600">
-          <Shield className="h-3 w-3 mr-1" /> System Admin
-        </Badge>
-      );
-    case UserRole.AGENCY_ADMIN:
-      return (
-        <Badge variant="default" className="bg-purple-500 hover:bg-purple-600">
-          <Building2 className="h-3 w-3 mr-1" /> Agency Admin
-        </Badge>
-      );
-    case UserRole.BROKER:
-    default:
-      return (
-        <Badge variant="default" className="bg-blue-500 hover:bg-blue-600">
-          <User className="h-3 w-3 mr-1" /> Broker
-        </Badge>
-      );
-  }
+export default function RoleBadge({ role, className }: RoleBadgeProps) {
+  const variants: Record<string, string> = {
+    admin: "bg-red-100 text-red-800 border-red-200",
+    system_admin: "bg-purple-100 text-purple-800 border-purple-200",
+    agency_admin: "bg-blue-100 text-blue-800 border-blue-200",
+    broker: "bg-green-100 text-green-800 border-green-200",
+  };
+
+  const labels: Record<string, string> = {
+    admin: "Admin",
+    system_admin: "System Admin",
+    agency_admin: "Agency Admin",
+    broker: "Broker",
+  };
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "rounded font-medium text-xs py-0.5 px-2",
+        variants[role] || "bg-gray-100 text-gray-800 border-gray-200",
+        className
+      )}
+    >
+      {labels[role] || role}
+    </Badge>
+  );
 }
