@@ -14,10 +14,10 @@ export default function Layout({ children }: LayoutProps) {
   const isMobile = useMobile();
   
   // Fetch authenticated user
-  const { data: broker } = useQuery({
-    queryKey: ["/api/brokers/me"],
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/user"],
   });
-
+  
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
@@ -38,9 +38,9 @@ export default function Layout({ children }: LayoutProps) {
                 </Button>
               </div>
               <div className="hidden md:flex md:items-center">
-                <UserAvatar user={broker} className="h-8 w-8" />
+                <UserAvatar user={user} className="h-8 w-8" />
                 <span className="ml-2 text-sm font-medium text-foreground">
-                  {broker?.firstName} {broker?.lastName}
+                  {user?.firstName} {user?.lastName}
                 </span>
               </div>
             </div>
