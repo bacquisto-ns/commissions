@@ -186,11 +186,14 @@ export const storage = {
     username: string;
     password: string;
     email: string;
-    phoneNumber?: string;
+    phoneNumber?: string | null;
     agencyId?: number | null;
     active?: boolean;
   }): Promise<Broker> {
     try {
+      // Convert null to empty string for phoneNumber since the type doesn't match
+      const phoneValue = brokerData.phoneNumber === null ? "" : brokerData.phoneNumber;
+      
       const [newBroker] = await db
         .insert(brokers)
         .values({
@@ -199,7 +202,7 @@ export const storage = {
           username: brokerData.username,
           password: brokerData.password,
           email: brokerData.email,
-          phoneNumber: brokerData.phoneNumber || null,
+          phoneNumber: phoneValue,
           agencyId: brokerData.agencyId || null,
           active: brokerData.active ?? true,
           createdAt: new Date(),

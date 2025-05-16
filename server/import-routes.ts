@@ -263,14 +263,16 @@ async function importCommissions(commissions: any[]): Promise<number> {
           participantCount: parseInt(commissionData.participantCount) || 100,
           participantMinimum: parseInt(commissionData.participantMinimum) || 0,
           startDate: commissionData.startDate ? new Date(commissionData.startDate) : new Date(),
-          endDate: commissionData.endDate ? new Date(commissionData.endDate) : undefined,
+          endDate: commissionData.endDate ? new Date(commissionData.endDate) : null,
           notes: commissionData.notes || null
         },
         transaction: {
-          transactionDate: commissionData.transactionDate,
+          transactionDate: commissionData.transactionDate ? new Date(commissionData.transactionDate) : new Date(),
           transactionType: commissionData.transactionType,
           commissionRate: commissionData.commissionRate || "2.00", // Default rate per participant
-          totalCommission: commissionData.totalCommission || commissionData.amount // Use the amount field if totalCommission is not provided
+          totalCommission: commissionData.totalCommission || commissionData.amount, // Use the amount field if totalCommission is not provided
+          participantCount: parseInt(commissionData.participantCount) || 100,
+          notes: commissionData.notes || null
         },
         commissions: [
           {
