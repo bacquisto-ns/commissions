@@ -15,37 +15,71 @@ declare global {
 
 // Authentication middleware to verify if user is logged in
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
-  // In a real application, this would check for a JWT token or session cookie
-  // For this demo, we're just checking if /api/brokers/me is called and returning a demo user
-  const brokerId = req.path === '/api/brokers/me' ? 7 : parseInt(req.params.id || '0');
-
+  // First, check if this is a /api/brokers/me request which needs session auth
+  if (req.path === '/api/brokers/me') {
+    // Get userId from session
+    const userId = req.session?.userId;
+    
+    if (!userId) {
+      console.log('No user session found for /api/brokers/me');
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    try {
+      // Fetch broker from database using session userId
+      const broker = await db.query.brokers.findFirst({
+        where: eq(brokers.id, userId),
+      });
+      
+      if (!broker) {
+        console.log(`Broker not found with ID ${userId}`);
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      req.broker = broker;
+      req.userRole = req.session?.userRole || 'broker';
+      
+      return next();
+    } catch (error) {
+      console.error('Authentication error:', error);
+      return res.status(500).json({ message: 'Authentication error' });
+    }
+  }
+  
+  // For all other requests
+  const brokerId = parseInt(req.params.id || '0');
+  
   if (brokerId && !isNaN(brokerId)) {
     try {
       const broker = await db.query.brokers.findFirst({
         where: eq(brokers.id, brokerId),
       });
-
+      
       if (broker) {
         req.broker = broker;
         
-        // Temporarily determine role based on broker ID until we migrate the database
-        let role = 'broker';
-        if (broker.id === 13) {
-          role = 'admin'; // Full access admin account
-        } else if (broker.id === 10) {
-          role = 'system_admin';
-        } else if (broker.id === 7) {
-          role = 'agency_admin';
+        // Use session role if available, otherwise determine from broker ID
+        if (req.session?.userRole) {
+          req.userRole = req.session.userRole;
+        } else {
+          let role = 'broker';
+          if (broker.id === 13) {
+            role = 'admin';
+          } else if (broker.id === 10) {
+            role = 'system_admin';
+          } else if (broker.id === 7) {
+            role = 'agency_admin';
+          }
+          req.userRole = role;
         }
         
-        req.userRole = role;
         return next();
       }
     } catch (error) {
       console.error('Authentication error:', error);
     }
   }
-
+  
   // Skip auth for non-protected routes
   if (
     req.method === 'GET' || 

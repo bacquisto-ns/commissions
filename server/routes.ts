@@ -18,23 +18,28 @@ const apiPrefix = "/api";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication endpoints
   app.post(`${apiPrefix}/login`, async (req, res) => {
-    const { username, password } = req.body;
+    let { username, password } = req.body;
 
-    console.log("Login attempt:", username);
+    // Handle case where username might have quotes
+    if (typeof username === 'string') {
+      username = username.trim().replace(/^["']|["']$/g, '');
+    }
+
+    console.log("Login attempt cleaned:", username);
     
     try {
       let userId = 7; // Default to Sarah Johnson
       let userRole = 'broker';
       
       // Simple demo authentication logic
-      if (username.toLowerCase() === 'admin') {
+      if (typeof username === 'string' && username.toLowerCase() === 'admin') {
         userId = 13;
         userRole = 'admin';
         console.log("Logged in as admin");
-      } else if (username.toLowerCase() === 'systemadmin') {
+      } else if (typeof username === 'string' && username.toLowerCase() === 'systemadmin') {
         userId = 10;
         userRole = 'system_admin';
-      } else if (username.toLowerCase() === 'broker') {
+      } else if (typeof username === 'string' && username.toLowerCase() === 'broker') {
         userId = 8;
         userRole = 'broker';
       } else {

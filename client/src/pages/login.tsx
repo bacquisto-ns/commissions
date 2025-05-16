@@ -28,10 +28,13 @@ export default function Login() {
       return;
     }
     
+    // Clean the username input - remove quotes and trim whitespace
+    const cleanedUsername = username.trim().replace(/^["']|["']$/g, '');
+    
     setIsLoading(true);
     
     try {
-      await login(username, password);
+      await login(cleanedUsername, password);
       // Redirect happens in the auth context
     } catch (error) {
       toast({
