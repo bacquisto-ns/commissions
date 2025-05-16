@@ -9,6 +9,7 @@ import {
   products,
   agencies,
   commissionStructures,
+  users,
   type Broker, 
   type Commission, 
   type Organization,
@@ -21,11 +22,21 @@ import {
   type AgencyInsert,
   type CommissionStructure,
   type CommissionStructureInsert,
+  type User,
   CommissionWithDetails,
   TransactionWithDetails,
   BrokerWithAgency,
   ProductWithCommissionStructure
 } from "@shared/schema";
+
+// Type for user upsert operations from Replit auth
+type UpsertUser = {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profileImageUrl?: string | null;
+};
 import { addMonths, format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
 // Define types for the dashboard data
@@ -99,34 +110,20 @@ type CreateCommissionData = {
   commissions: Array<Omit<Commission, 'id' | 'transactionId' | 'amount' | 'createdAt' | 'updatedAt' | 'paymentDate'> & { amount: string }>;
 };
 
-// Define the storage interface
-// Interface for storage operations
-export interface IStorage {
-  // User operations
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
-  // Other operations
-}
-
 export const storage = {
   // User operations
-  async getUser(id: string): Promise<User | undefined> {
+  async getUserById(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   },
   
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  },
+  
+  async createUser(userData: typeof users.$inferInsert): Promise<User> {
+    const [user] = await db.insert(users).values(userData).returning();
     return user;
   },
   // Broker operations

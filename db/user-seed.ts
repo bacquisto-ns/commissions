@@ -1,14 +1,13 @@
 import { db } from "./index";
 import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 async function seedAdminUser() {
   console.log("🌱 Seeding admin user...");
   
   try {
     // Check if admin user already exists
-    const existingAdmin = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.username, "admin")
-    });
+    const [existingAdmin] = await db.select().from(users).where(eq(users.username, "admin"));
     
     if (existingAdmin) {
       console.log("✅ Admin user already exists, skipping");
@@ -16,7 +15,7 @@ async function seedAdminUser() {
     }
     
     // Create the admin user
-    const adminUser = await db.insert(users).values({
+    const [adminUser] = await db.insert(users).values({
       username: "admin",
       password: "admin123", // This would be hashed in a real application
       firstName: "System",
@@ -27,7 +26,7 @@ async function seedAdminUser() {
     }).returning();
     
     console.log("✅ Admin user created successfully!");
-    return adminUser[0];
+    return adminUser;
   } catch (error) {
     console.error("❌ Error seeding admin user:", error);
     throw error;
