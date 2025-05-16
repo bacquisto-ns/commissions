@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, pgEnum, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
@@ -10,6 +10,27 @@ export const userRoleEnum = pgEnum("user_role", [
   "agency_admin",
   "broker"
 ]);
+
+// User status enum
+export const userStatusEnum = pgEnum("user_status", [
+  "active",
+  "inactive",
+  "pending"
+]);
+
+// Users table for authentication
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 255 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  firstName: varchar("first_name", { length: 255 }).notNull(),
+  lastName: varchar("last_name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  role: userRoleEnum("role").default("broker").notNull(),
+  status: userStatusEnum("status").default("active").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 export const benefitProgramTypeEnum = pgEnum("benefit_program_type", [
   "hsa",
@@ -218,7 +239,20 @@ export const commissionsRelations = relations(commissions, ({ one }) => ({
   }),
 }));
 
+// User relations
+export const usersRelations = relations(users, ({ many }) => ({
+  // Potential future relations
+}));
+
 // Zod Schemas
+export const userInsertSchema = createInsertSchema(users, {
+  username: (schema) => schema.min(3, "Username must be at least 3 characters"),
+  password: (schema) => schema.min(6, "Password must be at least 6 characters"),
+  email: (schema) => schema.email("Must provide a valid email"),
+  firstName: (schema) => schema.min(1, "First name is required"),
+  lastName: (schema) => schema.min(1, "Last name is required"),
+});
+
 export const agencyInsertSchema = createInsertSchema(agencies, {
   name: (schema) => schema.min(2, "Agency name must be at least 2 characters"),
   contactEmail: (schema) => schema.email("Must provide a valid email").optional(),
