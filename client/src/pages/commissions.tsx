@@ -241,6 +241,9 @@ export default function Commissions() {
                 isLoading={isLoading}
                 showPagination={true}
                 currentPage={currentPage}
+                selectable={true}
+                selectedIds={selectedCommissions}
+                onSelectionChange={setSelectedCommissions}
                 totalItems={(commissionsData?.data || []).filter(commission => commission.status === "pending").length}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
@@ -271,6 +274,13 @@ export default function Commissions() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Bulk Action Bar for selected commissions */}
+      <BulkActionBar 
+        selectedIds={selectedCommissions}
+        onApproveSelected={handleBulkApprove}
+        onClearSelection={() => setSelectedCommissions([])}
+      />
     </div>
   );
 }
