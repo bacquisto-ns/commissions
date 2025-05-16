@@ -100,7 +100,35 @@ type CreateCommissionData = {
 };
 
 // Define the storage interface
+// Interface for storage operations
+export interface IStorage {
+  // User operations
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  // Other operations
+}
+
 export const storage = {
+  // User operations
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  },
+  
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  },
   // Broker operations
   async getBrokerById(id: number): Promise<BrokerWithAgency | undefined> {
     const result = await db.query.brokers.findFirst({
