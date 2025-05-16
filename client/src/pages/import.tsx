@@ -36,7 +36,18 @@ export default function ImportPage() {
       return;
     }
 
+    // Validate file type
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a CSV file to import",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
+    setImportStatus('idle');
     
     try {
       const formData = new FormData();
@@ -60,20 +71,20 @@ export default function ImportPage() {
         });
       } else {
         setImportStatus('error');
-        setImportMessage(data.message || "Import failed");
+        setImportMessage(data.message || "Import failed. Make sure your CSV format is correct.");
         toast({
           title: "Import failed",
-          description: data.message || "An error occurred during import",
+          description: data.message || "Please check your CSV format and try again",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Import error:", error);
       setImportStatus('error');
-      setImportMessage("An error occurred during import");
+      setImportMessage("There was a problem with the file format. Please download the template and ensure your CSV matches the format exactly.");
       toast({
         title: "Import error",
-        description: "An error occurred during import",
+        description: "Please check your CSV format and try again",
         variant: "destructive",
       });
     } finally {

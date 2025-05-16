@@ -302,16 +302,20 @@ router.get("/templates/:type", (req: Request, res: Response) => {
   const templateType = req.params.type;
   
   let headers = "";
+  let sampleData = "";
   
   switch (templateType) {
     case "agencies":
-      headers = "name,address,city,state,zipCode,phone,email,website,active";
+      headers = "name,address,city,state,zipCode,contactName,contactEmail,contactPhone,website,active";
+      sampleData = "ABC Insurance,123 Main St,New York,NY,10001,John Smith,john@example.com,555-123-4567,www.example.com,true";
       break;
     case "brokers":
       headers = "firstName,lastName,email,phone,agencyId,active,username,password";
+      sampleData = "John,Smith,john.smith@example.com,555-123-4567,1,true,johnsmith,password123";
       break;
     case "commissions":
       headers = "brokerId,amount,status,transactionDate,transactionType,programName,programType,programGroup,employerName,employerAddress,employerCity,employerState,employerZipCode,participantCount,commissionRate,splitPercentage";
+      sampleData = "1,1000.00,pending,2023-01-15,enrollment,Employee Benefits,hsa,health,ACME Corp,100 Business Ave,Chicago,IL,60601,50,2.00,100.00";
       break;
     default:
       return res.status(400).json({ message: "Invalid template type" });
@@ -320,7 +324,8 @@ router.get("/templates/:type", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "text/csv");
   res.setHeader("Content-Disposition", `attachment; filename=${templateType}-template.csv`);
   
-  return res.send(headers);
+  // Send headers and sample data row
+  return res.send(headers + "\n" + sampleData);
 });
 
 export default router;
