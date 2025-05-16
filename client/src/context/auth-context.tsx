@@ -94,78 +94,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Login function that authenticates the user
   const login = async (username: string, password: string) => {
-    // In a real app, this would make a request to your backend
-    // For this demo, we'll simulate different users based on username
-    
     console.log("Login attempted with:", username);
     
-    let userData: User;
-    
-    // Strict check to ensure admin login works properly
-    if (username.toLowerCase() === 'admin') {
-      console.log("Logging in as admin");
+    try {
+      // Clear any existing user data first to ensure clean state
+      setUser(null);
+      localStorage.removeItem('auth_user');
       
-      userData = {
-        id: 13,
-        username: 'adminuser',
-        firstName: 'Admin',
-        lastName: 'User',
-        email: 'admin@example.com',
-        role: UserRole.ADMIN,
-        agencyId: null,
-      };
-    } else if (username.toLowerCase() === 'systemadmin') {
-      userData = {
-        id: 10,
-        username: 'michaelchang',
-        firstName: 'Michael',
-        lastName: 'Chang',
-        email: 'michael.chang@example.com',
-        role: UserRole.SYSTEM_ADMIN,
-        agencyId: 1,
-      };
-    } else if (username.toLowerCase() === 'broker') {
-      userData = {
-        id: 8,
-        username: 'johnsmith',
-        firstName: 'John',
-        lastName: 'Smith',
-        email: 'john.smith@example.com',
-        role: UserRole.BROKER,
-        agencyId: 2,
-      };
-    } else {
-      console.log("Defaulting to Sarah Johnson");
+      // Make API request to backend
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include', // Include cookies for session
+      });
       
-      // Default to Sarah Johnson (Agency Admin)
-      userData = {
-        id: 7,
-        username: 'sarahjohnson',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        email: 'sarah.johnson@example.com',
-        role: UserRole.AGENCY_ADMIN,
-        agencyId: 1,
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success || !data.user) {
+        throw new Error('Invalid response from server');
+      }
+      
+      console.log("Login successful:", data.user);
+      
+      // Transform server role to UserRole enum
+      let role = UserRole.BROKER;
+      switch (data.user.role) {
+        case 'admin':
+          role = UserRole.ADMIN;
+          break;
+        case 'system_admin':
+          role = UserRole.SYSTEM_ADMIN;
+          break;
+        case 'agency_admin':
+          role = UserRole.AGENCY_ADMIN;
+          break;
+        default:
+          role = UserRole.BROKER;
+      }
+      
+      const userData: User = {
+        ...data.user,
+        role
       };
-    }
-    
-    // Clear any existing user data first to ensure clean state
-    setUser(null);
-    
-    // Then set the new user data with a slight delay to ensure state update
-    setTimeout(() => {
+      
+      // Update user state
       console.log("Setting user data:", userData);
       setUser(userData);
       
+      // Store in localStorage
+      localStorage.setItem('auth_user', JSON.stringify(userData));
+      
       // Redirect to dashboard
       navigate("/");
-    }, 100);
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
+    }
   };
 
   // Logout function
-  const logout = () => {
+  const logout = async () => {
     console.log("Logging out");
     
+    try {
+      // Call logout endpoint
+      await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error("Logout API error:", error);
+    }
+    
+    // Always clear client-side data regardless of API success
     // Clear user data
     setUser(null);
     

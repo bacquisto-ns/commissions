@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -16,6 +16,107 @@ import { authenticate, authorizeAdmin, authorize } from "./middleware/auth";
 const apiPrefix = "/api";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication endpoints
+  app.post(`${apiPrefix}/login`, async (req, res) => {
+    const { username, password } = req.body;
+
+    console.log("Login attempt:", username);
+    
+    try {
+      let userId = 7; // Default to Sarah Johnson
+      let userRole = 'broker';
+      
+      // Simple demo authentication logic
+      if (username.toLowerCase() === 'admin') {
+        userId = 13;
+        userRole = 'admin';
+        console.log("Logged in as admin");
+      } else if (username.toLowerCase() === 'systemadmin') {
+        userId = 10;
+        userRole = 'system_admin';
+      } else if (username.toLowerCase() === 'broker') {
+        userId = 8;
+        userRole = 'broker';
+      } else {
+        userId = 7;
+        userRole = 'agency_admin';
+      }
+      
+      // Set session data
+      req.session.userId = userId;
+      req.session.userRole = userRole;
+      
+      // Get user details from storage
+      const user = await storage.getBrokerById(userId);
+      
+      if (!user) {
+        console.error(`User with ID ${userId} not found`);
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Return user details (excluding sensitive data)
+      return res.json({
+        success: true, 
+        user: {
+          ...user,
+          password: undefined,
+          role: userRole
+        }
+      });
+    } catch (error) {
+      console.error("Authentication error:", error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Authentication error" 
+      });
+    }
+  });
+  
+  app.post(`${apiPrefix}/logout`, (req, res) => {
+    // Clear session
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ 
+          success: false, 
+          error: "Failed to logout" 
+        });
+      }
+      
+      res.json({ success: true });
+    });
+  });
+  
+  // Current user endpoint
+  app.get(`${apiPrefix}/auth/user`, async (req, res) => {
+    const userId = req.session.userId;
+    const userRole = req.session.userRole || 'broker';
+    
+    console.log("Auth check for user:", userId, "role:", userRole);
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    try {
+      const user = await storage.getBrokerById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Return user with role
+      return res.json({
+        ...user,
+        password: undefined,
+        role: userRole
+      });
+    } catch (error) {
+      console.error("Auth user error:", error);
+      return res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
+  
   // Admin access endpoint (demonstration purposes only)
   app.get(`${apiPrefix}/admin-login`, (req, res) => {
     res.json({
