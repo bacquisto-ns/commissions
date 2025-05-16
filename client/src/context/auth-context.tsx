@@ -49,11 +49,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   
+  // Use this query to check if the session is valid on page load
   const { data, isLoading, error } = useQuery<User>({
     queryKey: ['/api/brokers/me'],
     retry: false,
-    // Only run if we already have a user (to verify token validity)
-    enabled: !!user,
+    // Only run if we already have a user (to verify token validity) or if we're loading from localStorage
+    enabled: !!user || !!getStoredAuth(),
+    // Handle 401 Unauthorized errors
+    onError: () => {
+      // If there's an auth error, clear the user state and localStorage
+      setUser(null);
+      localStorage.removeItem('auth_user');
+    }
   });
 
   // Store auth state in localStorage when it changes
