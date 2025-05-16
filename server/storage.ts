@@ -489,7 +489,7 @@ export const storage = {
             and(
               gte(transactions.transactionDate, startDate),
               lte(transactions.transactionDate, endDate),
-              sql`${commissions.brokerId} IN (${brokerIds.join(',')})`
+              inArray(commissions.brokerId, brokerIds)
             )
           );
         
@@ -515,7 +515,7 @@ export const storage = {
         benefitPrograms,
         eq(transactions.benefitProgramId, benefitPrograms.id)
       )
-      .where(sql`${commissions.brokerId} IN (${brokerIds.join(',')})`)
+      .where(inArray(commissions.brokerId, brokerIds))
       .groupBy(benefitPrograms.programType)
       .orderBy(desc(sql`SUM(CAST(${commissions.amount} AS DECIMAL))`));
     
