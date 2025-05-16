@@ -296,10 +296,27 @@ export const storage = {
         return false;
       }
       
-      // Delete the broker
-      const result = await db
-        .delete(brokers)
-        .where(eq(brokers.id, brokerId));
+      // Use transaction to ensure related operations complete together
+      await db.transaction(async (tx) => {
+        // Update any commissions with this broker ID to null instead of deleting
+        // This preserves commission history while removing the broker association
+        await tx
+          .update(commissions)
+          .set({ brokerId: null })
+          .where(eq(commissions.brokerId, brokerId));
+          
+        // If the broker has a username, find and delete the matching user account
+        if (broker.username) {
+          await tx
+            .delete(users)
+            .where(eq(users.username, broker.username));
+        }
+        
+        // Delete the broker
+        await tx
+          .delete(brokers)
+          .where(eq(brokers.id, brokerId));
+      });
       
       return true;
     } catch (error) {

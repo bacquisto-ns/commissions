@@ -414,6 +414,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(dashboardData);
     } catch (error) {
       console.error("Error getting agency dashboard data:", error);
+      
+      // Provide more specific error messages when possible
+      if (error instanceof Error) {
+        return res.status(500).json({ 
+          message: "Error loading agency dashboard data", 
+          details: error.message 
+        });
+      }
+      
       return res.status(500).json({ message: "Internal server error" });
     }
   });
