@@ -17,6 +17,7 @@ import Products from "./pages/products";
 import CommissionStructures from "./pages/commission-structures";
 import ImportPage from "./pages/import";
 import Reports from "./pages/reports";
+import AgencyReports from "./pages/agency-reports";
 import Settings from "./pages/settings";
 import Login from "./pages/login";
 import NotFound from "./pages/not-found";
@@ -116,6 +117,15 @@ function RouterContent() {
       />
       
       <Route path="/reports" component={() => <ProtectedRoute component={Reports} />} />
+      <Route 
+        path="/agency-reports" 
+        component={() => 
+          <ProtectedRoute 
+            component={AgencyReports} 
+            permission={Permissions.VIEW_AGENCIES} 
+          />
+        } 
+      />
       <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
       <Route component={NotFound} />
     </Switch>

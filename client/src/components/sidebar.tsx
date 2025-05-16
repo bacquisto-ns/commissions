@@ -84,6 +84,12 @@ export default function Sidebar({ className }: SidebarProps) {
       permission: Permissions.VIEW_DASHBOARD,
     },
     {
+      label: "Agency Reports",
+      icon: <BarChart3 className="mr-3 h-5 w-5" />,
+      href: "/agency-reports",
+      permission: Permissions.VIEW_AGENCIES,
+    },
+    {
       label: "Settings",
       icon: <Settings className="mr-3 h-5 w-5" />,
       href: "/settings",
