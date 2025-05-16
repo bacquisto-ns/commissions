@@ -349,39 +349,65 @@ export default function Brokers() {
                     const email = (document.getElementById('email') as HTMLInputElement).value;
                     const phone = (document.getElementById('phone') as HTMLInputElement).value;
                     
-                    // Get the select value for agency
-                    const agencySelect = document.getElementById('agency-select') as any;
-                    const agencyId = agencySelect?.value || 'null';
+                    // Get the agency ID from the hidden input
+                    const hiddenInput = document.getElementById('agency-id-hidden') as HTMLInputElement;
+                    const agencyId = hiddenInput?.value || 'null';
                     
-                    // Create a fake form with these elements and submit
-                    const fakeForm = document.createElement('form');
-                    const firstNameInput = document.createElement('input');
-                    firstNameInput.name = 'firstName';
-                    firstNameInput.value = firstName;
+                    // Directly use the API
+                    const createBroker = async () => {
+                      try {
+                        // Generate a default username from first and last name
+                        const defaultUsername = `${firstName.toLowerCase()}${lastName.toLowerCase()}`;
+                        
+                        // Create payload
+                        const payload = {
+                          firstName,
+                          lastName,
+                          email,
+                          phoneNumber: phone,
+                          agencyId: agencyId === 'null' ? null : parseInt(agencyId),
+                          username: defaultUsername,
+                          password: "password123", // Default password, should be changed by user
+                          active: true
+                        };
+                        
+                        console.log("Sending broker data:", payload);
+                        
+                        // Send the request
+                        const response = await fetch('/api/brokers', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify(payload)
+                        });
+                        
+                        const data = await response.json();
+                        console.log("Response:", data);
+                        
+                        if (!response.ok) {
+                          throw new Error(JSON.stringify(data));
+                        }
+                        
+                        // Show success message
+                        toast({
+                          title: "Broker added",
+                          description: "New broker has been successfully added.",
+                        });
+                        
+                        // Refresh the page
+                        window.location.reload();
+                      } catch (error) {
+                        console.error("Error creating broker:", error);
+                        toast({
+                          title: "Creation failed",
+                          description: "There was a problem creating the broker.",
+                          variant: "destructive"
+                        });
+                      }
+                    };
                     
-                    const lastNameInput = document.createElement('input');
-                    lastNameInput.name = 'lastName';
-                    lastNameInput.value = lastName;
-                    
-                    const emailInput = document.createElement('input');
-                    emailInput.name = 'email';
-                    emailInput.value = email;
-                    
-                    const phoneInput = document.createElement('input');
-                    phoneInput.name = 'phone';
-                    phoneInput.value = phone;
-                    
-                    const agencyInput = document.createElement('input');
-                    agencyInput.name = 'agency';
-                    agencyInput.value = agencyId;
-                    
-                    fakeForm.appendChild(firstNameInput);
-                    fakeForm.appendChild(lastNameInput);
-                    fakeForm.appendChild(emailInput);
-                    fakeForm.appendChild(phoneInput);
-                    fakeForm.appendChild(agencyInput);
-                    
-                    handleNewBroker(fakeForm);
+                    createBroker();
                   }}>Add Broker</Button>
                 </DialogFooter>
               </DialogContent>

@@ -194,6 +194,17 @@ export const storage = {
       // Convert null to empty string for phoneNumber since the type doesn't match
       const phoneValue = brokerData.phoneNumber === null ? "" : brokerData.phoneNumber;
       
+      console.log("Inserting broker with data:", {
+        first_name: brokerData.firstName,
+        last_name: brokerData.lastName,
+        username: brokerData.username,
+        password: brokerData.password,
+        email: brokerData.email,
+        phone_number: phoneValue,
+        agency_id: brokerData.agencyId || null,
+        active: brokerData.active ?? true
+      });
+      
       const [newBroker] = await db
         .insert(brokers)
         .values({
