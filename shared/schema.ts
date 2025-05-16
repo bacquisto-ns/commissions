@@ -325,6 +325,9 @@ export type Agency = typeof agencies.$inferSelect;
 export type AgencyWithBrokerCount = Agency & { brokerCount?: number };
 export type AgencyInsert = z.infer<typeof agencyInsertSchema>;
 
+export type User = typeof users.$inferSelect;
+export type UserInsert = z.infer<typeof userInsertSchema>;
+
 export type Broker = typeof brokers.$inferSelect;
 export type BrokerInsert = z.infer<typeof brokerInsertSchema>;
 

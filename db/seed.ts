@@ -3,9 +3,15 @@ import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { format } from "date-fns";
 
+// Import user seed functionality
+import { seedUsers } from "./user-seed";
+
 async function seed() {
   try {
     console.log("🌱 Seeding database...");
+    
+    // Start by seeding users (including admin)
+    await seedUsers();
 
     console.log("Creating brokers...");
     const existingBrokers = await db.select().from(schema.brokers);
