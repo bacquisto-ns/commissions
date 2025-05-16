@@ -113,6 +113,19 @@ type CreateCommissionData = {
 };
 
 export const storage = {
+  async deleteCommission(commissionId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(commissions)
+        .where(eq(commissions.id, commissionId))
+        .returning();
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error deleting commission:", error);
+      return false;
+    }
+  },
   // User operations
   async getUserById(id: number): Promise<any> {
     try {

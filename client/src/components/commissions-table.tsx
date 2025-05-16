@@ -103,6 +103,41 @@ export default function CommissionsTable({
   sortDirection = 'desc',
   onSortChange,
 }: CommissionsTableProps) {
+  // State for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [commissionToDelete, setCommissionToDelete] = useState<number | null>(null);
+  
+  // Delete commission mutation
+  const deleteCommission = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/commissions/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete commission');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Commission deleted",
+        description: "The commission has been successfully deleted.",
+      });
+      // Refresh the commission list
+      queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
+      setDeleteDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete commission",
+        description: "There was an error deleting the commission.",
+        variant: "destructive"
+      });
+      console.error("Error deleting commission:", error);
+    }
+  });
   // Calculate pagination info
   const totalPages = Math.ceil(totalItems / pageSize);
   const startItem = (currentPage - 1) * pageSize + 1;
