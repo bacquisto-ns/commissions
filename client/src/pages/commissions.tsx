@@ -79,22 +79,14 @@ export default function Commissions() {
     };
   }
 
-  // Directly fetch all commissions from API by removing brokerId filter
+  // Use our direct query endpoint to get all commissions
   const { data: commissionsData = { data: [], meta: { total: 0, limit: pageSize, offset: 0 } }, isLoading } = useQuery<CommissionsResponse>({
     queryKey: [
-      "/api/commissions", 
+      "/api/all-commissions", 
       { 
-        // Removed brokerId filter to show all commissions
-        status, 
+        // Basic pagination parameters
         offset: (currentPage - 1) * pageSize, 
-        limit: pageSize, 
-        search: searchQuery,
-        date: date ? format(date, "yyyy-MM-dd") : undefined,
-        sortField,
-        sortDirection,
-        transactionType: transactionType !== "all" ? transactionType : undefined,
-        productType: productType !== "all" ? productType : undefined,
-        employerName: employerName || undefined
+        limit: pageSize
       }
     ],
   });

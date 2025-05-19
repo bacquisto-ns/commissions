@@ -286,6 +286,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // --- Agency Routes ---
   
+  // Special direct route to get ALL commissions without broker filtering
+  app.get(`${apiPrefix}/all-commissions`, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      console.log("Direct query for ALL commissions");
+      
+      // Direct SQL query to get all commissions
+      const query = `
+        SELECT 
+          c.id, c.amount, c.status, c.broker_id, c.split_percentage, c.transaction_id, c.notes,
+          c.created_at, c.updated_at, c.payment_date,
+          t.transaction_date, t.transaction_type, t.participant_count, t.commission_rate, t.total_commission, t.benefit_program_id,
+          bp.program_name, bp.program_type, bp.organization_id,
+          o.name as organization_name, o.address, o.city, o.state, o.zip_code
+        FROM commissions c
+        JOIN transactions t ON c.transaction_id = t.id
+        JOIN benefit_programs bp ON t.benefit_program_id = bp.id 
+        JOIN organizations o ON bp.organization_id = o.id
+        ORDER BY t.transaction_date DESC
+        LIMIT $1 OFFSET $2
+      `;
+      
+      const countQuery = "SELECT COUNT(*) FROM commissions";
+      
+      const [results, countResult] = await Promise.all([
+        pool.query(query, [limit, offset]),
+        pool.query(countQuery)
+      ]);
+      
+      // Format the response in the expected structure
+      const commissions = results.rows.map((row: any) => ({
+        id: row.id,
+        amount: row.amount,
+        status: row.status,
+        brokerId: row.broker_id,
+        splitPercentage: row.split_percentage,
+        transactionId: row.transaction_id,
+        notes: row.notes,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        paymentDate: row.payment_date,
+        transaction: {
+          id: row.transaction_id,
+          transactionDate: row.transaction_date,
+          transactionType: row.transaction_type,
+          participantCount: row.participant_count,
+          commissionRate: row.commission_rate,
+          totalCommission: row.total_commission,
+          benefitProgramId: row.benefit_program_id,
+          benefitProgram: {
+            id: row.benefit_program_id,
+            programName: row.program_name,
+            programType: row.program_type,
+            organizationId: row.organization_id,
+            organization: {
+              id: row.organization_id,
+              name: row.organization_name,
+              address: row.address,
+              city: row.city,
+              state: row.state,
+              zipCode: row.zip_code
+            }
+          }
+        }
+      }));
+      
+      const total = parseInt(countResult.rows[0].count);
+      
+      console.log(`Found ${commissions.length} commissions, total count: ${total}`);
+      
+      return res.json({
+        data: commissions,
+        meta: {
+          total,
+          limit,
+          offset
+        }
+      });
+    } catch (error) {
+      console.error("Error getting all commissions:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Get all agencies
   app.get(`${apiPrefix}/agencies`, async (req, res) => {
     try {
