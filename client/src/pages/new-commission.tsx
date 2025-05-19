@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
@@ -27,10 +27,10 @@ import { Badge } from "@/components/ui/badge";
 const formSchema = z.object({
   property: z.object({
     name: z.string().min(2, "Employer name must be at least 2 characters"),
-    address: z.string().min(5, "Address must be at least 5 characters"),
-    city: z.string().min(2, "City must be at least 2 characters"),
-    state: z.string().min(2, "State must be at least 2 characters"),
-    zipCode: z.string().min(5, "Zip code must be at least 5 characters"),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    zipCode: z.string().optional(),
     propertyTypeGroup: z.string(),
   }),
   // Global transaction details
@@ -39,73 +39,88 @@ const formSchema = z.object({
     transactionDate: z.date(),
     notes: z.string().optional(),
   }),
-  // Product-specific details
+  // Product specific details
   productDetails: z.array(
     z.object({
       productId: z.string(),
       productName: z.string(),
-      participantCount: z.string().min(1, "Participant count is required"),
-      commissionRate: z.string().min(1, "Commission rate is required"),
-      transactionAmount: z.string().min(1, "Amount is required"),
+      participantCount: z.string(), // Will be parsed to number when submitting
+      commissionRate: z.string(), // Will be parsed to number when submitting
+      transactionAmount: z.string(), // Will be parsed to number when submitting
       commissions: z.array(
         z.object({
-          brokerId: z.number().int().nonnegative(), // Allow 0 for "No Broker / Unassigned"
-          splitPercentage: z.string(), // Allow any string value, we'll validate it in our component
-          status: z.string(),
+          brokerId: z.number(),
+          splitPercentage: z.string(), // Will be parsed to number when submitting
+          status: z.string().optional(),
           notes: z.string().optional(),
         })
-      ).min(1, "At least one commission split is required"),
+      ),
     })
-  ).min(1, "At least one product detail is required"),
+  ),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+// Product data mapping with rich descriptions
+const PRODUCTS = [
+  { 
+    id: "fsa", 
+    label: "FSA", 
+    description: "Flexible Spending Account for healthcare expenses", 
+    icon: <Package className="h-6 w-6 text-primary" /> 
+  },
+  { 
+    id: "hsa", 
+    label: "HSA", 
+    description: "Health Savings Account for qualified medical expenses", 
+    icon: <Package className="h-6 w-6 text-primary" /> 
+  },
+  { 
+    id: "cobra", 
+    label: "COBRA", 
+    description: "Continuation of health coverage after job loss", 
+    icon: <Layers className="h-6 w-6 text-primary" /> 
+  },
+  { 
+    id: "hra", 
+    label: "HRA", 
+    description: "Health Reimbursement Arrangement for medical expenses", 
+    icon: <Package className="h-6 w-6 text-primary" /> 
+  },
+  { 
+    id: "consolidated_billing", 
+    label: "Consolidated Billing", 
+    description: "Combined billing for multiple benefit plans", 
+    icon: <Layers className="h-6 w-6 text-primary" /> 
+  }
+];
+
 export default function NewCommission() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [step, setStep] = useState<'select-products' | 'form'>('select-products');
+  
+  // Initialize the selectedProducts from localStorage if available
+  const [selectedProducts, setSelectedProducts] = useState<string[]>(() => {
+    const savedProducts = localStorage.getItem('commission_selected_products');
+    return savedProducts ? JSON.parse(savedProducts) : [];
+  });
+  
+  // Start with product selection, but store step in localStorage to persist it
+  const [step, setStep] = useState<'select-products' | 'form'>(() => {
+    // Check if we have a stored step in localStorage
+    const savedStep = localStorage.getItem('commission_form_step');
+    // Only use 'form' if we also have selected products stored
+    if (savedStep === 'form' && localStorage.getItem('commission_selected_products')) {
+      return 'form';
+    }
+    return 'select-products';
+  });
   
   // Fetch brokers for the split dropdown
   const { data: brokers } = useQuery({
     queryKey: ["/api/brokers"],
   });
   
-  // Product data mapping with rich descriptions
-  const PRODUCTS = [
-    { 
-      id: "fsa", 
-      label: "FSA", 
-      description: "Flexible Spending Account for healthcare expenses", 
-      icon: <Package className="h-6 w-6 text-primary" /> 
-    },
-    { 
-      id: "hsa", 
-      label: "HSA", 
-      description: "Health Savings Account for qualified medical expenses", 
-      icon: <Package className="h-6 w-6 text-primary" /> 
-    },
-    { 
-      id: "cobra", 
-      label: "COBRA", 
-      description: "Continuation of health coverage after job loss", 
-      icon: <Layers className="h-6 w-6 text-primary" /> 
-    },
-    { 
-      id: "hra", 
-      label: "HRA", 
-      description: "Health Reimbursement Arrangement for medical expenses", 
-      icon: <Package className="h-6 w-6 text-primary" /> 
-    },
-    { 
-      id: "consolidated_billing", 
-      label: "Consolidated Billing", 
-      description: "Combined billing for multiple benefit plans", 
-      icon: <Layers className="h-6 w-6 text-primary" /> 
-    }
-  ];
-
   // Form setup
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -116,49 +131,16 @@ export default function NewCommission() {
         city: "",
         state: "",
         zipCode: "",
-        propertyTypeGroup: "health", // Updated to use a valid enum value
+        propertyTypeGroup: "health",
       },
       transaction: {
         transactionType: "enrollment",
         transactionDate: new Date(),
         notes: "",
       },
-      productDetails: [
-        {
-          productId: "fsa",
-          productName: "FSA",
-          participantCount: "100",
-          commissionRate: "2.00",
-          transactionAmount: "200.00",
-          commissions: [
-            {
-              brokerId: 0, // Default to No Broker / Unassigned (ID 0)
-              splitPercentage: "100",
-              status: "pending",
-              notes: "",
-            },
-            {
-              brokerId: 0, // No Broker / Unassigned
-              splitPercentage: "0",
-              status: "pending",
-              notes: "",
-            },
-            {
-              brokerId: 0, // No Broker / Unassigned
-              splitPercentage: "0",
-              status: "pending",
-              notes: "",
-            },
-            {
-              brokerId: 0, // No Broker / Unassigned
-              splitPercentage: "0",
-              status: "pending",
-              notes: "",
-            },
-          ],
-        },
-      ],
+      productDetails: [],
     },
+    shouldUnregister: false,
   });
 
   // Create commission mutation
@@ -190,6 +172,11 @@ export default function NewCommission() {
         title: "Commission created",
         description: "New commission has been successfully created",
       });
+      
+      // Clear local storage on successful submission
+      localStorage.removeItem('commission_form_step');
+      localStorage.removeItem('commission_selected_products');
+      
       navigate("/commissions");
     },
     onError: (error) => {
@@ -201,105 +188,19 @@ export default function NewCommission() {
     },
   });
 
-  // Add a new product to the form
-  const addProduct = (productId: string) => {
-    const currentProductDetails = form.getValues("productDetails") || [];
-    
-    // Find if this product is already added
-    const existingProduct = currentProductDetails.find(p => p.productId === productId);
-    if (existingProduct) {
-      toast({
-        title: "Product already added",
-        description: "This product is already in your commission form.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Find the product information
-    const productInfo = PRODUCTS.find(p => p.id === productId);
-    if (!productInfo) return;
-    
-    // Add new product detail
-    const updatedProductDetails = [
-      ...currentProductDetails, 
-      {
-        productId: productInfo.id,
-        productName: productInfo.label,
-        participantCount: "100",
-        commissionRate: "2.00",
-        transactionAmount: "200.00",
-        commissions: [
-          {
-            brokerId: 0, // No Broker / Unassigned
-            splitPercentage: "100",
-            status: "pending",
-            notes: "",
-          },
-          {
-            brokerId: 0, // No Broker / Unassigned
-            splitPercentage: "0",
-            status: "pending",
-            notes: "",
-          },
-          {
-            brokerId: 0, // No Broker / Unassigned
-            splitPercentage: "0",
-            status: "pending",
-            notes: "",
-          },
-          {
-            brokerId: 0, // No Broker / Unassigned
-            splitPercentage: "0",
-            status: "pending",
-            notes: "",
-          },
-        ],
-      }
-    ];
-    
-    // Update the form
-    form.setValue("productDetails", updatedProductDetails);
-  };
-
-  // Remove a product from the form
-  const removeProduct = (productIndex: number) => {
-    const currentProductDetails = form.getValues("productDetails") || [];
-    
-    // Ensure we always have at least one product
-    if (currentProductDetails.length <= 1) {
-      toast({
-        title: "Cannot remove product",
-        description: "You must have at least one product.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Remove the product at the specified index
-    const updatedProductDetails = currentProductDetails.filter((_, index) => index !== productIndex);
-    
-    // Update the form
-    form.setValue("productDetails", updatedProductDetails);
-  };
-
-  // Form submission handler
+  // Handle form submission
   const onSubmit = (data: FormValues) => {
     createCommission.mutate(data);
   };
 
-  // Calculate estimated commission based on participant count and rate
-  const calculateEstimatedCommission = (participantCount: string, rate: string) => {
-    const count = parseInt(participantCount) || 0;
-    const commissionRate = parseFloat(rate) || 0;
-    return (count * commissionRate).toFixed(2);
-  };
-
-  // Update the transaction amount when participant count or commission rate changes
-  const updateTransactionAmount = (productIndex: number) => {
-    const participantCount = form.getValues(`productDetails.${productIndex}.participantCount`);
-    const commissionRate = form.getValues(`productDetails.${productIndex}.commissionRate`);
-    const estimatedAmount = calculateEstimatedCommission(participantCount, commissionRate);
+  // Calculate estimated amount based on participant count and rate
+  const updateCommissionAmount = (productIndex: number) => {
+    const productDetails = form.getValues(`productDetails.${productIndex}`);
+    if (!productDetails) return;
+    
+    const participantCount = parseInt(productDetails.participantCount) || 0;
+    const commissionRate = parseFloat(productDetails.commissionRate) || 0;
+    const estimatedAmount = (participantCount * commissionRate).toFixed(2);
     
     form.setValue(`productDetails.${productIndex}.transactionAmount`, estimatedAmount);
   };
@@ -307,12 +208,18 @@ export default function NewCommission() {
   // Handle product selection
   const toggleProductSelection = (productId: string) => {
     setSelectedProducts(prev => {
+      let newSelection;
       // If product is already selected, remove it
       if (prev.includes(productId)) {
-        return prev.filter(id => id !== productId);
+        newSelection = prev.filter(id => id !== productId);
+      } else {
+        // Otherwise add it
+        newSelection = [...prev, productId];
       }
-      // Otherwise add it
-      return [...prev, productId];
+      
+      // Save to localStorage
+      localStorage.setItem('commission_selected_products', JSON.stringify(newSelection));
+      return newSelection;
     });
   };
 
@@ -368,6 +275,8 @@ export default function NewCommission() {
     // Update form with selected products
     form.setValue("productDetails", productDetails);
     setStep('form');
+    // Save form step to localStorage
+    localStorage.setItem('commission_form_step', 'form');
   };
 
   return (
@@ -444,471 +353,414 @@ export default function NewCommission() {
               <Button 
                 type="button" 
                 variant="outline"
-                onClick={() => setStep('select-products')}
+                onClick={() => {
+                  setStep('select-products');
+                  localStorage.setItem('commission_form_step', 'select-products');
+                }}
                 className="mb-4"
               >
                 Change Product Selection
               </Button>
             </div>
-          {/* Employer Details Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <HomeIcon className="mr-2 h-5 w-5 text-primary" />
-                Employer Details
-              </CardTitle>
-              <CardDescription>
-                Enter the employer information for this commission
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-1">
+            
+            {/* Employer Details Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <HomeIcon className="mr-2 h-5 w-5" />
+                  Employer Details
+                </CardTitle>
+                <CardDescription>
+                  Enter information about the employer
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <FormField
                   control={form.control}
                   name="property.name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Employer Name</FormLabel>
+                      <FormLabel>Employer Name <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="Acme Corporation" {...field} />
+                        <Input placeholder="Enter employer name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="property.address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123 Main St" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="property.city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Springfield" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="property.state"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>State</FormLabel>
-                      <FormControl>
-                        <Input placeholder="IL" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="property.zipCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Zip Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="62704" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid gap-4 md:grid-cols-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="property.address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="property.city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter city" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="property.state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter state" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="property.zipCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Zip Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter zip code" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
                   name="property.propertyTypeGroup"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Group Category</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <FormLabel>Product Group</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
+                            <SelectValue placeholder="Select product group" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="health">Health</SelectItem>
-                          <SelectItem value="wellness">Wellness</SelectItem>
+                          <SelectItem value="dental">Dental</SelectItem>
+                          <SelectItem value="vision">Vision</SelectItem>
+                          <SelectItem value="life">Life</SelectItem>
+                          <SelectItem value="disability">Disability</SelectItem>
                           <SelectItem value="retirement">Retirement</SelectItem>
-                          <SelectItem value="insurance">Insurance</SelectItem>
                           <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>
-                      <FormDescription>
-                        The group category of the benefits being managed
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Transaction Details Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Transaction Details</CardTitle>
-              <CardDescription>
-                Enter the global transaction information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="transaction.transactionType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Transaction Type</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select transaction type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="enrollment">Enrollment</SelectItem>
-                          <SelectItem value="renewal">Renewal</SelectItem>
-                          <SelectItem value="adjustment">Adjustment</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="transaction.transactionDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Transaction Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={`w-full pl-3 text-left font-normal ${
-                                !field.value && "text-muted-foreground"
-                              }`}
-                            >
-                              {field.value ? (
-                                format(field.value, "MMMM d, yyyy")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="transaction.notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Transaction Notes</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Additional transaction notes"
-                        className="resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Add Product Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Products</CardTitle>
-              <CardDescription>
-                Add the products included in this commission
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Select onValueChange={(value) => addProduct(value)}>
-                <SelectTrigger className="w-[240px]">
-                  <SelectValue placeholder="Add a product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRODUCTS.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          {/* Product Details Sections */}
-          {form.getValues("productDetails").map((product, productIndex) => (
-            <Card key={product.productId} className="relative overflow-hidden">
-              <div className="absolute top-0 right-0 mt-2 mr-2 flex items-center gap-2">
-                <Badge variant="outline" className="bg-primary/10 text-primary">
-                  {product.productName}
-                </Badge>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  type="button"
-                  onClick={() => removeProduct(productIndex)}
-                  className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                >
-                  <MinusCircle className="h-5 w-5" />
-                </Button>
-              </div>
+            {/* Transaction Details Section */}
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  {product.productName} Details
+                  <CalendarIcon className="mr-2 h-5 w-5" />
+                  Transaction Details
                 </CardTitle>
                 <CardDescription>
-                  Enter the specific details for {product.productName}
+                  Enter general transaction information
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-3">
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name={`productDetails.${productIndex}.participantCount`}
+                    name="transaction.transactionType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Participant Count</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input 
-                              className="pl-8" 
-                              type="number" 
-                              placeholder="100" 
-                              {...field} 
-                              onChange={(e) => {
-                                field.onChange(e);
-                                updateTransactionAmount(productIndex);
-                              }}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormDescription>
-                          Number of participants in the program
-                        </FormDescription>
+                        <FormLabel>Transaction Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select transaction type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="enrollment">Enrollment</SelectItem>
+                            <SelectItem value="renewal">Renewal</SelectItem>
+                            <SelectItem value="adjustment">Adjustment</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
                   <FormField
                     control={form.control}
-                    name={`productDetails.${productIndex}.commissionRate`}
+                    name="transaction.transactionDate"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Commission Rate ($ per participant)</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input 
-                              className="pl-8" 
-                              placeholder="2.00" 
-                              {...field} 
-                              onChange={(e) => {
-                                field.onChange(e);
-                                updateTransactionAmount(productIndex);
-                              }}
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Transaction Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className="w-full pl-3 text-left font-normal"
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
                             />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name={`productDetails.${productIndex}.transactionAmount`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Commission Amount</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input className="pl-8" placeholder="0.00" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormDescription>
-                          Calculated: ${calculateEstimatedCommission(
-                            form.getValues(`productDetails.${productIndex}.participantCount`),
-                            form.getValues(`productDetails.${productIndex}.commissionRate`)
-                          )}
-                        </FormDescription>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+                <FormField
+                  control={form.control}
+                  name="transaction.notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter any additional notes or comments"
+                          className="min-h-[120px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
 
-                {/* Commission Split Section */}
-                <div className="space-y-4 pt-4 border-t border-border">
-                  <h3 className="text-md font-medium">Commission Split</h3>
-                  <p className="text-sm text-muted-foreground">Specify how the commission for {product.productName} is split between brokers</p>
-                  
-                  {product.commissions.map((commission, commissionIndex) => (
-                    <div key={commissionIndex} className="grid gap-4 md:grid-cols-3">
+            {/* Product Details Section */}
+            <div className="space-y-4">
+              {form.watch("productDetails").map((product, productIndex) => (
+                <Card key={`product-${productIndex}`}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-lg">
+                      <Package className="mr-2 h-5 w-5" />
+                      {product.productName} Details
+                    </CardTitle>
+                    <CardDescription>
+                      Enter specific details for this product
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
-                        name={`productDetails.${productIndex}.commissions.${commissionIndex}.brokerId`}
+                        name={`productDetails.${productIndex}.participantCount`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Broker</FormLabel>
-                            <Select
-                              onValueChange={(value) => {
-                                const intVal = parseInt(value);
-                                // Set split percentage to 0 when selecting "No Broker" for non-first entries
-                                if (intVal === 0 && commissionIndex > 0) {
-                                  form.setValue(`productDetails.${productIndex}.commissions.${commissionIndex}.splitPercentage`, "0");
-                                }
-                                field.onChange(intVal);
-                              }}
-                              defaultValue={field.value?.toString() || "0"}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select broker" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="0">No Broker / Unassigned</SelectItem>
-                                {Array.isArray(brokers) ? brokers.map((broker: any) => (
-                                  <SelectItem key={broker.id} value={broker.id.toString()}>
-                                    {broker.firstName} {broker.lastName}
-                                  </SelectItem>
-                                )) : null}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name={`productDetails.${productIndex}.commissions.${commissionIndex}.splitPercentage`}
-                        render={({ field }) => {
-                          // Get the broker ID for this commission
-                          const brokerId = form.getValues(`productDetails.${productIndex}.commissions.${commissionIndex}.brokerId`);
-                          const isNoBroker = brokerId === 0;
-                          
-                          // Set split percentage to 0 for "No Broker" entries (except first one)
-                          if (isNoBroker && commissionIndex > 0 && field.value !== "0") {
-                            // Use setTimeout to avoid React state update during render
-                            setTimeout(() => {
-                              field.onChange("0");
-                            }, 0);
-                          }
-                          
-                          return (
-                            <FormItem>
-                              <FormLabel>Split Percentage</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Percent className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                  <Input 
-                                    className="pl-8" 
-                                    placeholder="100" 
-                                    {...field} 
-                                    disabled={isNoBroker && commissionIndex > 0}
-                                    value={isNoBroker && commissionIndex > 0 ? "0" : field.value}
-                                  />
-                                </div>
-                              </FormControl>
-                              {isNoBroker && commissionIndex > 0 ? 
-                                <FormDescription>No percentage needed for unassigned broker</FormDescription> :
-                                <FormMessage />
-                              }
-                            </FormItem>
-                          );
-                        }}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name={`productDetails.${productIndex}.commissions.${commissionIndex}.notes`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Notes</FormLabel>
+                            <FormLabel>Participant Count</FormLabel>
                             <FormControl>
-                              <Input placeholder="Optional notes" {...field} />
+                              <div className="relative">
+                                <Users className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  type="number"
+                                  placeholder="100"
+                                  className="pl-10"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    updateCommissionAmount(productIndex);
+                                  }}
+                                />
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name={`productDetails.${productIndex}.commissionRate`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Commission Rate</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="2.00"
+                                  className="pl-10"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    updateCommissionAmount(productIndex);
+                                  }}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              Dollar amount per participant
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`productDetails.${productIndex}.transactionAmount`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Total Amount</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="200.00"
+                                  className="pl-10"
+                                  {...field}
+                                  readOnly
+                                />
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              Auto-calculated commission
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
 
-          <div className="flex justify-end space-x-4">
-            <Button variant="outline" type="button" onClick={() => navigate("/commissions")}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={createCommission.isPending}>
-              {createCommission.isPending ? "Creating..." : "Create Commission"}
-            </Button>
-          </div>
-        </form>
-      </Form>
+                    <Separator className="my-4" />
+                    <h3 className="text-base font-medium mb-2">Commission Splits</h3>
+                    
+                    {product.commissions.map((commission, commissionIndex) => (
+                      <div key={`commission-${productIndex}-${commissionIndex}`} className="p-4 border rounded-md mb-4">
+                        <h4 className="text-sm font-medium mb-3">Broker {commissionIndex + 1}</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`productDetails.${productIndex}.commissions.${commissionIndex}.brokerId`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Broker</FormLabel>
+                                <Select 
+                                  onValueChange={(value) => field.onChange(parseInt(value))} 
+                                  defaultValue={field.value.toString()}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a broker" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="0">No Broker / Unassigned</SelectItem>
+                                    {brokers?.map((broker) => (
+                                      <SelectItem key={broker.id} value={broker.id.toString()}>
+                                        {broker.firstName} {broker.lastName}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`productDetails.${productIndex}.commissions.${commissionIndex}.splitPercentage`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Split Percentage</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Percent className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      placeholder="100"
+                                      className="pl-10"
+                                      {...field}
+                                    />
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <div className="mt-4">
+                          <FormField
+                            control={form.control}
+                            name={`productDetails.${productIndex}.commissions.${commissionIndex}.notes`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Notes</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Enter any notes for this broker's commission"
+                                    className="min-h-[80px]"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="mr-2"
+                onClick={() => navigate("/commissions")}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createCommission.isPending}>
+                {createCommission.isPending ? "Creating..." : "Create Commission"}
+              </Button>
+            </div>
+          </form>
+        </Form>
       )}
     </div>
   );
