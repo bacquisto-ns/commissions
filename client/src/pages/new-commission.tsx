@@ -61,6 +61,8 @@ type FormValues = z.infer<typeof formSchema>;
 export default function NewCommission() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [step, setStep] = useState<'select-products' | 'form'>('select-products');
 
   // Fetch brokers for the split dropdown
   const { data: brokers } = useQuery({
@@ -69,11 +71,11 @@ export default function NewCommission() {
 
   // Product data mapping
   const PRODUCTS = [
-    { id: "fsa", label: "FSA" },
-    { id: "hsa", label: "HSA" },
-    { id: "cobra", label: "COBRA" },
-    { id: "hra", label: "HRA" },
-    { id: "consolidated_billing", label: "Consolidated Billing" }
+    { id: "fsa", label: "FSA", description: "Flexible Spending Account for healthcare expenses", icon: "💊" },
+    { id: "hsa", label: "HSA", description: "Health Savings Account for qualified medical expenses", icon: "🏥" },
+    { id: "cobra", label: "COBRA", description: "Continuation of health coverage after job loss", icon: "🏢" },
+    { id: "hra", label: "HRA", description: "Health Reimbursement Arrangement for medical expenses", icon: "💉" },
+    { id: "consolidated_billing", label: "Consolidated Billing", description: "Combined billing for multiple benefit plans", icon: "🧾" }
   ];
 
   // Form setup
@@ -274,6 +276,72 @@ export default function NewCommission() {
     form.setValue(`productDetails.${productIndex}.transactionAmount`, estimatedAmount);
   };
 
+  // Handle product selection
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProducts(prev => {
+      // If product is already selected, remove it
+      if (prev.includes(productId)) {
+        return prev.filter(id => id !== productId);
+      }
+      // Otherwise add it
+      return [...prev, productId];
+    });
+  };
+
+  // Initialize form with selected products
+  const initializeFormWithProducts = () => {
+    if (selectedProducts.length === 0) {
+      toast({
+        title: "No products selected",
+        description: "Please select at least one product",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create product details array from selections
+    const productDetails = selectedProducts.map(productId => {
+      const productInfo = PRODUCTS.find(p => p.id === productId);
+      return {
+        productId: productInfo?.id || "",
+        productName: productInfo?.label || "",
+        participantCount: "100",
+        commissionRate: "2.00",
+        transactionAmount: "200.00",
+        commissions: [
+          {
+            brokerId: 0, // No Broker / Unassigned
+            splitPercentage: "100",
+            status: "pending",
+            notes: "",
+          },
+          {
+            brokerId: 0, // No Broker / Unassigned
+            splitPercentage: "0",
+            status: "pending",
+            notes: "",
+          },
+          {
+            brokerId: 0, // No Broker / Unassigned
+            splitPercentage: "0",
+            status: "pending",
+            notes: "",
+          },
+          {
+            brokerId: 0, // No Broker / Unassigned
+            splitPercentage: "0",
+            status: "pending",
+            notes: "",
+          },
+        ],
+      };
+    });
+
+    // Update form with selected products
+    form.setValue("productDetails", productDetails);
+    setStep('form');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -289,8 +357,65 @@ export default function NewCommission() {
         </div>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      {step === 'select-products' ? (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Select Products</CardTitle>
+              <CardDescription>Choose the products to include in this commission</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {PRODUCTS.map(product => (
+                  <div 
+                    key={product.id}
+                    className={`relative p-6 border rounded-lg cursor-pointer transition-all
+                      ${selectedProducts.includes(product.id) 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-primary/40 hover:bg-muted/20'}`}
+                    onClick={() => toggleProductSelection(product.id)}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <div className="text-2xl">{product.icon}</div>
+                      <div>
+                        <h3 className="font-medium">{product.label}</h3>
+                        <p className="text-sm text-muted-foreground">{product.description}</p>
+                      </div>
+                    </div>
+                    {selectedProducts.includes(product.id) && (
+                      <Badge className="absolute top-2 right-2 bg-primary">
+                        Selected
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <div className="p-6 flex justify-end border-t">
+              <Button 
+                onClick={initializeFormWithProducts}
+                disabled={selectedProducts.length === 0}
+                className="ml-auto"
+              >
+                Continue to Form
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          {/* Button to go back to product selection */}
+          <div className="flex justify-end">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={() => setStep('select-products')}
+              className="mb-4"
+            >
+              Change Product Selection
+            </Button>
+          </div>
           {/* Employer Details Section */}
           <Card>
             <CardHeader>
@@ -750,6 +875,7 @@ export default function NewCommission() {
           </div>
         </form>
       </Form>
+      )}
     </div>
   );
 }
