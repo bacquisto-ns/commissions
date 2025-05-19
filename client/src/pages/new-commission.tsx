@@ -192,47 +192,58 @@ export default function NewCommission() {
   // Create commission mutation
   const createCommission = useMutation({
     mutationFn: async (data: FormValues) => {
-      // Add mock data to backend endpoint for now
-      const mockOrganization = {
-        organization: {
+      // Convert the data to the correct format for the backend
+      // The backend now properly handles empty fields and fixed commission amounts
+      
+      // Process each product separately to ensure all required fields are included
+      const processedProducts = data.productDetails.map(product => {
+        // Ensure we have at least one commission split with a valid broker
+        const validCommissions = Array.isArray(product.commissions) ? 
+          product.commissions.filter(c => c && typeof c === 'object') : [];
+          
+        // Default to broker ID 10 (Sarah Johnson) if no broker is selected
+        const defaultBrokerId = 10;
+        
+        // Process commissions with proper validation
+        const processedCommissions = validCommissions.length > 0 ? 
+          validCommissions.map(commission => ({
+            brokerId: commission.brokerId || defaultBrokerId,
+            splitPercentage: commission.splitPercentage || "100",
+            notes: commission.notes || ""
+          })) : 
+          [{ brokerId: defaultBrokerId, splitPercentage: "100", notes: "" }];
+        
+        return {
+          productId: product.productId,
+          productName: product.productName || "",
+          participantCount: product.participantCount || "0",
+          commissionRate: product.commissionRate || "0",
+          transactionAmount: product.transactionAmount || "0",
+          useFixedAmount: !!product.useFixedAmount,
+          commissions: processedCommissions
+        };
+      });
+      
+      return apiRequest('POST', '/api/commissions', {
+        property: {
           name: data.property.name,
-          address: "123 Main St",
-          city: "Sample City",
-          state: "ST",
-          zipCode: "12345",
-          contactName: "John Doe",
-          contactEmail: "john.doe@example.com",
-          contactPhone: "555-555-5555"
-        },
-        benefitProgram: {
-          groupName: "Company Benefits",
-          groupNumber: "BG123456",
-          programType: data.productDetails[0].productId || "cobra",
-          benefitProgramGroup: "health",
-          effectiveDate: new Date().toISOString(),
-          terminationDate: null,
-          notes: ""
+          address: data.property.address || "",
+          city: data.property.city || "",
+          state: data.property.state || "",
+          zipCode: data.property.zipCode || "",
+          propertyTypeGroup: data.property.propertyTypeGroup || "health"
         },
         transaction: {
-          transactionType: data.transaction.transactionType,
-          transactionDate: data.transaction.transactionDate.toISOString(),
-          participantCount: parseInt(data.productDetails[0].participantCount) || 100,
+          transactionType: data.transaction.transactionType || "enrollment",
+          transactionDate: data.transaction.transactionDate || new Date(),
           notes: data.transaction.notes || ""
         },
-        commissions: data.productDetails[0].commissions.filter(c => parseInt(c.splitPercentage) > 0).map(c => ({
-          brokerId: c.brokerId,
-          amount: ((parseInt(data.productDetails[0].participantCount) * parseFloat(data.productDetails[0].commissionRate)) * (parseInt(c.splitPercentage) / 100)).toFixed(2),
-          status: "pending",
-          paymentDate: null,
-          notes: c.notes || ""
-        }))
-      };
-      
-      return apiRequest('POST', '/api/commissions/simple', mockOrganization);
+        productDetails: processedProducts
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/7'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/10'] }); // Use broker ID 10 (Sarah Johnson)
       toast({
         title: "Commission created",
         description: "New commission has been successfully created",
@@ -772,7 +783,7 @@ export default function NewCommission() {
                                 <FormLabel>Broker</FormLabel>
                                 <Select 
                                   onValueChange={(value) => field.onChange(parseInt(value))} 
-                                  defaultValue={field.value.toString()}
+                                  defaultValue={field.value?.toString() || "10"}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
@@ -781,7 +792,8 @@ export default function NewCommission() {
                                   </FormControl>
                                   <SelectContent>
                                     <SelectItem value="0">No Broker / Unassigned</SelectItem>
-                                    {brokers?.map((broker) => (
+                                    <SelectItem value="10">Sarah Johnson (Default)</SelectItem>
+                                    {Array.isArray(brokers) && brokers.map((broker) => (
                                       <SelectItem key={broker.id} value={broker.id.toString()}>
                                         {broker.firstName} {broker.lastName}
                                       </SelectItem>
