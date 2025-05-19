@@ -664,23 +664,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get all commissions with direct database access
+  // Get commissions filtered by broker ID
   app.get(`${apiPrefix}/commissions`, async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = parseInt(req.query.offset as string) || 0;
+      const brokerId = req.query.brokerId ? parseInt(req.query.brokerId as string) : null;
       const status = req.query.status as string;
       const search = req.query.search as string;
       const date = req.query.date as string;
       
-      console.log(`Fetching all commissions, status: ${status || 'all'}, search: ${search || 'none'}, date: ${date || 'none'}`);
+      console.log(`Fetching commissions: ${brokerId ? 'for broker ID: ' + brokerId : 'for all brokers'}, status: ${status || 'all'}, search: ${search || 'none'}, date: ${date || 'none'}`);
       
-      // Use a simpler approach with a direct query
-      // Build the query with filters
+      // Build base query that gets ALL commissions
       let query = `
         SELECT 
           c.id, c.amount, c.status, c.broker_id, c.split_percentage, c.transaction_id, c.notes,
-          t.transaction_date, t.transaction_type, t.participant_count, t.commission_rate, t.total_commission,
+          c.created_at, c.updated_at, c.payment_date,
+          t.transaction_date, t.transaction_type, t.participant_count, t.commission_rate, t.total_commission, t.benefit_program_id,
           bp.program_name, bp.program_type, bp.organization_id,
           o.name as organization_name, o.address, o.city, o.state, o.zip_code
         FROM commissions c
@@ -692,6 +693,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const queryParams: any[] = [];
       let paramIndex = 1;
+      
+      // Apply broker filter only if specified
+      if (brokerId !== null) {
+        query += ` AND c.broker_id = $${paramIndex}`;
+        queryParams.push(brokerId);
+        paramIndex++;
+      }
       
       // Apply status filter if specified
       if (status && status !== 'all') {
@@ -731,29 +739,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `;
       
       // Apply the same filters to the count query
+      let countParamIndex = 1;
+      let countParams: any[] = [];
+      
+      if (brokerId !== null) {
+        countQuery += ` AND c.broker_id = $${countParamIndex}`;
+        countParams.push(brokerId);
+        countParamIndex++;
+      }
+      
       if (status && status !== 'all') {
-        countQuery += ` AND c.status = $1`;
+        countQuery += ` AND c.status = $${countParamIndex}`;
+        countParams.push(status);
+        countParamIndex++;
       }
       
       if (date) {
         const dateObj = new Date(date);
         const formattedDate = dateObj.toISOString().split('T')[0];
-        countQuery += ` AND DATE(t.transaction_date) = $${status && status !== 'all' ? 2 : 1}`;
-      }
-      
-      if (search) {
-        const paramPosition = (status && status !== 'all' ? 1 : 0) + (date ? 1 : 0) + 1;
-        countQuery += ` AND (o.name ILIKE $${paramPosition} OR o.address ILIKE $${paramPosition} OR c.notes ILIKE $${paramPosition})`;
-      }
-      
-      // Use the filter parameters for the count query, but without the limit and offset
-      const countParams = status && status !== 'all' ? [status] : [];
-      if (date) {
-        const dateObj = new Date(date);
-        const formattedDate = dateObj.toISOString().split('T')[0];
+        countQuery += ` AND DATE(t.transaction_date) = $${countParamIndex}`;
         countParams.push(formattedDate);
+        countParamIndex++;
       }
+      
       if (search) {
+        countQuery += ` AND (o.name ILIKE $${countParamIndex} OR o.address ILIKE $${countParamIndex} OR c.notes ILIKE $${countParamIndex})`;
         countParams.push(`%${search}%`);
       }
       
@@ -771,6 +781,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         splitPercentage: row.split_percentage,
         transactionId: row.transaction_id,
         notes: row.notes,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        paymentDate: row.payment_date,
         transaction: {
           id: row.transaction_id,
           transactionDate: row.transaction_date,
@@ -778,8 +791,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           participantCount: row.participant_count,
           commissionRate: row.commission_rate,
           totalCommission: row.total_commission,
+          benefitProgramId: row.benefit_program_id,
           benefitProgram: {
-            id: null, // Not needed for display
+            id: row.benefit_program_id,
             programName: row.program_name,
             programType: row.program_type,
             organizationId: row.organization_id,

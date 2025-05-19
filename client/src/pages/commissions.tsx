@@ -18,9 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Commissions() {
-  // View all commissions, not just those assigned to a specific broker
-  // Using null/undefined here will show all commissions
-  const brokerId = undefined;
+  // To view all commissions, we set brokerId to null explicitly
+  // This ensures the backend knows to return all commissions
+  const brokerId = null;
   const [status, setStatus] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
