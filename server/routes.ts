@@ -49,9 +49,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This will be coming from the database once we've migrated
       const brokerWithRole = {
         ...broker,
-        // System admin (ID 10), Agency admin (ID 7), others are brokers
-        role: broker.id === 10 ? 'system_admin' : 
-              broker.id === 7 ? 'agency_admin' : 'broker'
+        role: "broker"
       };
       
       return res.json(brokerWithRole);
@@ -61,7 +59,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Update broker profile
+  // Get broker by ID
+  app.get(`${apiPrefix}/brokers/:id`, async (req, res) => {
+    try {
+      const brokerId = parseInt(req.params.id);
+      if (isNaN(brokerId)) {
+        return res.status(400).json({ message: "Invalid broker ID" });
+      }
+      
+      const broker = await storage.getBrokerById(brokerId);
+      
+      if (!broker) {
+        return res.status(404).json({ message: "Broker not found" });
+      }
+      
+      return res.json(broker);
+    } catch (error) {
+      console.error("Error getting broker by ID:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Update broker
   app.patch(`${apiPrefix}/brokers/:id`, async (req, res) => {
     try {
       const brokerId = parseInt(req.params.id);
@@ -69,21 +88,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid broker ID" });
       }
       
-      // Define validation schema for broker updates
+      // Define schema for broker update
       const schema = z.object({
         firstName: z.string().min(1).optional(),
         lastName: z.string().min(1).optional(),
         email: z.string().email().optional(),
         phoneNumber: z.string().optional(),
-        agencyId: z.number().optional().nullable(),
+        agencyId: z.union([z.number(), z.string(), z.null()]).optional(),
         active: z.boolean().optional()
       });
       
-      // Validate request body
       const validatedData = schema.parse(req.body);
+      console.log("Validated data for broker update:", validatedData);
       
-      // Update broker in database
-      const updatedBroker = await storage.updateBroker(brokerId, validatedData);
+      // Process agencyId if provided
+      let processedAgencyId = null;
+      if (validatedData.agencyId && validatedData.agencyId !== 'null') {
+        processedAgencyId = typeof validatedData.agencyId === 'string' 
+          ? parseInt(validatedData.agencyId) 
+          : validatedData.agencyId;
+        
+        // Verify that the agency exists if an ID is provided
+        if (processedAgencyId) {
+          const agency = await storage.getAgencyById(processedAgencyId);
+          if (!agency) {
+            return res.status(400).json({ message: `Agency with ID ${processedAgencyId} does not exist` });
+          }
+        }
+      }
+      
+      // Prepare update data
+      const updateData = {
+        ...validatedData,
+        agencyId: processedAgencyId
+      };
+      
+      delete updateData.agencyId;
+      if (processedAgencyId !== null) {
+        updateData.agencyId = processedAgencyId;
+      }
+      
+      console.log("Updating broker with data:", updateData);
+      
+      const updatedBroker = await storage.updateBroker(brokerId, updateData);
       
       if (!updatedBroker) {
         return res.status(404).json({ message: "Broker not found" });
@@ -92,6 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(updatedBroker);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation error:", error.errors);
         return res.status(400).json({ errors: error.errors });
       }
       console.error("Error updating broker:", error);
@@ -199,69 +247,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get broker by ID
-  app.get(`${apiPrefix}/brokers/:id`, async (req, res) => {
+  // Get broker commissions
+  app.get(`${apiPrefix}/brokers/:id/commissions`, async (req, res) => {
     try {
       const brokerId = parseInt(req.params.id);
-      
-      // Handle special case for "No Broker/Unassigned" (id 0)
-      if (brokerId === 0) {
-        return res.json({
-          id: 0,
-          firstName: "No Broker",
-          lastName: "Unassigned",
-          email: "",
-          username: "nobroker",
-          agencyId: null
-        });
+      if (isNaN(brokerId)) {
+        return res.status(400).json({ message: "Invalid broker ID" });
       }
       
-      // Handle special case for "Admin" (id 13) if it doesn't exist in DB
-      if (brokerId === 13) {
-        const broker = await storage.getBrokerById(brokerId);
-        if (!broker) {
-          return res.json({
-            id: 13,
-            firstName: "System",
-            lastName: "Admin",
-            email: "admin@example.com",
-            username: "admin",
-            agencyId: null,
-            role: "admin"
-          });
-        }
-        
-        return res.json({
-          ...broker,
-          role: "admin"
-        });
-      }
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const status = req.query.status as string;
+      const search = req.query.search as string;
+      const date = req.query.date as string;
       
-      const broker = await storage.getBrokerById(brokerId);
+      // Log parameters for debugging
+      console.log(`Fetching commissions for broker ID: ${brokerId}, status: ${status || 'all'}, search: ${search || 'none'}, date: ${date || 'none'}`);
       
-      if (!broker) {
-        return res.status(404).json({ message: "Broker not found" });
-      }
+      const [commissions, total] = await Promise.all([
+        storage.getBrokerCommissions(brokerId, { limit, offset, status, search, date }),
+        storage.getBrokerCommissionsCount(brokerId, { status, search, date })
+      ]);
       
-      // Add role information based on broker ID
-      let role = 'broker';
-      if (brokerId === 10) {
-        role = 'system_admin';
-      } else if (brokerId === 7) {
-        role = 'agency_admin';
-      }
+      console.log(`Found ${commissions.length} commissions, total count: ${total}`);
       
       return res.json({
-        ...broker,
-        role
+        data: commissions,
+        meta: {
+          total,
+          limit,
+          offset
+        }
       });
     } catch (error) {
-      console.error('Error fetching broker:', error);
+      console.error("Error getting broker commissions:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
   
-  // --- Agency Management Routes ---
+  // --- Agency Routes ---
   
   // Get all agencies
   app.get(`${apiPrefix}/agencies`, async (req, res) => {
@@ -273,7 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Internal server error" });
     }
   });
-
+  
   // Get agency by ID
   app.get(`${apiPrefix}/agencies/:id`, async (req, res) => {
     try {
@@ -290,45 +314,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       return res.json(agency);
     } catch (error) {
-      console.error("Error getting agency:", error);
+      console.error("Error getting agency by ID:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
-
-  // Create new agency
+  
+  // Create a new agency
   app.post(`${apiPrefix}/agencies`, async (req, res) => {
     try {
-      const schema = z.object({
-        name: z.string().min(2, "Agency name must be at least 2 characters"),
-        address: z.string().optional(),
-        city: z.string().optional(),
-        state: z.string().optional(),
-        zipCode: z.string().optional(),
-        contactName: z.string().optional(),
-        contactEmail: z.string().email("Must provide a valid email").optional(),
-        contactPhone: z.string().optional(),
-        website: z.string().optional(),
-        active: z.boolean().optional(),
-      });
+      // Validate request body
+      const validatedData = organizationInsertSchema.parse(req.body);
       
-      const validatedData = schema.parse(req.body);
-      
+      // Create agency in database
       const newAgency = await storage.createAgency(validatedData);
       
       return res.status(201).json(newAgency);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Invalid agency data", 
-          errors: error.errors 
-        });
+        return res.status(400).json({ errors: error.errors });
       }
-      
       console.error("Error creating agency:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
-
+  
   // Update agency
   app.patch(`${apiPrefix}/agencies/:id`, async (req, res) => {
     try {
@@ -337,17 +346,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid agency ID" });
       }
       
+      // Define schema for agency update
       const schema = z.object({
-        name: z.string().min(2).optional(),
+        name: z.string().min(1).optional(),
         address: z.string().optional(),
         city: z.string().optional(),
         state: z.string().optional(),
         zipCode: z.string().optional(),
         contactName: z.string().optional(),
-        contactEmail: z.string().email("Must provide a valid email").optional(),
+        contactEmail: z.string().email().optional(),
         contactPhone: z.string().optional(),
-        website: z.string().optional(),
-        active: z.boolean().optional(),
       });
       
       const validatedData = schema.parse(req.body);
@@ -361,18 +369,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(updatedAgency);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Invalid agency data", 
-          errors: error.errors 
-        });
+        return res.status(400).json({ errors: error.errors });
       }
-      
       console.error("Error updating agency:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
-
-  // Get brokers for an agency
+  
+  // Get agency brokers
   app.get(`${apiPrefix}/agencies/:id/brokers`, async (req, res) => {
     try {
       const agencyId = parseInt(req.params.id);
@@ -478,8 +482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Custom endpoint for product updates
-  app.post(`${apiPrefix}/products/update/:id`, async (req, res) => {
-    // Simplified route for product updates
+  app.patch(`${apiPrefix}/products/:id`, authenticate, authorizeAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
@@ -488,18 +491,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const schema = z.object({
         name: z.string().min(2).optional(),
-        code: z.string().min(2).optional(),
-        description: z.string().optional().nullable(),
-        defaultCommissionRate: z.union([
-          z.number().min(0).transform(val => val.toString()),
-          z.string().min(1)
-        ]).optional(),
-        commissionStructureId: z.number().int().positive().optional().nullable(),
+        description: z.string().optional(),
+        commissionStructureId: z.union([z.number(), z.null()]).optional(),
         active: z.boolean().optional()
       });
       
       const validatedData = schema.parse(req.body);
       
+      // Update the product in the database
       const updatedProduct = await storage.updateProduct(productId, validatedData);
       
       if (!updatedProduct) {
@@ -515,29 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Internal server error" });
     }
   });
-
-  // Delete a product (Admin only)
-  app.delete(`${apiPrefix}/products/:id`, authenticate, authorizeAdmin, async (req, res) => {
-    try {
-      const productId = parseInt(req.params.id);
-      if (isNaN(productId)) {
-        return res.status(400).json({ message: "Invalid product ID" });
-      }
-      
-      // Instead of deleting, we'll just deactivate the product
-      const updatedProduct = await storage.updateProduct(productId, { active: false });
-      
-      if (!updatedProduct) {
-        return res.status(404).json({ message: "Product not found" });
-      }
-      
-      return res.json({ message: "Product successfully deactivated" });
-    } catch (error) {
-      console.error("Error deactivating product:", error);
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
+  
   // --- Commission Structure Routes ---
   
   // Get all commission structures
@@ -654,76 +631,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid broker ID" });
       }
       
+      // Get dashboard data from storage
       const dashboardData = await storage.getDashboardData(brokerId);
+      
       return res.json(dashboardData);
     } catch (error) {
-      console.error("Error getting dashboard data:", error);
+      console.error("Error fetching dashboard data:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
-
-  // Get commissions for a broker
+  
+  // Get commission statistics
+  app.get(`${apiPrefix}/commission-statistics`, async (req, res) => {
+    try {
+      // Extract parameters
+      const brokerId = req.query.brokerId ? parseInt(req.query.brokerId as string) : undefined;
+      const agencyId = req.query.agencyId ? parseInt(req.query.agencyId as string) : undefined;
+      const type = req.query.type as string;
+      const timeframe = req.query.timeframe as string || 'year'; // default to 'year'
+      
+      // Get statistics data
+      const statistics = await storage.getCommissionStatistics({
+        brokerId,
+        agencyId,
+        type,
+        timeframe,
+      });
+      
+      return res.json(statistics);
+    } catch (error) {
+      console.error("Error fetching commission statistics:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get all commissions for a broker
   app.get(`${apiPrefix}/commissions`, async (req, res) => {
     try {
-      const brokerId = parseInt(req.query.brokerId as string) || 10; // Default to Michael Chang (ID 10)
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = parseInt(req.query.offset as string) || 0;
+      const brokerId = req.query.brokerId ? parseInt(req.query.brokerId as string) : 10; // default broker ID (10 = Sarah Johnson)
       const status = req.query.status as string;
       const search = req.query.search as string;
       const date = req.query.date as string;
       
       console.log(`Fetching commissions for broker ID: ${brokerId}, status: ${status || 'all'}, search: ${search || 'none'}, date: ${date || 'none'}`);
       
-      // Build query parameters
-      const queryParams: any = { 
-        limit, 
-        offset, 
-        status: status === 'all' ? undefined : status 
-      };
+      const [commissions, total] = await Promise.all([
+        storage.getBrokerCommissions(brokerId, { limit, offset, status, search, date }),
+        storage.getBrokerCommissionsCount(brokerId, { status, search, date })
+      ]);
       
-      // Add search if provided
-      if (search) {
-        queryParams.search = search;
-      }
-      
-      // Add date if provided
-      if (date) {
-        queryParams.date = date;
-      }
-      
-      const commissions = await storage.getBrokerCommissions(brokerId, queryParams);
-      const totalCount = await storage.getBrokerCommissionsCount(
-        brokerId, 
-        queryParams.status, 
-        queryParams.search, 
-        queryParams.date
-      );
-      
-      console.log(`Found ${commissions.length} commissions, total count: ${totalCount}`);
+      console.log(`Found ${commissions.length} commissions, total count: ${total}`);
       
       return res.json({
         data: commissions,
         meta: {
-          total: totalCount,
+          total,
           limit,
-          offset,
-        },
+          offset
+        }
       });
     } catch (error) {
-      console.error("Error getting broker commissions:", error);
-      
-      // Provide more specific error messages when possible
-      if (error instanceof Error) {
-        return res.status(500).json({ 
-          message: "Error retrieving commissions", 
-          details: error.message 
-        });
-      }
-      
+      console.error("Error getting commissions:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
-
+  
   // Get a single commission by ID
   app.get(`${apiPrefix}/commissions/:id`, async (req, res) => {
     try {
@@ -744,273 +718,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Internal server error" });
     }
   });
-
-  // Create a new commission (including organization, benefit program, and transaction)
-  app.post(`${apiPrefix}/commissions`, async (req, res) => {
-    try {
-      // Log the incoming request for debugging
-      console.log("Received commission creation request:", JSON.stringify(req.body));
-      
-      // Extract and validate employer name (only required field)
-      const employerName = req.body.property?.name;
-      if (!employerName || employerName.length < 2) {
-        return res.status(400).json({ 
-          errors: [{ 
-            message: "Employer name must be at least 2 characters",
-            path: ["property", "name"]
-          }]
-        });
-      }
-      
-      // Process organization data with optional fields
-      const organization = {
-        name: employerName,
-        address: req.body.property?.address || "",
-        city: req.body.property?.city || "",
-        state: req.body.property?.state || "",
-        zipCode: req.body.property?.zipCode || "",
-        contactName: "Contact", // Default values
-        contactEmail: "contact@example.com",
-        contactPhone: ""
-      };
-      
-      // Extract transaction data
-      const transactionData = {
-        transactionType: req.body.transaction?.transactionType || "enrollment",
-        transactionDate: new Date(req.body.transaction?.transactionDate || new Date()),
-        notes: req.body.transaction?.notes || ""
-      };
-      
-      // Directly validate product details
-      if (!req.body.productDetails || !Array.isArray(req.body.productDetails) || req.body.productDetails.length === 0) {
-        return res.status(400).json({
-          errors: [{
-            message: "At least one product detail is required",
-            path: ["productDetails"]
-          }]
-        });
-      }
-        productDetails: z.array(
-          z.object({
-            productId: z.string(),
-            productName: z.string(),
-            participantCount: z.union([
-              z.string(),
-              z.number().transform(n => n.toString())
-            ]),
-            commissionRate: z.union([
-              z.string(),
-              z.number().transform(n => n.toString())
-            ]),
-            transactionAmount: z.union([
-              z.string(),
-              z.number().transform(n => n.toString())
-            ]),
-            commissions: z.array(
-              z.object({
-                brokerId: z.number().int().nonnegative(), // Allow 0 for "No Broker / Unassigned"
-                splitPercentage: z.union([
-                  z.string(),
-                  z.number().transform(n => n.toString())
-                ]),
-                status: z.string().default("pending"),
-                notes: z.string().optional(),
-              })
-            ).min(1, "At least one commission split is required"),
-          })
-        ).min(1, "At least one product detail is required"),
-      });
-      
-      const validatedData = createCommissionSchema.parse(req.body);
-      
-      // Create the organization data from property information with proper handling of optional fields
-      const organization = {
-        name: validatedData.property.name,
-        address: typeof validatedData.property.address === 'string' ? validatedData.property.address : "",
-        city: typeof validatedData.property.city === 'string' ? validatedData.property.city : "",
-        state: typeof validatedData.property.state === 'string' ? validatedData.property.state : "",
-        zipCode: typeof validatedData.property.zipCode === 'string' ? validatedData.property.zipCode : "",
-        contactName: "Contact", // Default values for now
-        contactEmail: "contact@example.com", // Default values for now
-        contactPhone: "" // Default values for now
-      };
-      
-      // Process each product detail as a separate commission entry
-      const results = [];
-      
-      for (const productDetail of validatedData.productDetails) {
-        // Use productId as the benefit program type
-        // Ensure it's a valid enum value by casting
-        const programType = productDetail.productId as "hsa" | "fsa" | "cobra" | "dental" | "vision" | "retirement" | "life_insurance" | "disability" | "other";
-        
-        // Parse string values to numbers for calculations
-        // Make sure to handle parsing errors 
-        let participantCount = 0;
-        try {
-          participantCount = typeof productDetail.participantCount === 'string' 
-            ? parseInt(productDetail.participantCount)
-            : productDetail.participantCount;
-        } catch (e) {
-          console.error("Error parsing participantCount:", e);
-          participantCount = 0; // Default to 0 if parsing fails
-        }
-        
-        let commissionRate = 0;
-        try {
-          commissionRate = typeof productDetail.commissionRate === 'string'
-            ? parseFloat(productDetail.commissionRate)
-            : productDetail.commissionRate;
-        } catch (e) {
-          console.error("Error parsing commissionRate:", e);
-          commissionRate = 2.00; // Default to $2 if parsing fails
-        }
-        
-        let transactionAmount = 0;
-        try {
-          transactionAmount = typeof productDetail.transactionAmount === 'string'
-            ? parseFloat(productDetail.transactionAmount)
-            : productDetail.transactionAmount;
-        } catch (e) {
-          console.error("Error parsing transactionAmount:", e);
-          transactionAmount = 0; // Default to 0 if parsing fails
-        }
-        
-        const benefitProgram = {
-          programName: `${productDetail.productName} Program`,
-          programType: programType,
-          programGroup: validatedData.property.propertyTypeGroup as "health" | "wellness" | "retirement" | "insurance" | "other",
-          participantMinimum: participantCount,
-          startDate: validatedData.transaction.transactionDate,
-          endDate: null as Date | null,
-          notes: validatedData.transaction.notes || null
-        };
-        
-        // Prepare commission data with proper null handling
-        // Filter out zero percentage splits
-        const commissionData = productDetail.commissions
-          .filter(commission => {
-            // Parse splitPercentage to a number for comparison
-            const splitPct = parseFloat(commission.splitPercentage);
-            return splitPct > 0;
-          })
-          .map(commission => {
-            const splitPct = parseFloat(commission.splitPercentage);
-            
-            // Handle broker ID 0 as null (no broker assigned)
-            let brokerId = null;
-            
-            // Convert to number first to ensure consistent comparison
-            const brokerIdNumber = typeof commission.brokerId === 'string' 
-              ? parseInt(commission.brokerId) 
-              : (typeof commission.brokerId === 'number' ? commission.brokerId : 0);
-              
-            // Only set a broker ID if it's greater than 0
-            if (brokerIdNumber > 0) {
-              brokerId = brokerIdNumber;
-            }
-            
-            return {
-              brokerId, // Can be null
-              splitPercentage: commission.splitPercentage,
-              status: "pending" as "pending" | "approved", // Type assertion for TypeScript
-              notes: commission.notes || null,
-              amount: ((splitPct / 100) * transactionAmount).toString()
-            };
-          });
-        
-        if (commissionData.length === 0) {
-          // Ensure at least one commission entry
-          // If all commissions were filtered out, use a null brokerId (unassigned)
-          commissionData.push({
-            brokerId: null,
-            splitPercentage: "100",
-            status: "pending" as "pending" | "approved",
-            notes: null,
-            amount: transactionAmount.toString()
-          });
-        }
-        
-        // Create the transaction and commissions
-        const result = await storage.createCommission({
-          organization: organization,
-          benefitProgram: benefitProgram,
-          transaction: {
-            transactionType: validatedData.transaction.transactionType,
-            transactionDate: validatedData.transaction.transactionDate,
-            participantCount: participantCount, // Use the parsed number
-            commissionRate: commissionRate.toString(), // Convert to string for DB
-            notes: validatedData.transaction.notes || null,
-            totalCommission: transactionAmount.toString(), // Use the transaction amount as the commission
-          },
-          commissions: commissionData,
-        });
-        
-        results.push(result);
-      }
-      
-      // Return the first result (or we could return all of them)
-      return res.status(201).json(results[0]);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        console.error("Validation error:", JSON.stringify(error.errors, null, 2));
-        console.error("Request body:", JSON.stringify(req.body, null, 2));
-        return res.status(400).json({ errors: error.errors });
-      }
-      console.error("Error creating commission:", error);
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Update commission details
-  app.patch(`${apiPrefix}/commissions/:id`, async (req, res) => {
+  
+  // Delete a commission by ID
+  app.delete(`${apiPrefix}/commissions/:id`, async (req, res) => {
     try {
       const commissionId = parseInt(req.params.id);
       if (isNaN(commissionId)) {
         return res.status(400).json({ message: "Invalid commission ID" });
       }
       
-      const schema = z.object({
-        splitPercentage: z.string().min(1, "Split percentage is required"),
-        amount: z.string().min(1, "Amount is required"),
-        notes: z.string().optional(),
-        status: z.enum(["pending", "approved"]),
-      });
+      const success = await storage.deleteCommission(commissionId);
       
-      try {
-        const validatedData = schema.parse(req.body);
-        
-        // Prepare update data and handle payment date based on status
-        const updateData: any = {
-          splitPercentage: validatedData.splitPercentage,
-          amount: validatedData.amount,
-          notes: validatedData.notes,
-          status: validatedData.status,
-        };
-        
-        // If status is changed to approved, set payment date
-        if (validatedData.status === 'approved') {
-          updateData.paymentDate = new Date();
-        }
-        
-        const updatedCommission = await storage.updateCommission(commissionId, updateData);
-        
-        if (!updatedCommission) {
-          return res.status(404).json({ message: "Commission not found" });
-        }
-        
-        return res.json(updatedCommission);
-      } catch (validationError) {
-        if (validationError instanceof z.ZodError) {
-          return res.status(400).json({ errors: validationError.errors });
-        }
-        throw validationError;
+      if (!success) {
+        return res.status(404).json({ message: "Commission not found" });
       }
+      
+      return res.json({ success: true });
     } catch (error) {
-      console.error("Error updating commission:", error);
+      console.error("Error deleting commission:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
-
+  
   // Update a commission's status
   app.patch(`${apiPrefix}/commissions/:id/status`, async (req, res) => {
     try {
@@ -1020,25 +749,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const schema = z.object({
-        status: z.enum(['pending', 'approved']),
-        paymentDate: z.string().or(z.date()).optional().nullable().transform(val => 
-          val ? new Date(val) : null
-        ),
+        status: commissionStatusEnum,
       });
       
       const validatedData = schema.parse(req.body);
       
-      const commission = await storage.updateCommissionStatus(
-        commissionId,
-        validatedData.status,
-        validatedData.paymentDate
-      );
+      const updatedCommission = await storage.updateCommissionStatus(commissionId, validatedData.status);
       
-      if (!commission) {
+      if (!updatedCommission) {
         return res.status(404).json({ message: "Commission not found" });
       }
       
-      return res.json(commission);
+      return res.json(updatedCommission);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
@@ -1048,54 +770,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete commission
-  app.delete(`${apiPrefix}/commissions/:id`, async (req, res) => {
+  // Create a new commission (including organization, benefit program, and transaction)
+  app.post(`${apiPrefix}/commissions`, async (req, res) => {
     try {
-      const commissionId = parseInt(req.params.id);
-      if (isNaN(commissionId)) {
-        return res.status(400).json({ message: "Invalid commission ID" });
+      // Log the request for debugging
+      console.log("Received commission creation request:", JSON.stringify(req.body));
+      
+      // Extract required fields from request body
+      const { property, transaction, productDetails } = req.body;
+      
+      // Basic validation for required fields
+      if (!property || !property.name || property.name.length < 2) {
+        return res.status(400).json({
+          errors: [{
+            message: "Employer name must be at least 2 characters",
+            path: ["property", "name"]
+          }]
+        });
       }
       
-      // Get the commission to check if it exists
-      const commission = await storage.getCommissionById(commissionId);
-      if (!commission) {
-        return res.status(404).json({ message: "Commission not found" });
+      if (!productDetails || !Array.isArray(productDetails) || productDetails.length === 0) {
+        return res.status(400).json({
+          errors: [{
+            message: "At least one product is required",
+            path: ["productDetails"]
+          }]
+        });
       }
       
-      // Delete the commission through storage
-      const success = await storage.deleteCommission(commissionId);
+      // Create organization data
+      const organization = {
+        name: property.name,
+        address: property.address || "",
+        city: property.city || "",
+        state: property.state || "",
+        zipCode: property.zipCode || "",
+        contactName: "Contact",
+        contactEmail: "contact@example.com",
+        contactPhone: ""
+      };
       
-      return res.json({ 
-        success: true, 
-        message: "Commission deleted successfully",
-        id: commissionId
-      });
+      // Process each product detail
+      const results = [];
+      
+      for (const product of productDetails) {
+        // Skip invalid products
+        if (!product || !product.productId) continue;
+        
+        // Create benefit program data
+        const benefitProgram = {
+          organizationId: 0, // Will be set by storage layer
+          groupName: "Default Group",
+          groupNumber: "G-" + Math.floor(100000 + Math.random() * 900000),
+          programType: product.productId,
+          benefitProgramGroup: property.propertyTypeGroup || "health",
+          effectiveDate: new Date(),
+          terminationDate: null,
+          notes: ""
+        };
+        
+        // Process numeric values safely
+        const participantCount = parseInt(product.participantCount) || 0;
+        const commissionRate = parseFloat(product.commissionRate) || 0;
+        
+        // Handle fixed amount override
+        let transactionAmount;
+        if (product.useFixedAmount) {
+          transactionAmount = parseFloat(product.transactionAmount) || 0;
+        } else {
+          transactionAmount = participantCount * commissionRate;
+        }
+        
+        // Create transaction data
+        const transactionData = {
+          benefitProgramId: 0, // Will be set by storage layer
+          transactionType: transaction?.transactionType || "enrollment",
+          transactionDate: transaction?.transactionDate ? new Date(transaction.transactionDate) : new Date(),
+          participantCount: participantCount,
+          notes: transaction?.notes || ""
+        };
+        
+        // Process commission splits
+        const commissions = [];
+        
+        if (product.commissions && Array.isArray(product.commissions)) {
+          for (const split of product.commissions) {
+            if (!split) continue;
+            
+            // Skip invalid splits (unless it's the only one)
+            const splitPercentage = parseFloat(split.splitPercentage) || 0;
+            if (splitPercentage <= 0 && product.commissions.length > 1) continue;
+            
+            const brokerId = typeof split.brokerId === 'number' ? split.brokerId : 0;
+            
+            // Calculate split amount based on percentage
+            const amount = (transactionAmount * (splitPercentage / 100)).toFixed(2);
+            
+            commissions.push({
+              transactionId: 0, // Will be set by storage layer
+              brokerId: brokerId,
+              amount: amount,
+              status: "pending",
+              paymentDate: null,
+              notes: split.notes || ""
+            });
+          }
+        }
+        
+        // Ensure at least one commission exists
+        if (commissions.length === 0) {
+          commissions.push({
+            transactionId: 0,
+            brokerId: 0, // No broker / unassigned
+            amount: transactionAmount.toFixed(2),
+            status: "pending",
+            paymentDate: null,
+            notes: ""
+          });
+        }
+        
+        try {
+          // Create the commission in the database
+          const result = await storage.createCommission({
+            organization,
+            benefitProgram,
+            transaction: transactionData,
+            commissions: commissions
+          });
+          
+          results.push(result);
+        } catch (err) {
+          console.error("Error creating commission for product:", product.productId, err);
+          // Continue with other products if one fails
+        }
+      }
+      
+      // Check if any commissions were created
+      if (results.length === 0) {
+        return res.status(500).json({ message: "Failed to create any commissions" });
+      }
+      
+      // Return the created commission
+      return res.status(201).json(results[0]);
     } catch (error) {
-      console.error("Error deleting commission:", error);
+      console.error("Error creating commission:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
-
-  // Get commission statistics (by property type, by month, etc.)
-  app.get(`${apiPrefix}/statistics/:brokerId`, async (req, res) => {
-    try {
-      const brokerId = parseInt(req.params.brokerId);
-      if (isNaN(brokerId)) {
-        return res.status(400).json({ message: "Invalid broker ID" });
-      }
-      
-      const period = req.query.period as string || 'month';
-      const count = parseInt(req.query.count as string) || 6;
-      
-      const statistics = await storage.getCommissionStatistics(brokerId, period, count);
-      return res.json(statistics);
-    } catch (error) {
-      console.error("Error getting commission statistics:", error);
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
+  
+  // Create the HTTP server
   const httpServer = createServer(app);
-
+  
   return httpServer;
 }
