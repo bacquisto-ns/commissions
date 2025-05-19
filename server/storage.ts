@@ -971,12 +971,16 @@ export const storage = {
       const [organization] = await tx.insert(organizations).values(data.organization).returning();
       
       // 2. Create the benefit program
-      // Ensure participant minimum is a number
+      // Create benefit program with correct schema fields
       const benefitProgramData = {
-        ...data.benefitProgram,
-        organizationId: organization.id,
-        participantMinimum: typeof data.benefitProgram.participantMinimum !== 'undefined' ? 
-          parseInt(data.benefitProgram.participantMinimum.toString()) : 0,
+        programName: data.benefitProgram.programName || "Default Program",
+        programType: data.benefitProgram.programType || "cobra",
+        programGroup: data.benefitProgram.programGroup || "health",
+        startDate: data.benefitProgram.startDate || new Date(),
+        endDate: null,
+        participantMinimum: 0,
+        notes: data.benefitProgram.notes || "",
+        organizationId: organization.id
       };
       
       console.log("Benefit program data:", JSON.stringify(benefitProgramData, null, 2));
@@ -984,15 +988,15 @@ export const storage = {
       const [benefitProgram] = await tx.insert(benefitPrograms).values(benefitProgramData).returning();
       
       // 3. Create the transaction
-      // Ensure numeric fields are converted properly
+      // Create transaction with required fields only
       const transactionData = {
-        ...data.transaction,
-        benefitProgramId: benefitProgram.id,
-        participantCount: typeof data.transaction.participantCount !== 'undefined' ? 
-          parseInt(data.transaction.participantCount.toString()) : 0,
-        // For decimal fields, ensure they're properly formatted strings
-        commissionRate: data.transaction.commissionRate,
-        totalCommission: data.transaction.totalCommission,
+        transactionType: data.transaction.transactionType || "enrollment",
+        transactionDate: data.transaction.transactionDate ? new Date(data.transaction.transactionDate) : new Date(),
+        participantCount: data.transaction.participantCount ? parseInt(String(data.transaction.participantCount)) : 0,
+        commissionRate: data.transaction.commissionRate ? String(data.transaction.commissionRate) : "0",
+        totalCommission: data.transaction.totalCommission ? String(data.transaction.totalCommission) : "0",
+        notes: data.transaction.notes || "",
+        benefitProgramId: benefitProgram.id
       };
       
       console.log("Transaction data:", JSON.stringify(transactionData, null, 2));

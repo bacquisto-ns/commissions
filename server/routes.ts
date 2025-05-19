@@ -901,12 +901,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         try {
-          // Create the commission in the database
-          const result = await storage.createCommission({
+          console.log("Creating commission with the following data:");
+          console.log("- Organization:", organization);
+          console.log("- Benefit Program:", { 
+            ...benefitProgram,
+            programName: property.name || "Default Program",
+            programType: product.productId || "cobra",
+            programGroup: "health"
+          });
+          console.log("- Transaction:", {
+            transactionType: transaction?.transactionType || "enrollment",
+            transactionDate: transaction?.transactionDate ? new Date(transaction.transactionDate) : new Date(),
+            participantCount: participantCount,
+            commissionRate: commissionRate.toString(),
+            totalCommission: product.useFixedAmount ? 
+              (parseFloat(product.transactionAmount) || 0).toString() : 
+              (participantCount * commissionRate).toString(),
+          });
+          
+          // Create a simpler commission object that will work properly
+          const commissionRequest = {
             organization,
-            benefitProgram,
-            transaction: transactionData,
+            benefitProgram: {
+              programName: property.name || "Default Program",
+              programType: product.productId || "cobra",
+              programGroup: "health"
+            },
+            transaction: {
+              transactionType: transaction?.transactionType || "enrollment",
+              transactionDate: transaction?.transactionDate ? new Date(transaction.transactionDate) : new Date(),
+              participantCount: participantCount,
+              commissionRate: commissionRate.toString(),
+              totalCommission: product.useFixedAmount ? 
+                (parseFloat(product.transactionAmount) || 0).toString() : 
+                (participantCount * commissionRate).toString(),
+              notes: transaction?.notes || ""
+            },
+            // Filter out any commissions with zero split percentage
             commissions: commissions
+              .filter(c => parseFloat(c.splitPercentage || "0") > 0)
+              .map(commission => ({
+                brokerId: typeof commission.brokerId === 'number' ? commission.brokerId : 
+                  (commission.brokerId ? parseInt(commission.brokerId.toString()) : null),
+                splitPercentage: commission.splitPercentage || "100",
+                amount: commission.amount || "0",
+                status: "pending",
+                notes: commission.notes || ""
+              }))
           });
           
           results.push(result);
