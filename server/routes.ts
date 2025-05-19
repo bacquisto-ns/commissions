@@ -119,12 +119,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Prepare update data
       const updateData = {
-        ...validatedData,
-        agencyId: processedAgencyId
+        ...validatedData
       };
       
-      delete updateData.agencyId;
-      if (processedAgencyId !== null) {
+      if (processedAgencyId !== undefined) {
         updateData.agencyId = processedAgencyId;
       }
       
@@ -749,7 +747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const schema = z.object({
-        status: commissionStatusEnum,
+        status: z.enum(["pending", "approved"]),
       });
       
       const validatedData = schema.parse(req.body);
@@ -800,7 +798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create organization data
       const organization = {
-        name: property.name,
+        name: property.name || "",
         address: property.address || "",
         city: property.city || "",
         state: property.state || "",
@@ -817,21 +815,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Skip invalid products
         if (!product || !product.productId) continue;
         
-        // Create benefit program data
+        // Create benefit program data with required fields
         const benefitProgram = {
-          organizationId: 0, // Will be set by storage layer
           programName: property.name || "Default Program",
-          groupName: "Default Group",
-          groupNumber: "G-" + Math.floor(100000 + Math.random() * 900000),
-          programType: product.productId,
-          programGroup: property.propertyTypeGroup || "health",
+          programType: product.productId || "cobra",
+          programGroup: "health",
           startDate: new Date(),
           endDate: null,
           participantMinimum: 0,
-          benefitProgramGroup: property.propertyTypeGroup || "health",
-          effectiveDate: new Date(),
-          terminationDate: null,
-          notes: ""
+          notes: "",
+          organizationId: 0 // Will be set by storage layer
         };
         
         // Process numeric values safely
@@ -846,21 +839,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           transactionAmount = participantCount * commissionRate;
         }
         
-        // Create transaction data
+        // Create transaction data with required fields
         const transactionData = {
-          benefitProgramId: 0, // Will be set by storage layer
           transactionType: transaction?.transactionType || "enrollment",
           transactionDate: transaction?.transactionDate ? new Date(transaction.transactionDate) : new Date(),
           participantCount: participantCount,
           commissionRate: commissionRate.toString(),
-          totalCommission: product.useFixedAmount ? 
-            (parseFloat(product.transactionAmount) || 0).toString() : 
-            (participantCount * commissionRate).toString(),
-          notes: transaction?.notes || ""
+          totalCommission: transactionAmount.toString(),
+          notes: transaction?.notes || "",
+          benefitProgramId: 0 // Will be set by storage layer
         };
         
         // Process commission splits
-        const commissions = [];
+        const commissionSplits = [];
         
         if (product.commissions && Array.isArray(product.commissions)) {
           for (const split of product.commissions) {
@@ -870,84 +861,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const splitPercentage = parseFloat(split.splitPercentage) || 0;
             if (splitPercentage <= 0 && product.commissions.length > 1) continue;
             
-            const brokerId = typeof split.brokerId === 'number' ? split.brokerId : 0;
+            // Use the broker ID from the form - should be a valid broker ID
+            const brokerId = typeof split.brokerId === 'number' ? split.brokerId : 
+                           (split.brokerId ? parseInt(split.brokerId.toString()) : null);
+            
+            // Skip splits with no broker assigned if there are other valid splits
+            if (brokerId === 0 && product.commissions.filter(c => parseFloat(c.splitPercentage || "0") > 0).length > 1) {
+              continue;
+            }
             
             // Calculate split amount based on percentage
             const amount = (transactionAmount * (splitPercentage / 100)).toFixed(2);
             
-            commissions.push({
-              transactionId: 0, // Will be set by storage layer
+            commissionSplits.push({
               brokerId: brokerId,
               splitPercentage: split.splitPercentage.toString(),
               amount: amount,
               status: "pending",
-              paymentDate: null,
               notes: split.notes || ""
             });
           }
         }
         
         // Ensure at least one commission exists
-        if (commissions.length === 0) {
-          commissions.push({
-            transactionId: 0,
-            brokerId: 0, // No broker / unassigned
+        if (commissionSplits.length === 0) {
+          commissionSplits.push({
+            brokerId: null, // No broker / unassigned
             splitPercentage: "100",
             amount: transactionAmount.toFixed(2),
             status: "pending",
-            paymentDate: null,
             notes: ""
           });
         }
         
         try {
-          console.log("Creating commission with the following data:");
-          console.log("- Organization:", organization);
-          console.log("- Benefit Program:", { 
-            ...benefitProgram,
-            programName: property.name || "Default Program",
-            programType: product.productId || "cobra",
-            programGroup: "health"
-          });
-          console.log("- Transaction:", {
-            transactionType: transaction?.transactionType || "enrollment",
-            transactionDate: transaction?.transactionDate ? new Date(transaction.transactionDate) : new Date(),
-            participantCount: participantCount,
-            commissionRate: commissionRate.toString(),
-            totalCommission: product.useFixedAmount ? 
-              (parseFloat(product.transactionAmount) || 0).toString() : 
-              (participantCount * commissionRate).toString(),
-          });
-          
-          // Create a simpler commission object that will work properly
-          const commissionRequest = {
+          // Create the commission in the database
+          const result = await storage.createCommission({
             organization,
-            benefitProgram: {
-              programName: property.name || "Default Program",
-              programType: product.productId || "cobra",
-              programGroup: "health"
-            },
-            transaction: {
-              transactionType: transaction?.transactionType || "enrollment",
-              transactionDate: transaction?.transactionDate ? new Date(transaction.transactionDate) : new Date(),
-              participantCount: participantCount,
-              commissionRate: commissionRate.toString(),
-              totalCommission: product.useFixedAmount ? 
-                (parseFloat(product.transactionAmount) || 0).toString() : 
-                (participantCount * commissionRate).toString(),
-              notes: transaction?.notes || ""
-            },
-            // Filter out any commissions with zero split percentage
-            commissions: commissions
-              .filter(c => parseFloat(c.splitPercentage || "0") > 0)
-              .map(commission => ({
-                brokerId: typeof commission.brokerId === 'number' ? commission.brokerId : 
-                  (commission.brokerId ? parseInt(commission.brokerId.toString()) : null),
-                splitPercentage: commission.splitPercentage || "100",
-                amount: commission.amount || "0",
-                status: "pending",
-                notes: commission.notes || ""
-              }))
+            benefitProgram,
+            transaction: transactionData,
+            commissions: commissionSplits
           });
           
           results.push(result);
