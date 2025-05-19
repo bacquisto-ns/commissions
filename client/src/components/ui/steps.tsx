@@ -31,7 +31,7 @@ export function Steps({ current, children, className }: StepsProps) {
             const stepNumber = index + 1;
 
             return (
-              <React.Fragment key={index}>
+              <React.Fragment key={index.toString()}>
                 <div className="flex items-center relative">
                   {/* Step circle */}
                   <div

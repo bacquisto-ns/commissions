@@ -375,7 +375,7 @@ async function importBrokers(brokers: any[]): Promise<{importedCount: number, er
         phoneNumber: brokerData.phone || brokerData.phoneNumber || "",
         agencyId: parseInt(brokerData.agencyId) || null,
         active: brokerData.active === "true" || brokerData.active === "1" || true,
-        username: brokerData.username || `${brokerData.firstName.toLowerCase()}${brokerData.lastName.toLowerCase()}`,
+        username: brokerData.username || `${brokerData.firstName.toLowerCase()}${brokerData.lastName.toLowerCase()}_${Date.now().toString().slice(-5)}`,
         password: brokerData.password || "broker123", // Default password
       };
 
