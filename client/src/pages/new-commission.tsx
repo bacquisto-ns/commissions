@@ -192,24 +192,43 @@ export default function NewCommission() {
   // Create commission mutation
   const createCommission = useMutation({
     mutationFn: async (data: FormValues) => {
-      // Convert string values to appropriate types
-      const processedData = {
-        ...data,
-        productDetails: data.productDetails.map(product => {
-          return {
-            ...product,
-            participantCount: parseInt(product.participantCount),
-            transactionAmount: parseFloat(product.transactionAmount) || 0,
-            commissionRate: parseFloat(product.commissionRate) || 2.00,
-            commissions: product.commissions.map(commission => ({
-              ...commission,
-              splitPercentage: parseFloat(commission.splitPercentage) || 100
-            }))
-          };
-        })
+      // Add mock data to backend endpoint for now
+      const mockOrganization = {
+        organization: {
+          name: data.property.name,
+          address: "123 Main St",
+          city: "Sample City",
+          state: "ST",
+          zipCode: "12345",
+          contactName: "John Doe",
+          contactEmail: "john.doe@example.com",
+          contactPhone: "555-555-5555"
+        },
+        benefitProgram: {
+          groupName: "Company Benefits",
+          groupNumber: "BG123456",
+          programType: data.productDetails[0].productId || "cobra",
+          benefitProgramGroup: "health",
+          effectiveDate: new Date().toISOString(),
+          terminationDate: null,
+          notes: ""
+        },
+        transaction: {
+          transactionType: data.transaction.transactionType,
+          transactionDate: data.transaction.transactionDate.toISOString(),
+          participantCount: parseInt(data.productDetails[0].participantCount) || 100,
+          notes: data.transaction.notes || ""
+        },
+        commissions: data.productDetails[0].commissions.filter(c => parseInt(c.splitPercentage) > 0).map(c => ({
+          brokerId: c.brokerId,
+          amount: ((parseInt(data.productDetails[0].participantCount) * parseFloat(data.productDetails[0].commissionRate)) * (parseInt(c.splitPercentage) / 100)).toFixed(2),
+          status: "pending",
+          paymentDate: null,
+          notes: c.notes || ""
+        }))
       };
       
-      return apiRequest('POST', '/api/commissions', processedData);
+      return apiRequest('POST', '/api/commissions/simple', mockOrganization);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
