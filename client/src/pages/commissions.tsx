@@ -79,12 +79,12 @@ export default function Commissions() {
     };
   }
 
-  // Fetch commissions with enhanced filters and sorting
+  // Directly fetch all commissions from API by removing brokerId filter
   const { data: commissionsData = { data: [], meta: { total: 0, limit: pageSize, offset: 0 } }, isLoading } = useQuery<CommissionsResponse>({
     queryKey: [
       "/api/commissions", 
       { 
-        brokerId, // Use the brokerId from the component state
+        // Removed brokerId filter to show all commissions
         status, 
         offset: (currentPage - 1) * pageSize, 
         limit: pageSize, 
