@@ -47,6 +47,7 @@ const formSchema = z.object({
       participantCount: z.string(), // Will be parsed to number when submitting
       commissionRate: z.string(), // Will be parsed to number when submitting
       transactionAmount: z.string(), // Will be parsed to number when submitting
+      useFixedAmount: z.boolean().default(false), // Whether to use fixed amount instead of calculated
       commissions: z.array(
         z.object({
           brokerId: z.number(),
@@ -121,10 +122,49 @@ export default function NewCommission() {
     queryKey: ["/api/brokers"],
   });
   
-  // Form setup
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
+  // Periodically save form state to prevent timeout issues
+  useEffect(() => {
+    // Function to save form state
+    const saveFormState = () => {
+      if (step === 'form') {
+        const formData = JSON.stringify(form.getValues());
+        localStorage.setItem('commission_form_data', formData);
+      }
+    };
+    
+    // Save form state every 30 seconds
+    const intervalId = setInterval(saveFormState, 30000);
+    
+    // Also save on window blur (when user switches tabs or apps)
+    const handleBlur = () => saveFormState();
+    window.addEventListener('blur', handleBlur);
+    
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [step]);
+  
+  // Try to load saved form data from localStorage
+  const getSavedFormData = () => {
+    try {
+      const savedFormData = localStorage.getItem('commission_form_data');
+      if (savedFormData) {
+        const parsedData = JSON.parse(savedFormData);
+        
+        // Ensure the transaction date is properly converted back to a Date object
+        if (parsedData.transaction && parsedData.transaction.transactionDate) {
+          parsedData.transaction.transactionDate = new Date(parsedData.transaction.transactionDate);
+        }
+        
+        return parsedData;
+      }
+    } catch (error) {
+      console.error("Error loading saved form data:", error);
+    }
+    
+    // Default values if no saved data or error occurred
+    return {
       property: {
         name: "",
         address: "",
@@ -139,7 +179,13 @@ export default function NewCommission() {
         notes: "",
       },
       productDetails: [],
-    },
+    };
+  };
+  
+  // Form setup with saved data (if available)
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: getSavedFormData(),
     shouldUnregister: false,
   });
 
@@ -176,6 +222,7 @@ export default function NewCommission() {
       // Clear local storage on successful submission
       localStorage.removeItem('commission_form_step');
       localStorage.removeItem('commission_selected_products');
+      localStorage.removeItem('commission_form_data');
       
       navigate("/commissions");
     },
@@ -243,6 +290,7 @@ export default function NewCommission() {
         participantCount: "100",
         commissionRate: "2.00",
         transactionAmount: "200.00",
+        useFixedAmount: false, // Default to calculated amount
         commissions: [
           {
             brokerId: 0, // No Broker / Unassigned
@@ -578,6 +626,27 @@ export default function NewCommission() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name={`productDetails.${productIndex}.useFixedAmount`}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-2 space-y-0 mb-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Override with fixed amount</FormLabel>
+                            <FormDescription>
+                              Use a custom commission amount instead of the calculated one
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
@@ -595,8 +664,11 @@ export default function NewCommission() {
                                   {...field}
                                   onChange={(e) => {
                                     field.onChange(e);
-                                    updateCommissionAmount(productIndex);
+                                    if (!form.getValues(`productDetails.${productIndex}.useFixedAmount`)) {
+                                      updateCommissionAmount(productIndex);
+                                    }
                                   }}
+                                  disabled={form.getValues(`productDetails.${productIndex}.useFixedAmount`)}
                                 />
                               </div>
                             </FormControl>
@@ -621,8 +693,11 @@ export default function NewCommission() {
                                   {...field}
                                   onChange={(e) => {
                                     field.onChange(e);
-                                    updateCommissionAmount(productIndex);
+                                    if (!form.getValues(`productDetails.${productIndex}.useFixedAmount`)) {
+                                      updateCommissionAmount(productIndex);
+                                    }
                                   }}
+                                  disabled={form.getValues(`productDetails.${productIndex}.useFixedAmount`)}
                                 />
                               </div>
                             </FormControl>
@@ -648,12 +723,14 @@ export default function NewCommission() {
                                   placeholder="200.00"
                                   className="pl-10"
                                   {...field}
-                                  readOnly
+                                  readOnly={!form.getValues(`productDetails.${productIndex}.useFixedAmount`)}
                                 />
                               </div>
                             </FormControl>
                             <FormDescription>
-                              Auto-calculated commission
+                              {form.getValues(`productDetails.${productIndex}.useFixedAmount`) 
+                                ? "Fixed commission amount" 
+                                : "Auto-calculated commission"}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
