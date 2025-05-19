@@ -975,7 +975,8 @@ export const storage = {
       const benefitProgramData = {
         ...data.benefitProgram,
         organizationId: organization.id,
-        participantMinimum: parseInt(data.benefitProgram.participantMinimum.toString()),
+        participantMinimum: typeof data.benefitProgram.participantMinimum !== 'undefined' ? 
+          parseInt(data.benefitProgram.participantMinimum.toString()) : 0,
       };
       
       console.log("Benefit program data:", JSON.stringify(benefitProgramData, null, 2));
@@ -987,7 +988,8 @@ export const storage = {
       const transactionData = {
         ...data.transaction,
         benefitProgramId: benefitProgram.id,
-        participantCount: parseInt(data.transaction.participantCount.toString()),
+        participantCount: typeof data.transaction.participantCount !== 'undefined' ? 
+          parseInt(data.transaction.participantCount.toString()) : 0,
         // For decimal fields, ensure they're properly formatted strings
         commissionRate: data.transaction.commissionRate,
         totalCommission: data.transaction.totalCommission,

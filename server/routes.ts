@@ -820,9 +820,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create benefit program data
         const benefitProgram = {
           organizationId: 0, // Will be set by storage layer
+          programName: property.name || "Default Program",
           groupName: "Default Group",
           groupNumber: "G-" + Math.floor(100000 + Math.random() * 900000),
           programType: product.productId,
+          programGroup: property.propertyTypeGroup || "health",
+          startDate: new Date(),
+          endDate: null,
+          participantMinimum: 0,
           benefitProgramGroup: property.propertyTypeGroup || "health",
           effectiveDate: new Date(),
           terminationDate: null,
@@ -847,6 +852,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           transactionType: transaction?.transactionType || "enrollment",
           transactionDate: transaction?.transactionDate ? new Date(transaction.transactionDate) : new Date(),
           participantCount: participantCount,
+          commissionRate: commissionRate.toString(),
+          totalCommission: product.useFixedAmount ? 
+            (parseFloat(product.transactionAmount) || 0).toString() : 
+            (participantCount * commissionRate).toString(),
           notes: transaction?.notes || ""
         };
         
@@ -869,6 +878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             commissions.push({
               transactionId: 0, // Will be set by storage layer
               brokerId: brokerId,
+              splitPercentage: split.splitPercentage.toString(),
               amount: amount,
               status: "pending",
               paymentDate: null,

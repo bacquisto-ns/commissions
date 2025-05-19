@@ -792,7 +792,10 @@ export default function NewCommission() {
                                   </FormControl>
                                   <SelectContent>
                                     <SelectItem value="0">No Broker / Unassigned</SelectItem>
-                                    <SelectItem value="10">Sarah Johnson (Default)</SelectItem>
+                                    {/* Only show Sarah Johnson (ID: 10) if she's not already in the brokers list */}
+                                    {!(Array.isArray(brokers) && brokers.some(b => b.id === 10)) && (
+                                      <SelectItem value="10">Sarah Johnson (Default)</SelectItem>
+                                    )}
                                     {Array.isArray(brokers) && brokers.map((broker) => (
                                       <SelectItem key={broker.id} value={broker.id.toString()}>
                                         {broker.firstName} {broker.lastName}

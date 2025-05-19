@@ -1,0 +1,40 @@
+Warning: Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.%s 10 
+    at select
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=15c1bd9f:79:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=15c1bd9f:56:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-Q6YJROYD.js?v=15c1bd9f:42:13
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2BBZCU5G.js?v=15c1bd9f:37:20
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=15c1bd9f:1131:13
+    at Provider (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=15c1bd9f:38:15)
+    at Provider (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=15c1bd9f:38:15)
+    at Popper (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-KA76R32V.js?v=15c1bd9f:1921:11)
+    at Select (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=15c1bd9f:88:5)
+    at div
+    at https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/form.tsx:71:6
+    at Controller (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=15c1bd9f:298:35)
+    at FormField (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/form.tsx:32:6)
+    at div
+    at div
+    at div
+    at _c9 (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/card.tsx:114:12)
+    at div
+    at _c (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at form
+    at FormProvider (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=15c1bd9f:102:11)
+    at div
+    at NewCommission (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/pages/new-commission.tsx?t=1747688909112:142:24)
+    at AuthGuard (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/auth-guard.tsx:21:37)
+    at ProtectedRoute (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/App.tsx?t=1747688909112&v=kAq0Kp4Ufe9suXrLS_g7f:43:14)
+    at component
+    at Route (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=15c1bd9f:280:16)
+    at Switch (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=15c1bd9f:336:17)
+    at RouterContent
+    at main
+    at div
+    at div
+    at Layout (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/components/layout.tsx:23:34)
+    at AppContent (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/App.tsx?t=1747688909112&v=kAq0Kp4Ufe9suXrLS_g7f:372:31)
+    at AuthProvider (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/src/context/auth-context.tsx:38:32)
+    at QueryClientProvider (https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=15c1bd9f:2879:3)
+    at App
