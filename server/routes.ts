@@ -891,7 +891,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (commissions.length === 0) {
           commissions.push({
             transactionId: 0,
-            brokerId: 0, // No broker / unassigned
+            brokerId: 10, // Default to Sarah Johnson (broker ID 10)
+            splitPercentage: "100",
             amount: transactionAmount.toFixed(2),
             status: "pending",
             paymentDate: null,
