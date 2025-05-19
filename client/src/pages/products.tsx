@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Package, Plus, Edit, Trash, Check, X, DollarSign } from "lucide-react";
+import { Package, Plus, Edit, Trash, Check, X, DollarSign, Tag, Layers, Calculator, Settings } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,19 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency } from "@/lib/utils";
@@ -42,7 +55,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import ExportMenu from "@/components/export-menu";
 
-// Define the Product type to match our backend schema
+// Define the Product type to match our backend schema with more flexibility
 type Product = {
   id: number;
   name: string;
@@ -52,6 +65,11 @@ type Product = {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  // Optional fields for additional flexibility
+  category?: string;
+  tags?: string[];
+  customFields?: Record<string, any>;
+  calculationType?: 'fixed' | 'percentage' | 'tiered';
 };
 
 // Form validation schema for adding/editing products
@@ -63,7 +81,12 @@ const productFormSchema = z.object({
     (val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0,
     { message: "Commission rate must be a positive number." }
   ),
-  active: z.boolean().default(true)
+  active: z.boolean().default(true),
+  // Additional flexible fields
+  category: z.string().optional(),
+  calculationType: z.enum(['fixed', 'percentage', 'tiered']).default('fixed').optional(),
+  tags: z.array(z.string()).optional(),
+  customFields: z.record(z.any()).optional()
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -93,7 +116,12 @@ export default function Products() {
       code: "",
       description: "",
       defaultCommissionRate: "2.00",
-      active: true
+      active: true,
+      // Default values for new fields
+      category: "",
+      calculationType: "fixed",
+      tags: [],
+      customFields: {}
     }
   });
   
@@ -105,7 +133,12 @@ export default function Products() {
       code: "",
       description: "",
       defaultCommissionRate: "0.00",
-      active: true
+      active: true,
+      // Default values for new fields
+      category: "",
+      calculationType: "fixed",
+      tags: [],
+      customFields: {}
     }
   });
   
@@ -117,7 +150,12 @@ export default function Products() {
         code: editingProduct.code,
         description: editingProduct.description || "",
         defaultCommissionRate: editingProduct.defaultCommissionRate,
-        active: editingProduct.active
+        active: editingProduct.active,
+        // Initialize new fields from editing product, or use defaults
+        category: editingProduct.category || "",
+        calculationType: editingProduct.calculationType || "fixed",
+        tags: editingProduct.tags || [],
+        customFields: editingProduct.customFields || {}
       });
     }
   }, [editingProduct, editForm]);
@@ -218,109 +256,223 @@ export default function Products() {
                 </DialogHeader>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Product Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter product name" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            The full name of the benefit product.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="code"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Product Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter product code" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            A unique identifier for the product.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Enter product description" 
-                              {...field} 
-                              value={field.value || ""} 
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            A brief description of the product.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="defaultCommissionRate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Default Commission Rate ($)</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input 
-                                type="number" 
-                                step="0.01" 
-                                className="pl-8" 
-                                placeholder="0.00" 
-                                onChange={(e) => field.onChange(e.target.value)}
-                                onBlur={field.onBlur}
-                                name={field.name}
-                                ref={field.ref}
-                                value={field.value}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            The default commission rate per participant.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="active"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                          <div className="space-y-0.5">
-                            <FormLabel>Active Status</FormLabel>
-                            <FormDescription>
-                              Mark this product as active and available for use.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <input
-                              type="checkbox"
-                              checked={field.value}
-                              onChange={(e) => field.onChange(e.target.checked)}
-                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                    <Tabs defaultValue="basic" className="w-full">
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                        <TabsTrigger value="commission">Commission</TabsTrigger>
+                        <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                      </TabsList>
+                      
+                      {/* Basic Information Tab */}
+                      <TabsContent value="basic" className="space-y-4 pt-4">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Product Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter product name" {...field} />
+                              </FormControl>
+                              <FormDescription>
+                                The full name of the benefit product.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="code"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Product Code</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter product code" {...field} />
+                              </FormControl>
+                              <FormDescription>
+                                A unique identifier for the product.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Enter product description" 
+                                  {...field} 
+                                  value={field.value || ""} 
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                A brief description of the product.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="category"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Category</FormLabel>
+                              <Select 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a category" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="health">Health Plans</SelectItem>
+                                  <SelectItem value="dental">Dental</SelectItem>
+                                  <SelectItem value="vision">Vision</SelectItem>
+                                  <SelectItem value="life">Life Insurance</SelectItem>
+                                  <SelectItem value="disability">Disability</SelectItem>
+                                  <SelectItem value="retirement">Retirement</SelectItem>
+                                  <SelectItem value="wellness">Wellness Programs</SelectItem>
+                                  <SelectItem value="fsa">FSA</SelectItem>
+                                  <SelectItem value="hsa">HSA</SelectItem>
+                                  <SelectItem value="cobra">COBRA</SelectItem>
+                                  <SelectItem value="hra">HRA</SelectItem>
+                                  <SelectItem value="consolidated">Consolidated Billing</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                Categorize this product for easier organization.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="active"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                              <div className="space-y-0.5">
+                                <FormLabel>Active Status</FormLabel>
+                                <FormDescription>
+                                  Mark this product as active and available for use.
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <input
+                                  type="checkbox"
+                                  checked={field.value}
+                                  onChange={(e) => field.onChange(e.target.checked)}
+                                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </TabsContent>
+                      
+                      {/* Commission Settings Tab */}
+                      <TabsContent value="commission" className="space-y-4 pt-4">
+                        <FormField
+                          control={form.control}
+                          name="calculationType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Commission Calculation Type</FormLabel>
+                              <Select 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select calculation type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="fixed">Fixed Rate (per participant)</SelectItem>
+                                  <SelectItem value="percentage">Percentage of Premium</SelectItem>
+                                  <SelectItem value="tiered">Tiered (based on enrollment)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                How commission will be calculated for this product.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="defaultCommissionRate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Default Commission Rate ($)</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                  <Input 
+                                    type="number" 
+                                    step="0.01" 
+                                    className="pl-8" 
+                                    placeholder="0.00" 
+                                    onChange={(e) => field.onChange(e.target.value)}
+                                    onBlur={field.onBlur}
+                                    name={field.name}
+                                    ref={field.ref}
+                                    value={field.value}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                The default commission rate per participant.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TabsContent>
+                      
+                      {/* Advanced Settings Tab */}
+                      <TabsContent value="advanced" className="space-y-4 pt-4">
+                        <div className="rounded-lg border p-4">
+                          <h3 className="text-sm font-medium mb-2 flex items-center">
+                            <Tag className="h-4 w-4 mr-2" />
+                            Tags
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Add tags to help categorize and filter products (coming soon).
+                          </p>
+                          <Input 
+                            type="text" 
+                            placeholder="e.g. new, featured, special"
+                            disabled
+                          />
+                        </div>
+                        
+                        <div className="rounded-lg border p-4">
+                          <h3 className="text-sm font-medium mb-2 flex items-center">
+                            <Settings className="h-4 w-4 mr-2" />
+                            Custom Fields
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Add custom attributes to this product (coming soon).
+                          </p>
+                          <Button variant="outline" size="sm" disabled>
+                            <Plus className="h-3.5 w-3.5 mr-1" />
+                            Add Custom Field
+                          </Button>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                    
                     <DialogFooter>
                       <Button type="submit" disabled={createProduct.isPending}>
                         {createProduct.isPending ? "Creating..." : "Create Product"}
