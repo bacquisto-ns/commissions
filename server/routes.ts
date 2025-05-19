@@ -752,10 +752,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createCommissionSchema = z.object({
         property: z.object({
           name: z.string().min(2, "Employer name must be at least 2 characters"),
-          address: z.string().min(5, "Address must be at least 5 characters"),
-          city: z.string().min(2, "City must be at least 2 characters"),
-          state: z.string().min(2, "State must be at least 2 characters"),
-          zipCode: z.string().min(5, "Zip code must be at least 5 characters"),
+          address: z.string().optional().or(z.string().min(5, "Address must be at least 5 characters")),
+          city: z.string().optional().or(z.string().min(2, "City must be at least 2 characters")),
+          state: z.string().optional().or(z.string().min(2, "State must be at least 2 characters")),
+          zipCode: z.string().optional().or(z.string().min(5, "Zip code must be at least 5 characters")),
           propertyTypeGroup: z.string(),
         }),
         transaction: z.object({
@@ -796,13 +796,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = createCommissionSchema.parse(req.body);
       
-      // Create the organization data from property information
+      // Create the organization data from property information with proper handling of optional fields
       const organization = {
-        name: validatedData.property.name || `Employer ${validatedData.property.address}`, // Use provided name or fallback to address
-        address: validatedData.property.address,
-        city: validatedData.property.city,
-        state: validatedData.property.state,
-        zipCode: validatedData.property.zipCode,
+        name: validatedData.property.name,
+        address: typeof validatedData.property.address === 'string' ? validatedData.property.address : "",
+        city: typeof validatedData.property.city === 'string' ? validatedData.property.city : "",
+        state: typeof validatedData.property.state === 'string' ? validatedData.property.state : "",
+        zipCode: typeof validatedData.property.zipCode === 'string' ? validatedData.property.zipCode : "",
         contactName: "Contact", // Default values for now
         contactEmail: "contact@example.com", // Default values for now
         contactPhone: "" // Default values for now
