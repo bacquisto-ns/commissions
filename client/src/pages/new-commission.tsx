@@ -11,12 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { CardContent, Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { CardContent, Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, HomeIcon, Percent, DollarSign, ArrowLeft, Users, PlusCircle, MinusCircle } from "lucide-react";
+import { 
+  CalendarIcon, HomeIcon, Percent, DollarSign, ArrowLeft, Users, 
+  PlusCircle, MinusCircle, CheckCircle, Package, Layers 
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -63,19 +66,44 @@ export default function NewCommission() {
   const { toast } = useToast();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [step, setStep] = useState<'select-products' | 'form'>('select-products');
-
+  
   // Fetch brokers for the split dropdown
   const { data: brokers } = useQuery({
     queryKey: ["/api/brokers"],
   });
-
-  // Product data mapping
+  
+  // Product data mapping with rich descriptions
   const PRODUCTS = [
-    { id: "fsa", label: "FSA", description: "Flexible Spending Account for healthcare expenses", icon: "💊" },
-    { id: "hsa", label: "HSA", description: "Health Savings Account for qualified medical expenses", icon: "🏥" },
-    { id: "cobra", label: "COBRA", description: "Continuation of health coverage after job loss", icon: "🏢" },
-    { id: "hra", label: "HRA", description: "Health Reimbursement Arrangement for medical expenses", icon: "💉" },
-    { id: "consolidated_billing", label: "Consolidated Billing", description: "Combined billing for multiple benefit plans", icon: "🧾" }
+    { 
+      id: "fsa", 
+      label: "FSA", 
+      description: "Flexible Spending Account for healthcare expenses", 
+      icon: <Package className="h-6 w-6 text-primary" /> 
+    },
+    { 
+      id: "hsa", 
+      label: "HSA", 
+      description: "Health Savings Account for qualified medical expenses", 
+      icon: <Package className="h-6 w-6 text-primary" /> 
+    },
+    { 
+      id: "cobra", 
+      label: "COBRA", 
+      description: "Continuation of health coverage after job loss", 
+      icon: <Layers className="h-6 w-6 text-primary" /> 
+    },
+    { 
+      id: "hra", 
+      label: "HRA", 
+      description: "Health Reimbursement Arrangement for medical expenses", 
+      icon: <Package className="h-6 w-6 text-primary" /> 
+    },
+    { 
+      id: "consolidated_billing", 
+      label: "Consolidated Billing", 
+      description: "Combined billing for multiple benefit plans", 
+      icon: <Layers className="h-6 w-6 text-primary" /> 
+    }
   ];
 
   // Form setup
@@ -358,64 +386,70 @@ export default function NewCommission() {
       </div>
 
       {step === 'select-products' ? (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Select Products</CardTitle>
-              <CardDescription>Choose the products to include in this commission</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {PRODUCTS.map(product => (
-                  <div 
-                    key={product.id}
-                    className={`relative p-6 border rounded-lg cursor-pointer transition-all
-                      ${selectedProducts.includes(product.id) 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-border hover:border-primary/40 hover:bg-muted/20'}`}
-                    onClick={() => toggleProductSelection(product.id)}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="text-2xl">{product.icon}</div>
-                      <div>
-                        <h3 className="font-medium">{product.label}</h3>
-                        <p className="text-sm text-muted-foreground">{product.description}</p>
-                      </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center">
+              <Package className="mr-2 h-5 w-5" />
+              Select Products
+            </CardTitle>
+            <CardDescription>
+              Choose which products to include in this commission
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {PRODUCTS.map(product => (
+                <div 
+                  key={product.id}
+                  className={`relative p-6 border rounded-lg cursor-pointer transition-all
+                    ${selectedProducts.includes(product.id) 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-border hover:border-primary/40 hover:bg-muted/20'}`}
+                  onClick={() => toggleProductSelection(product.id)}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      {product.icon}
                     </div>
-                    {selectedProducts.includes(product.id) && (
-                      <Badge className="absolute top-2 right-2 bg-primary">
-                        Selected
-                      </Badge>
-                    )}
+                    <div>
+                      <h3 className="font-medium">{product.label}</h3>
+                      <p className="text-sm text-muted-foreground">{product.description}</p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-            <div className="p-6 flex justify-end border-t">
-              <Button 
-                onClick={initializeFormWithProducts}
-                disabled={selectedProducts.length === 0}
-                className="ml-auto"
-              >
-                Continue to Form
-              </Button>
+                  {selectedProducts.includes(product.id) && (
+                    <div className="absolute top-2 right-2">
+                      <CheckCircle className="h-5 w-5 text-primary" />
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          </Card>
-        </div>
+          </CardContent>
+          <CardFooter className="flex justify-between border-t pt-6">
+            <p className="text-sm text-muted-foreground">
+              {selectedProducts.length} product{selectedProducts.length !== 1 ? 's' : ''} selected
+            </p>
+            <Button 
+              onClick={initializeFormWithProducts}
+              disabled={selectedProducts.length === 0}
+            >
+              Continue
+            </Button>
+          </CardFooter>
+        </Card>
       ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Button to go back to product selection */}
-          <div className="flex justify-end">
-            <Button 
-              type="button" 
-              variant="outline"
-              onClick={() => setStep('select-products')}
-              className="mb-4"
-            >
-              Change Product Selection
-            </Button>
-          </div>
+            <div className="flex justify-end">
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => setStep('select-products')}
+                className="mb-4"
+              >
+                Change Product Selection
+              </Button>
+            </div>
           {/* Employer Details Section */}
           <Card>
             <CardHeader>
