@@ -1,0 +1,144 @@
+// Make getBrokerCommissions handle all commissions when brokerId is null
+async getAllCommissions(
+  { limit = 10, offset = 0, brokerId, status, search, date }: 
+  { limit?: number; offset?: number; brokerId?: number | null; status?: string; search?: string; date?: string } = {}
+): Promise<CommissionWithDetails[]> {
+  let query = db
+    .select()
+    .from(commissions)
+    .innerJoin(transactions, eq(commissions.transactionId, transactions.id))
+    .innerJoin(benefitPrograms, eq(transactions.benefitProgramId, benefitPrograms.id))
+    .innerJoin(organizations, eq(benefitPrograms.organizationId, organizations.id))
+    .orderBy(desc(transactions.transactionDate));
+  
+  // Apply broker filter if specified
+  if (brokerId !== null && brokerId !== undefined) {
+    query = query.where(eq(commissions.brokerId, brokerId));
+  }
+  
+  // Apply status filter if specified
+  if (status && status !== 'all') {
+    query = query.where(eq(commissions.status, status as any));
+  }
+  
+  // Apply date filter if specified
+  if (date) {
+    const dateObj = new Date(date);
+    const startOfDay = new Date(dateObj.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(dateObj.setHours(23, 59, 59, 999));
+    
+    query = query.where(
+      and(
+        gte(transactions.transactionDate, startOfDay),
+        lte(transactions.transactionDate, endOfDay)
+      )
+    );
+  }
+  
+  // Apply search filter if specified
+  if (search) {
+    query = query.where(
+      or(
+        ilike(organizations.name, `%${search}%`),
+        ilike(organizations.address, `%${search}%`),
+        ilike(commissions.notes, `%${search}%`)
+      )
+    );
+  }
+  
+  // Apply pagination
+  query = query.limit(limit).offset(offset);
+  
+  const results = await query;
+  
+  // Transform the results into the expected format
+  return results.map(row => {
+    const commission = {
+      id: row.commissions.id,
+      amount: row.commissions.amount,
+      status: row.commissions.status,
+      transactionId: row.commissions.transactionId,
+      brokerId: row.commissions.brokerId,
+      splitPercentage: row.commissions.splitPercentage,
+      notes: row.commissions.notes,
+      paymentDate: row.commissions.paymentDate,
+      createdAt: row.commissions.createdAt,
+      updatedAt: row.commissions.updatedAt,
+      transaction: {
+        id: row.transactions.id,
+        participantCount: row.transactions.participantCount,
+        transactionDate: row.transactions.transactionDate,
+        transactionType: row.transactions.transactionType,
+        commissionRate: row.transactions.commissionRate,
+        totalCommission: row.transactions.totalCommission,
+        benefitProgramId: row.transactions.benefitProgramId,
+        benefitProgram: {
+          id: row.benefit_programs.id,
+          programName: row.benefit_programs.programName,
+          programType: row.benefit_programs.programType,
+          organizationId: row.benefit_programs.organizationId,
+          organization: {
+            id: row.organizations.id,
+            name: row.organizations.name,
+            address: row.organizations.address,
+            city: row.organizations.city,
+            state: row.organizations.state,
+            zipCode: row.organizations.zipCode
+          }
+        }
+      }
+    };
+    
+    return commission;
+  });
+},
+
+async getAllCommissionsCount(
+  { brokerId, status, search, date }: 
+  { brokerId?: number | null; status?: string; search?: string; date?: string } = {}
+): Promise<number> {
+  let query = db
+    .select({ count: sql<number>`count(*)` })
+    .from(commissions)
+    .innerJoin(transactions, eq(commissions.transactionId, transactions.id))
+    .innerJoin(benefitPrograms, eq(transactions.benefitProgramId, benefitPrograms.id))
+    .innerJoin(organizations, eq(benefitPrograms.organizationId, organizations.id));
+  
+  // Apply broker filter if specified
+  if (brokerId !== null && brokerId !== undefined) {
+    query = query.where(eq(commissions.brokerId, brokerId));
+  }
+  
+  // Apply status filter if specified
+  if (status && status !== 'all') {
+    query = query.where(eq(commissions.status, status as any));
+  }
+  
+  // Apply date filter if specified
+  if (date) {
+    const dateObj = new Date(date);
+    const startOfDay = new Date(dateObj.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(dateObj.setHours(23, 59, 59, 999));
+    
+    query = query.where(
+      and(
+        gte(transactions.transactionDate, startOfDay),
+        lte(transactions.transactionDate, endOfDay)
+      )
+    );
+  }
+  
+  // Apply search filter if specified
+  if (search) {
+    query = query.where(
+      or(
+        ilike(organizations.name, `%${search}%`),
+        ilike(organizations.address, `%${search}%`),
+        ilike(commissions.notes, `%${search}%`)
+      )
+    );
+  }
+  
+  const result = await query;
+  return parseInt(result[0].count.toString());
+},

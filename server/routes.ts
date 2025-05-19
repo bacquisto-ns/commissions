@@ -663,21 +663,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get all commissions for a broker
+  // Get all commissions
   app.get(`${apiPrefix}/commissions`, async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = parseInt(req.query.offset as string) || 0;
-      const brokerId = req.query.brokerId ? parseInt(req.query.brokerId as string) : 10; // default broker ID (10 = Sarah Johnson)
+      const brokerId = req.query.brokerId ? parseInt(req.query.brokerId as string) : null; // Allow null to get all commissions
       const status = req.query.status as string;
       const search = req.query.search as string;
       const date = req.query.date as string;
       
-      console.log(`Fetching commissions for broker ID: ${brokerId}, status: ${status || 'all'}, search: ${search || 'none'}, date: ${date || 'none'}`);
+      console.log(`Fetching commissions: ${brokerId ? 'for broker ID: ' + brokerId : 'for all brokers'}, status: ${status || 'all'}, search: ${search || 'none'}, date: ${date || 'none'}`);
       
       const [commissions, total] = await Promise.all([
-        storage.getBrokerCommissions(brokerId, { limit, offset, status, search, date }),
-        storage.getBrokerCommissionsCount(brokerId, { status, search, date })
+        storage.getAllCommissions({ limit, offset, brokerId, status, search, date }),
+        storage.getAllCommissionsCount({ brokerId, status, search, date })
       ]);
       
       console.log(`Found ${commissions.length} commissions, total count: ${total}`);
