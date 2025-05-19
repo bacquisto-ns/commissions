@@ -748,21 +748,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new commission (including organization, benefit program, and transaction)
   app.post(`${apiPrefix}/commissions`, async (req, res) => {
     try {
-      // Validation schema for the entire payload using the new product-based structure
-      const createCommissionSchema = z.object({
-        property: z.object({
-          name: z.string().min(2, "Employer name must be at least 2 characters"),
-          address: z.string().transform(val => val || ""), // Accept empty strings
-          city: z.string().transform(val => val || ""), // Accept empty strings
-          state: z.string().transform(val => val || ""), // Accept empty strings
-          zipCode: z.string().transform(val => val || ""), // Accept empty strings
-          propertyTypeGroup: z.string(),
-        }),
-        transaction: z.object({
-          transactionType: transactionInsertSchema.shape.transactionType,
-          transactionDate: z.coerce.date(),
-          notes: z.string().optional(),
-        }),
+      // Log the incoming request for debugging
+      console.log("Received commission creation request:", JSON.stringify(req.body));
+      
+      // Extract and validate employer name (only required field)
+      const employerName = req.body.property?.name;
+      if (!employerName || employerName.length < 2) {
+        return res.status(400).json({ 
+          errors: [{ 
+            message: "Employer name must be at least 2 characters",
+            path: ["property", "name"]
+          }]
+        });
+      }
+      
+      // Process organization data with optional fields
+      const organization = {
+        name: employerName,
+        address: req.body.property?.address || "",
+        city: req.body.property?.city || "",
+        state: req.body.property?.state || "",
+        zipCode: req.body.property?.zipCode || "",
+        contactName: "Contact", // Default values
+        contactEmail: "contact@example.com",
+        contactPhone: ""
+      };
+      
+      // Extract transaction data
+      const transactionData = {
+        transactionType: req.body.transaction?.transactionType || "enrollment",
+        transactionDate: new Date(req.body.transaction?.transactionDate || new Date()),
+        notes: req.body.transaction?.notes || ""
+      };
+      
+      // Directly validate product details
+      if (!req.body.productDetails || !Array.isArray(req.body.productDetails) || req.body.productDetails.length === 0) {
+        return res.status(400).json({
+          errors: [{
+            message: "At least one product detail is required",
+            path: ["productDetails"]
+          }]
+        });
+      }
         productDetails: z.array(
           z.object({
             productId: z.string(),
