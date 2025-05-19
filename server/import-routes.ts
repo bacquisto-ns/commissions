@@ -375,7 +375,10 @@ async function importBrokers(brokers: any[]): Promise<{importedCount: number, er
         phoneNumber: brokerData.phone || brokerData.phoneNumber || "",
         agencyId: parseInt(brokerData.agencyId) || null,
         active: brokerData.active === "true" || brokerData.active === "1" || true,
-        username: brokerData.username || `${brokerData.firstName.toLowerCase()}${brokerData.lastName.toLowerCase()}_${Date.now().toString().slice(-5)}`,
+        // Check if the username is "password" and if so, generate a different one
+        username: (brokerData.username === "password" || !brokerData.username) 
+          ? `${brokerData.firstName.toLowerCase()}${brokerData.lastName.toLowerCase()}_${Date.now().toString().slice(-5)}`
+          : brokerData.username,
         password: brokerData.password || "broker123", // Default password
       };
 
