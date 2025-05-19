@@ -752,10 +752,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createCommissionSchema = z.object({
         property: z.object({
           name: z.string().min(2, "Employer name must be at least 2 characters"),
-          address: z.string().optional().or(z.string().min(5, "Address must be at least 5 characters")),
-          city: z.string().optional().or(z.string().min(2, "City must be at least 2 characters")),
-          state: z.string().optional().or(z.string().min(2, "State must be at least 2 characters")),
-          zipCode: z.string().optional().or(z.string().min(5, "Zip code must be at least 5 characters")),
+          address: z.string().transform(val => val || ""), // Accept empty strings
+          city: z.string().transform(val => val || ""), // Accept empty strings
+          state: z.string().transform(val => val || ""), // Accept empty strings
+          zipCode: z.string().transform(val => val || ""), // Accept empty strings
           propertyTypeGroup: z.string(),
         }),
         transaction: z.object({
