@@ -21,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import StatusBadge from "@/components/status-badge";
 import { format } from "date-fns";
-import { ArrowLeft, FileText, Home, User, Calendar, DollarSign, Percent, CheckCircle, AlertCircle, Pencil } from "lucide-react";
+import { ArrowLeft, FileText, Home, User, Calendar, DollarSign, Percent, CheckCircle, AlertCircle, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ExportMenu from "@/components/export-menu";
 
@@ -64,10 +64,34 @@ export default function CommissionDetails() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
   // Fetch commission details
   const { data: commission, isLoading } = useQuery<CommissionDetails>({
     queryKey: [`/api/commissions/${id}`],
+  });
+
+  // Delete commission mutation
+  const deleteCommission = useMutation({
+    mutationFn: async () => {
+      return apiRequest('DELETE', `/api/commissions/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/10'] });
+      toast({
+        title: "Commission deleted",
+        description: "Commission has been successfully deleted",
+      });
+      navigate('/commissions');
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete commission",
+        variant: "destructive",
+      });
+    },
   });
 
   // Update commission status mutation
@@ -298,33 +322,63 @@ export default function CommissionDetails() {
             )}
           </CardContent>
           <CardFooter className="flex justify-between">
-            {commission.status !== 'approved' && (
-              <AlertDialog open={openStatusDialog} onOpenChange={setOpenStatusDialog}>
+            <div className="flex space-x-2">
+              {commission.status !== 'approved' && (
+                <AlertDialog open={openStatusDialog} onOpenChange={setOpenStatusDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline">
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Mark as Approved
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Mark Commission as Approved?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will update the commission status to "Approved" and record today's date as the approval date.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => updateStatus.mutate('approved')}
+                        disabled={updateStatus.isPending}
+                      >
+                        {updateStatus.isPending ? "Updating..." : "Confirm"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              
+              {/* Delete Commission Button & Dialog */}
+              <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="mr-2">
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Mark as Approved
+                  <Button variant="destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Commission
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Mark Commission as Approved?</AlertDialogTitle>
+                    <AlertDialogTitle>Are you sure you want to delete this commission?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will update the commission status to "Approved" and record today's date as the approval date.
+                      This action cannot be undone. This will permanently delete the commission and all associated transaction data.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction 
-                      onClick={() => updateStatus.mutate('approved')}
-                      disabled={updateStatus.isPending}
+                      onClick={() => deleteCommission.mutate()}
+                      disabled={deleteCommission.isPending}
+                      className="bg-destructive hover:bg-destructive/90"
                     >
-                      {updateStatus.isPending ? "Updating..." : "Confirm"}
+                      {deleteCommission.isPending ? "Deleting..." : "Delete Commission"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            )}
+            </div>
             
             {commission.status === 'approved' && commission.paymentDate && (
               <div className="flex items-center text-sm text-muted-foreground">
