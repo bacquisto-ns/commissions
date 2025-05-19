@@ -18,9 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Commissions() {
-  // In a real app, we'd get the brokerId from authentication context
-  // Use broker ID 10 (Michael Chang) since we assigned commissions to this broker
-  const brokerId = 10;
+  // View all commissions, not just those assigned to a specific broker
+  // Using null/undefined here will show all commissions
+  const brokerId = undefined;
   const [status, setStatus] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
