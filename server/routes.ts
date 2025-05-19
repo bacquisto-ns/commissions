@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import { pool } from "../db";
 import { 
   commissionInsertSchema, 
   commissionStatusEnum, 
@@ -663,22 +664,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get all commissions
+  // Get all commissions with direct database access
   app.get(`${apiPrefix}/commissions`, async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = parseInt(req.query.offset as string) || 0;
-      const brokerId = req.query.brokerId ? parseInt(req.query.brokerId as string) : null; // Allow null to get all commissions
       const status = req.query.status as string;
       const search = req.query.search as string;
       const date = req.query.date as string;
       
-      console.log(`Fetching commissions: ${brokerId ? 'for broker ID: ' + brokerId : 'for all brokers'}, status: ${status || 'all'}, search: ${search || 'none'}, date: ${date || 'none'}`);
+      console.log(`Fetching all commissions, status: ${status || 'all'}, search: ${search || 'none'}, date: ${date || 'none'}`);
       
-      const [commissions, total] = await Promise.all([
-        storage.getAllCommissions({ limit, offset, brokerId, status, search, date }),
-        storage.getAllCommissionsCount({ brokerId, status, search, date })
+      // Use a simpler approach with a direct query
+      // Build the query with filters
+      let query = `
+        SELECT 
+          c.id, c.amount, c.status, c.broker_id, c.split_percentage, c.transaction_id, c.notes,
+          t.transaction_date, t.transaction_type, t.participant_count, t.commission_rate, t.total_commission,
+          bp.program_name, bp.program_type, bp.organization_id,
+          o.name as organization_name, o.address, o.city, o.state, o.zip_code
+        FROM commissions c
+        JOIN transactions t ON c.transaction_id = t.id
+        JOIN benefit_programs bp ON t.benefit_program_id = bp.id 
+        JOIN organizations o ON bp.organization_id = o.id
+        WHERE 1=1
+      `;
+      
+      const queryParams: any[] = [];
+      let paramIndex = 1;
+      
+      // Apply status filter if specified
+      if (status && status !== 'all') {
+        query += ` AND c.status = $${paramIndex}`;
+        queryParams.push(status);
+        paramIndex++;
+      }
+      
+      // Apply date filter if specified
+      if (date) {
+        const dateObj = new Date(date);
+        const formattedDate = dateObj.toISOString().split('T')[0];
+        query += ` AND DATE(t.transaction_date) = $${paramIndex}`;
+        queryParams.push(formattedDate);
+        paramIndex++;
+      }
+      
+      // Apply search filter if specified
+      if (search) {
+        query += ` AND (o.name ILIKE $${paramIndex} OR o.address ILIKE $${paramIndex} OR c.notes ILIKE $${paramIndex})`;
+        queryParams.push(`%${search}%`);
+        paramIndex++;
+      }
+      
+      // Finalize with sorting and pagination
+      query += ` ORDER BY t.transaction_date DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+      queryParams.push(limit, offset);
+      
+      // Count query follows the same filter pattern
+      let countQuery = `
+        SELECT COUNT(*) 
+        FROM commissions c
+        JOIN transactions t ON c.transaction_id = t.id
+        JOIN benefit_programs bp ON t.benefit_program_id = bp.id 
+        JOIN organizations o ON bp.organization_id = o.id
+        WHERE 1=1
+      `;
+      
+      // Apply the same filters to the count query
+      if (status && status !== 'all') {
+        countQuery += ` AND c.status = $1`;
+      }
+      
+      if (date) {
+        const dateObj = new Date(date);
+        const formattedDate = dateObj.toISOString().split('T')[0];
+        countQuery += ` AND DATE(t.transaction_date) = $${status && status !== 'all' ? 2 : 1}`;
+      }
+      
+      if (search) {
+        const paramPosition = (status && status !== 'all' ? 1 : 0) + (date ? 1 : 0) + 1;
+        countQuery += ` AND (o.name ILIKE $${paramPosition} OR o.address ILIKE $${paramPosition} OR c.notes ILIKE $${paramPosition})`;
+      }
+      
+      // Use the filter parameters for the count query, but without the limit and offset
+      const countParams = status && status !== 'all' ? [status] : [];
+      if (date) {
+        const dateObj = new Date(date);
+        const formattedDate = dateObj.toISOString().split('T')[0];
+        countParams.push(formattedDate);
+      }
+      if (search) {
+        countParams.push(`%${search}%`);
+      }
+      
+      const [results, countResult] = await Promise.all([
+        pool.query(query, queryParams),
+        pool.query(countQuery, countParams)
       ]);
+      
+      // Format the response in the expected structure
+      const commissions = results.rows.map(row => ({
+        id: row.id,
+        amount: row.amount,
+        status: row.status,
+        brokerId: row.broker_id,
+        splitPercentage: row.split_percentage,
+        transactionId: row.transaction_id,
+        notes: row.notes,
+        transaction: {
+          id: row.transaction_id,
+          transactionDate: row.transaction_date,
+          transactionType: row.transaction_type,
+          participantCount: row.participant_count,
+          commissionRate: row.commission_rate,
+          totalCommission: row.total_commission,
+          benefitProgram: {
+            id: null, // Not needed for display
+            programName: row.program_name,
+            programType: row.program_type,
+            organizationId: row.organization_id,
+            organization: {
+              id: row.organization_id,
+              name: row.organization_name,
+              address: row.address,
+              city: row.city,
+              state: row.state,
+              zipCode: row.zip_code
+            }
+          }
+        }
+      }));
+      
+      const total = parseInt(countResult.rows[0].count);
       
       console.log(`Found ${commissions.length} commissions, total count: ${total}`);
       
