@@ -201,17 +201,14 @@ export default function NewCommission() {
         const validCommissions = Array.isArray(product.commissions) ? 
           product.commissions.filter(c => c && typeof c === 'object') : [];
           
-        // Default to broker ID 10 (Sarah Johnson) if no broker is selected
-        const defaultBrokerId = 10;
-        
-        // Process commissions with proper validation
+        // Process commissions with proper validation - use whatever broker was selected
         const processedCommissions = validCommissions.length > 0 ? 
           validCommissions.map(commission => ({
-            brokerId: commission.brokerId || defaultBrokerId,
+            brokerId: commission.brokerId || 0, // Use actual selected broker or 0 for unassigned
             splitPercentage: commission.splitPercentage || "100",
             notes: commission.notes || ""
           })) : 
-          [{ brokerId: defaultBrokerId, splitPercentage: "100", notes: "" }];
+          [{ brokerId: 0, splitPercentage: "100", notes: "" }]; // Default to unassigned
         
         return {
           productId: product.productId,
@@ -783,7 +780,7 @@ export default function NewCommission() {
                                 <FormLabel>Broker</FormLabel>
                                 <Select 
                                   onValueChange={(value) => field.onChange(parseInt(value))} 
-                                  defaultValue={field.value?.toString() || "10"}
+                                  defaultValue={field.value?.toString() || "0"}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
