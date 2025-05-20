@@ -91,6 +91,7 @@ interface CommissionsTableProps {
 
 export default function CommissionsTable({
   commissions,
+  brokers = [], // Add default empty array for brokers
   isLoading,
   showPagination = true,
   currentPage = 1,

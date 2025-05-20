@@ -319,6 +319,7 @@ export default function Commissions() {
             <CardContent className="p-0">
               <CommissionsTable 
                 commissions={commissionsData?.data || []}
+                brokers={brokers} 
                 isLoading={isLoading}
                 showPagination={true}
                 currentPage={currentPage}
@@ -347,6 +348,7 @@ export default function Commissions() {
             <CardContent className="p-0">
               <CommissionsTable 
                 commissions={(commissionsData?.data || [])}
+                brokers={brokers}
                 isLoading={isLoading}
                 showPagination={true}
                 currentPage={currentPage}
