@@ -95,8 +95,8 @@ export default function Dashboard() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="flex flex-col md:flex-row gap-6">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
               <h3 className="text-lg font-medium mb-3">Monthly Earnings</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart
@@ -114,20 +114,52 @@ export default function Dashboard() {
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip formatter={(value) => [`$${value}`, 'Amount']} />
-                  <Bar dataKey="amount" fill="#3182CE" />
+                  <Bar dataKey="amount" fill="#0088FE" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
             
-            <div className="flex-1">
+            <div>
               <h3 className="text-lg font-medium mb-3">By Product</h3>
-              <div className="h-[200px]">
-                <CommissionBreakdown
-                  data={[
-                    { type: "COBRA", percentage: 100, amount: 50 }
-                  ]}
-                  topPropertyType={{ name: "COBRA", percentage: 100 }}
-                />
+              <div className="flex flex-col">
+                <div className="text-center mb-2">
+                  <h4 className="text-xl font-medium">COBRA</h4>
+                  <p className="text-sm text-muted-foreground">100.0% of total commissions</p>
+                </div>
+                
+                <div className="h-[200px] relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[{ type: "COBRA", percentage: 100, amount: 50 }]}
+                        dataKey="amount"
+                        nameKey="type"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        fill="#0088FE"
+                        paddingAngle={0}
+                      >
+                        <Cell fill="#0088FE" />
+                      </Pie>
+                      <Legend
+                        layout="horizontal"
+                        align="center" 
+                        verticalAlign="bottom"
+                        formatter={(value) => `${value} (100.0%)`}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                <div className="mt-4 flex justify-center">
+                  <div className="text-center">
+                    <h4 className="text-base font-medium">COBRA</h4>
+                    <p className="text-xl font-semibold">$50.00</p>
+                    <p className="text-xs text-muted-foreground">100.0%</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
