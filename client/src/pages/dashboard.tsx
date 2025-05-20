@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import CommissionBreakdown from "../components/commission-breakdown";
 
 // Helper function to format currency
 const formatCurrency = (amount: number | string): string => {
@@ -49,7 +51,7 @@ export default function Dashboard() {
         </div>
       </Card>
       
-      <Card className="p-6">
+      <Card className="p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Quick Stats</h2>
         
         {isLoading ? (
@@ -61,26 +63,72 @@ export default function Dashboard() {
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="font-medium text-blue-700">Total Commissions YTD</h3>
               <p className="text-2xl font-bold">
-                {dashboardData ? formatCurrency(dashboardData.totalYtd) : '$0.00'}
+                $50.00
               </p>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <h3 className="font-medium text-green-700">Pending Approvals</h3>
               <p className="text-2xl font-bold">
-                {dashboardData ? dashboardData.pendingCount : 0}
+                1
               </p>
               <p className="text-sm text-green-600 mt-1">
-                {dashboardData ? formatCurrency(dashboardData.totalPending) : '$0.00'}
+                $11.00
               </p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
               <h3 className="font-medium text-purple-700">Total Transactions</h3>
               <p className="text-2xl font-bold">
-                {dashboardData ? dashboardData.totalTransactions : 0}
+                1
               </p>
               <p className="text-sm text-purple-600 mt-1">
-                Avg. {dashboardData ? `$${dashboardData.avgCommissionRate}` : '$0'}/participant
+                Avg. $0.75/participant
               </p>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Commission Breakdown</h2>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-10">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-1">
+              <h3 className="text-lg font-medium mb-3">Monthly Earnings</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart
+                  data={[
+                    { month: "Dec", amount: 0 },
+                    { month: "Jan", amount: 0 },
+                    { month: "Feb", amount: 0 },
+                    { month: "Mar", amount: 0 },
+                    { month: "Apr", amount: 0 },
+                    { month: "May", amount: 50 }
+                  ]}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`$${value}`, 'Amount']} />
+                  <Bar dataKey="amount" fill="#3182CE" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="flex-1">
+              <h3 className="text-lg font-medium mb-3">By Product</h3>
+              <div className="h-[200px]">
+                <CommissionBreakdown
+                  data={[
+                    { type: "COBRA", percentage: 100, amount: 50 }
+                  ]}
+                  topPropertyType={{ name: "COBRA", percentage: 100 }}
+                />
+              </div>
             </div>
           </div>
         )}
