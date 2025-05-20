@@ -295,8 +295,11 @@ export default function CommissionsTable({
                   </TableCell>
                   <TableCell>
                     <div className="capitalize">{commission.transaction.transactionType}</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-muted-foreground flex items-center">
                       {formatCurrency(Number(commission.transaction.totalCommission))}
+                      <CommissionInfoTooltip type="PER_PARTICIPANT">
+                        <HelpCircle className="h-3.5 w-3.5 ml-1 cursor-help text-muted-foreground hover:text-primary" />
+                      </CommissionInfoTooltip>
                     </div>
                   </TableCell>
                   <TableCell>

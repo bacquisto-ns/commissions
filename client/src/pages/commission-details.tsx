@@ -21,9 +21,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import StatusBadge from "@/components/status-badge";
 import { format } from "date-fns";
-import { ArrowLeft, FileText, Home, User, Calendar, DollarSign, Percent, CheckCircle, AlertCircle, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Home, User, Calendar, DollarSign, Percent, CheckCircle, AlertCircle, Pencil, Trash2, HelpCircle, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ExportMenu from "@/components/export-menu";
+import { ProductCommissionTooltip, CommissionInfoTooltip } from "@/components/commission-calculation-tooltips";
 
 // Updated interface to match our new data structure
 interface CommissionDetails {
@@ -217,7 +218,12 @@ export default function CommissionDetails() {
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Product Type</p>
-              <p className="text-foreground">{programTypeFormatted}</p>
+              <div className="flex items-center">
+                <p className="text-foreground">{programTypeFormatted}</p>
+                <ProductCommissionTooltip productType={benefitProgram.programType}>
+                  <HelpCircle className="ml-2 h-4 w-4 text-muted-foreground hover:text-primary cursor-help" />
+                </ProductCommissionTooltip>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -260,16 +266,26 @@ export default function CommissionDetails() {
             <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Commission Rate</p>
-                {/* For COBRA, show the correct rate of $0.75 per participant */}
-                {benefitProgram.programType === 'cobra' ? (
-                  <p className="text-lg font-semibold">$0.75 per participant</p>
-                ) : (
-                  <p className="text-lg font-semibold">${transaction.commissionRate} per participant</p>
-                )}
+                <div className="flex items-center">
+                  {/* For COBRA, show the correct rate of $0.75 per participant */}
+                  {benefitProgram.programType === 'cobra' ? (
+                    <p className="text-lg font-semibold">$0.75 per participant</p>
+                  ) : (
+                    <p className="text-lg font-semibold">${transaction.commissionRate} per participant</p>
+                  )}
+                  <CommissionInfoTooltip type="PER_PARTICIPANT">
+                    <HelpCircle className="ml-2 h-4 w-4 text-muted-foreground hover:text-primary cursor-help" />
+                  </CommissionInfoTooltip>
+                </div>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Commission</p>
-                <p className="text-lg font-semibold">{formatCurrency(Number(transaction.totalCommission))}</p>
+                <div className="flex items-center">
+                  <p className="text-lg font-semibold">{formatCurrency(Number(transaction.totalCommission))}</p>
+                  <div className="ml-2 text-sm text-muted-foreground">
+                    ({transaction.participantCount} × ${benefitProgram.programType === 'cobra' ? '0.75' : transaction.commissionRate})
+                  </div>
+                </div>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Your Split</p>

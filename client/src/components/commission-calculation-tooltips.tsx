@@ -77,7 +77,13 @@ export const COMMISSION_TYPE_DESCRIPTIONS = {
  * A component that displays a tooltip with information about commission calculation methods
  */
 export function CommissionInfoTooltip({ type, children, className = "" }: CommissionTooltipProps) {
-  const typeInfo = COMMISSION_TYPE_DESCRIPTIONS[type] || {
+  // Add type assertion to fix TypeScript error with string indexing
+  const typeInfo = (COMMISSION_TYPE_DESCRIPTIONS as Record<string, {
+    title: string;
+    description: string;
+    formula: string;
+    example: string;
+  }>)[type] || {
     title: "Commission Information",
     description: "Information about this commission structure is not available.",
     formula: "N/A",
