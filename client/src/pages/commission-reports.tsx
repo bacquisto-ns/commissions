@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Download, FileText, Share2, FileImage, Palette } from "lucide-react";
+import { Loader2, Download, FileText, Share2, FileImage, Palette, Save } from "lucide-react";
 import { SketchPicker } from 'react-color';
 import { format } from 'date-fns';
 import html2canvas from 'html2canvas';
@@ -619,34 +619,52 @@ export default function CommissionReports() {
                       </p>
                     </div>
                   ) : (
-                    <div>
+                    <div className={reportLayout === 'visual' ? 'text-white' : ''} style={
+                      reportLayout === 'visual' 
+                        ? { background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`, padding: '1rem', borderRadius: '0.5rem' } 
+                        : {}
+                    }>
                       {/* Branded Header */}
-                      <div className="flex justify-between items-center pb-6 border-b" style={{ color: primaryColor }}>
+                      <div 
+                        className={`flex justify-between items-center pb-6 ${reportLayout !== 'visual' ? 'border-b' : ''}`} 
+                        style={{ color: reportLayout === 'visual' ? 'white' : primaryColor }}
+                      >
                         <div>
-                          <h2 className="text-2xl font-bold" style={{ color: primaryColor }}>{companyName}</h2>
-                          <p className="text-sm text-muted-foreground">
+                          <h2 
+                            className={`${reportLayout === 'detailed' ? 'text-3xl' : 'text-2xl'} font-bold`} 
+                            style={{ color: reportLayout === 'visual' ? 'white' : primaryColor }}
+                          >
+                            {companyName}
+                          </h2>
+                          <p className={`text-sm ${reportLayout === 'visual' ? 'text-white/80' : 'text-muted-foreground'}`}>
                             Commission Report • {format(new Date(), 'MMMM d, yyyy')}
                           </p>
+                          {reportLayout === 'detailed' && (
+                            <div className={`mt-2 text-sm ${reportLayout === 'visual' ? 'text-white/70' : 'text-muted-foreground'}`}>
+                              <p>Report Generated For: {reportType === 'broker' ? 'Broker' : 'Agency'}</p>
+                              <p>Period: {startDate} to {endDate}</p>
+                            </div>
+                          )}
                         </div>
                         
                         {logoUrl && (
                           <img 
                             src={logoUrl} 
                             alt={`${companyName} logo`} 
-                            className="h-12 w-auto object-contain"
+                            className={`${reportLayout === 'compact' ? 'h-10' : reportLayout === 'detailed' ? 'h-16' : 'h-12'} w-auto object-contain`}
                           />
                         )}
                       </div>
                       
                       {/* Report Title */}
-                      <div className="mt-6 mb-8 text-center">
-                        <h1 className="text-2xl font-bold">
+                      <div className={`${reportLayout === 'compact' ? 'mt-4 mb-6' : 'mt-6 mb-8'} text-center`}>
+                        <h1 className={`${reportLayout === 'detailed' ? 'text-3xl' : 'text-2xl'} font-bold ${reportLayout === 'visual' ? 'text-white' : ''}`}>
                           {reportType === 'broker' ? 'Broker' : 'Agency'} Commission Report
                         </h1>
-                        <p className="text-muted-foreground">
+                        <p className={`${reportLayout === 'visual' ? 'text-white/80' : 'text-muted-foreground'}`}>
                           {startDate} to {endDate}
                         </p>
-                        <p className="font-medium mt-2">
+                        <p className={`font-medium mt-2 ${reportLayout === 'visual' ? 'text-white' : ''}`}>
                           {reportType === 'broker' 
                             ? `${(brokers || []).find((b: any) => b.id.toString() === selectedBrokerId)?.firstName || ''} ${(brokers || []).find((b: any) => b.id.toString() === selectedBrokerId)?.lastName || ''}`
                             : (agencies || []).find((a: any) => a.id.toString() === selectedAgencyId)?.name
@@ -656,49 +674,151 @@ export default function CommissionReports() {
                       
                       {/* Placeholder report content based on settings */}
                       {includeSummary && (
-                        <div className="mb-8">
-                          <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
+                        <div className={`${reportLayout === 'compact' ? 'mb-6' : 'mb-8'}`}>
+                          <h3 
+                            className={`${reportLayout === 'detailed' ? 'text-xl pb-2 border-b' : 'text-lg'} font-semibold mb-4 ${reportLayout === 'visual' ? 'text-white' : ''}`}
+                            style={reportLayout !== 'visual' ? { color: primaryColor } : {}}
+                          >
                             Commission Summary
                           </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-blue-50 p-4 rounded-lg" style={{ backgroundColor: `${primaryColor}10` }}>
-                              <h4 className="font-medium" style={{ color: primaryColor }}>Total Commissions</h4>
-                              <p className="text-2xl font-bold">$50.00</p>
+                          
+                          {reportLayout === 'visual' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
+                                <h4 className="font-medium text-white">Total Commissions</h4>
+                                <p className="text-2xl font-bold text-white">$50.00</p>
+                              </div>
+                              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
+                                <h4 className="font-medium text-white">Pending Approvals</h4>
+                                <p className="text-2xl font-bold text-white">1</p>
+                                <p className="text-sm mt-1 text-white/80">$11.00</p>
+                              </div>
+                              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
+                                <h4 className="font-medium text-white">Total Transactions</h4>
+                                <p className="text-2xl font-bold text-white">1</p>
+                                <p className="text-sm mt-1 text-white/80">Avg. $0.75/participant</p>
+                              </div>
                             </div>
-                            <div className="bg-green-50 p-4 rounded-lg" style={{ backgroundColor: `${secondaryColor}10` }}>
-                              <h4 className="font-medium" style={{ color: secondaryColor }}>Pending Approvals</h4>
-                              <p className="text-2xl font-bold">1</p>
-                              <p className="text-sm mt-1" style={{ color: secondaryColor }}>$11.00</p>
+                          ) : reportLayout === 'compact' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <div className="border p-3 rounded" style={{ borderColor: `${primaryColor}40` }}>
+                                <h4 className="text-sm font-medium" style={{ color: primaryColor }}>Total Commissions</h4>
+                                <p className="text-xl font-bold">$50.00</p>
+                              </div>
+                              <div className="border p-3 rounded" style={{ borderColor: `${secondaryColor}40` }}>
+                                <h4 className="text-sm font-medium" style={{ color: secondaryColor }}>Pending Approvals</h4>
+                                <p className="text-xl font-bold">1 <span className="text-sm font-normal">($11.00)</span></p>
+                              </div>
+                              <div className="border p-3 rounded" style={{ borderColor: `${primaryColor}40` }}>
+                                <h4 className="text-sm font-medium" style={{ color: primaryColor }}>Total Transactions</h4>
+                                <p className="text-xl font-bold">1 <span className="text-sm font-normal">($0.75/part.)</span></p>
+                              </div>
                             </div>
-                            <div className="bg-purple-50 p-4 rounded-lg" style={{ backgroundColor: `${primaryColor}10` }}>
-                              <h4 className="font-medium" style={{ color: primaryColor }}>Total Transactions</h4>
-                              <p className="text-2xl font-bold">1</p>
-                              <p className="text-sm mt-1" style={{ color: primaryColor }}>Avg. $0.75/participant</p>
+                          ) : reportLayout === 'detailed' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                              <div className="border p-5 rounded-lg shadow-sm">
+                                <h4 className="font-medium text-lg" style={{ color: primaryColor }}>Total Commissions</h4>
+                                <p className="text-3xl font-bold mt-2">$50.00</p>
+                                <p className="text-xs text-muted-foreground mt-3">All transactions in reporting period</p>
+                              </div>
+                              <div className="border p-5 rounded-lg shadow-sm">
+                                <h4 className="font-medium text-lg" style={{ color: secondaryColor }}>Pending Approvals</h4>
+                                <p className="text-3xl font-bold mt-2">1</p>
+                                <p className="text-xs text-muted-foreground mt-3">Total value: $11.00</p>
+                              </div>
+                              <div className="border p-5 rounded-lg shadow-sm">
+                                <h4 className="font-medium text-lg" style={{ color: primaryColor }}>Total Transactions</h4>
+                                <p className="text-3xl font-bold mt-2">1</p>
+                                <p className="text-xs text-muted-foreground mt-3">Average rate: $0.75/participant</p>
+                              </div>
                             </div>
-                          </div>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="bg-blue-50 p-4 rounded-lg" style={{ backgroundColor: `${primaryColor}10` }}>
+                                <h4 className="font-medium" style={{ color: primaryColor }}>Total Commissions</h4>
+                                <p className="text-2xl font-bold">$50.00</p>
+                              </div>
+                              <div className="bg-green-50 p-4 rounded-lg" style={{ backgroundColor: `${secondaryColor}10` }}>
+                                <h4 className="font-medium" style={{ color: secondaryColor }}>Pending Approvals</h4>
+                                <p className="text-2xl font-bold">1</p>
+                                <p className="text-sm mt-1" style={{ color: secondaryColor }}>$11.00</p>
+                              </div>
+                              <div className="bg-purple-50 p-4 rounded-lg" style={{ backgroundColor: `${primaryColor}10` }}>
+                                <h4 className="font-medium" style={{ color: primaryColor }}>Total Transactions</h4>
+                                <p className="text-2xl font-bold">1</p>
+                                <p className="text-sm mt-1" style={{ color: primaryColor }}>Avg. $0.75/participant</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                       
                       {/* Transaction Details By Product Type */}
                       {includeSummary && (
-                        <div className="mb-8">
-                          <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
+                        <div className={`${reportLayout === 'compact' ? 'mb-6' : 'mb-8'}`}>
+                          <h3 
+                            className={`${reportLayout === 'detailed' ? 'text-xl pb-2 border-b' : 'text-lg'} font-semibold mb-4 ${reportLayout === 'visual' ? 'text-white' : ''}`}
+                            style={reportLayout !== 'visual' ? { color: primaryColor } : {}}
+                          >
                             Transaction Details By Product
                           </h3>
                           <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50" style={{ backgroundColor: `${primaryColor}10` }}>
+                            <table 
+                              className={`min-w-full ${
+                                reportLayout === 'visual' 
+                                  ? 'text-white' 
+                                  : reportLayout === 'compact' 
+                                    ? 'text-sm' 
+                                    : reportLayout === 'detailed' 
+                                      ? 'text-base border' 
+                                      : ''
+                              } ${reportLayout !== 'visual' ? 'divide-y divide-gray-200' : ''}`}
+                            >
+                              <thead 
+                                className={
+                                  reportLayout === 'visual' 
+                                    ? 'bg-white/10'
+                                    : reportLayout === 'detailed'
+                                      ? 'bg-slate-50 border-b'
+                                      : 'bg-gray-50'
+                                } 
+                                style={
+                                  reportLayout !== 'visual' && reportLayout !== 'detailed'
+                                    ? { backgroundColor: `${primaryColor}10` }
+                                    : {}
+                                }
+                              >
                                 <tr>
-                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th scope="col" className={`
+                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
+                                    text-left text-xs font-medium 
+                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
+                                    uppercase tracking-wider
+                                  `}>
                                     Product Type
                                   </th>
-                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th scope="col" className={`
+                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
+                                    text-left text-xs font-medium 
+                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
+                                    uppercase tracking-wider
+                                  `}>
                                     Employer
                                   </th>
-                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th scope="col" className={`
+                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
+                                    text-left text-xs font-medium 
+                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
+                                    uppercase tracking-wider
+                                  `}>
                                     Participants
                                   </th>
-                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th scope="col" className={`
+                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
+                                    text-left text-xs font-medium 
+                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
+                                    uppercase tracking-wider
+                                  `}>
                                     Rate
                                   </th>
                                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
