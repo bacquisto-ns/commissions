@@ -37,6 +37,42 @@ export default function CommissionReports() {
   const [includeSummary, setIncludeSummary] = useState(true);
   const [includeMonthlyChart, setIncludeMonthlyChart] = useState(true);
   
+  // New theme and layout settings
+  const [reportLayout, setReportLayout] = useState("standard");
+  const [themeOption, setThemeOption] = useState("custom");
+  const [savedTemplates, setSavedTemplates] = useState<Array<{
+    id: string;
+    name: string;
+    primaryColor: string;
+    secondaryColor: string;
+    companyName: string;
+    logoUrl: string;
+    layout: string;
+  }>>(() => {
+    // Load saved templates from localStorage if available
+    const savedData = localStorage.getItem('reportTemplates');
+    return savedData ? JSON.parse(savedData) : [
+      {
+        id: "default-1",
+        name: "Corporate Blue",
+        primaryColor: "#1e40af",
+        secondaryColor: "#3b82f6",
+        companyName: "Your Company",
+        logoUrl: "",
+        layout: "standard"
+      },
+      {
+        id: "default-2",
+        name: "Modern Green",
+        primaryColor: "#047857",
+        secondaryColor: "#10b981",
+        companyName: "Your Company",
+        logoUrl: "",
+        layout: "compact"
+      }
+    ];
+  });
+  
   // Fetch brokers and agencies for selection
   const { data: brokers, isLoading: brokersLoading } = useQuery({
     queryKey: ['/api/brokers'],
@@ -61,6 +97,46 @@ export default function CommissionReports() {
     } else {
       setSecondaryColor(color.hex);
     }
+  };
+  
+  // Load a saved template
+  const loadTemplate = (templateId: string) => {
+    const template = savedTemplates.find(t => t.id === templateId);
+    if (!template) return;
+    
+    setCompanyName(template.companyName);
+    setPrimaryColor(template.primaryColor);
+    setSecondaryColor(template.secondaryColor);
+    setLogoUrl(template.logoUrl);
+    setReportLayout(template.layout);
+    setThemeOption(templateId);
+  };
+  
+  // Save current template settings
+  const saveCurrentTemplate = () => {
+    const templateName = prompt("Enter a name for this template:", "My Template");
+    if (!templateName) return;
+    
+    const newTemplate = {
+      id: `template-${Date.now()}`,
+      name: templateName,
+      primaryColor,
+      secondaryColor,
+      companyName,
+      logoUrl,
+      layout: reportLayout
+    };
+    
+    const updatedTemplates = [...savedTemplates, newTemplate];
+    setSavedTemplates(updatedTemplates);
+    
+    // Save to localStorage
+    localStorage.setItem('reportTemplates', JSON.stringify(updatedTemplates));
+    
+    toast({
+      title: "Template saved",
+      description: `"${templateName}" has been saved and can be reused for future reports`
+    });
   };
   
   const generatePDF = async () => {
@@ -418,6 +494,69 @@ export default function CommissionReports() {
                   </div>
                 )}
               </div>
+              
+              <div>
+                <Label>Report Layout</Label>
+                <Select
+                  value={reportLayout}
+                  onValueChange={(value) => setReportLayout(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select layout" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="compact">Compact</SelectItem>
+                    <SelectItem value="visual">Visual</SelectItem>
+                    <SelectItem value="detailed">Detailed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Choose how your report content is displayed
+                </p>
+              </div>
+              
+              <div>
+                <Label>Saved Templates</Label>
+                <Select
+                  value={themeOption}
+                  onValueChange={(value) => {
+                    if (value === "custom") {
+                      setThemeOption("custom");
+                    } else {
+                      loadTemplate(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select theme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="custom">Custom</SelectItem>
+                    <SelectGroup>
+                      <SelectLabel>Saved Templates</SelectLabel>
+                      {savedTemplates.map(template => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Choose a saved template or customize your own
+                </p>
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                onClick={saveCurrentTemplate}
+                className="w-full"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save Current Settings as Template
+              </Button>
             </div>
           </Card>
           
