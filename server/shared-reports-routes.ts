@@ -18,7 +18,22 @@ const sharedReports = new Map<string, SharedReport>();
 // Create a shareable report
 router.post('/api/shared-reports', async (req: Request, res: Response) => {
   try {
-    const { reportType, entityId, startDate, endDate, expireDays = 7 } = req.body;
+    const { 
+      reportType, 
+      entityId, 
+      startDate, 
+      endDate, 
+      expireDays = 7,
+      // Branding parameters
+      companyName,
+      logoUrl,
+      primaryColor,
+      secondaryColor,
+      reportLayout = 'standard',
+      reportFormat = 'detailed',
+      includeCharts = true,
+      includeDetails = true
+    } = req.body;
     
     if (!reportType || !entityId || !startDate || !endDate) {
       return res.status(400).json({ 
@@ -76,9 +91,17 @@ router.post('/api/shared-reports', async (req: Request, res: Response) => {
       
       // Assemble the final report data
       reportData = {
-        companyName: agencyName || 'Independent Broker',
-        primaryColor: '#3b82f6',
-        secondaryColor: '#10b981',
+        // Custom branding
+        companyName: companyName || agencyName || 'Independent Broker',
+        logoUrl: logoUrl || '',
+        primaryColor: primaryColor || '#3b82f6',
+        secondaryColor: secondaryColor || '#10b981',
+        reportLayout: reportLayout || 'standard',
+        reportFormat: reportFormat || 'detailed',
+        includeCharts: includeCharts !== undefined ? includeCharts : true,
+        includeDetails: includeDetails !== undefined ? includeDetails : true,
+        
+        // Report content
         reportType: 'broker',
         entityName: `${broker.firstName} ${broker.lastName}`,
         period: {
@@ -151,9 +174,17 @@ router.post('/api/shared-reports', async (req: Request, res: Response) => {
       
       // Assemble the final report data
       reportData = {
-        companyName: agency.name,
-        primaryColor: '#3b82f6',
-        secondaryColor: '#10b981',
+        // Custom branding
+        companyName: companyName || agency.name,
+        logoUrl: logoUrl || '',
+        primaryColor: primaryColor || '#3b82f6',
+        secondaryColor: secondaryColor || '#10b981',
+        reportLayout: reportLayout || 'standard',
+        reportFormat: reportFormat || 'detailed',
+        includeCharts: includeCharts !== undefined ? includeCharts : true,
+        includeDetails: includeDetails !== undefined ? includeDetails : true,
+        
+        // Report content
         reportType: 'agency',
         entityName: agency.name,
         period: {
