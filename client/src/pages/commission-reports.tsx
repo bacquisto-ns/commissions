@@ -821,15 +821,29 @@ export default function CommissionReports() {
                                   `}>
                                     Rate
                                   </th>
-                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th scope="col" className={`
+                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
+                                    text-left text-xs font-medium 
+                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
+                                    uppercase tracking-wider
+                                  `}>
                                     Status
                                   </th>
-                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th scope="col" className={`
+                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
+                                    text-left text-xs font-medium 
+                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
+                                    uppercase tracking-wider
+                                  `}>
                                     Amount
                                   </th>
                                 </tr>
                               </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
+                              <tbody className={
+                                reportLayout === 'visual' 
+                                  ? 'divide-y divide-white/10' 
+                                  : 'bg-white divide-y divide-gray-200'
+                              }>
                                 {!reportLoading && reportData?.transactions ? (
                                   reportData.transactions.map((transaction: any, index: number) => (
                                     <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
