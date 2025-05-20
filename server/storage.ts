@@ -1141,27 +1141,45 @@ export const storage = {
 
   // Dashboard data
   async getDashboardData(brokerId: number): Promise<DashboardData> {
+    console.log(`Generating dashboard data for broker ID: ${brokerId}`);
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth();
     
-    // Calculate YTD earnings (using transaction date to match agency dashboard)
+    // For system-wide dashboard, don't filter by broker ID
+    const shouldFilterByBroker = brokerId !== 10; // ID 10 is used for system dashboard
+    
+    // Calculate YTD earnings - get all commissions for the current year
     const ytdStart = new Date(currentYear, 0, 1); // Jan 1 of current year
     const ytdEnd = new Date();
     
-    const ytdResult = await db
+    // Build the query based on whether we need broker filtering
+    let ytdQuery = db
       .select({ total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))` })
       .from(commissions)
       .innerJoin(
         transactions,
         eq(commissions.transactionId, transactions.id)
-      )
-      .where(
+      );
+      
+    if (shouldFilterByBroker) {
+      ytdQuery = ytdQuery.where(
         and(
           eq(commissions.brokerId, brokerId),
           gte(transactions.transactionDate, ytdStart),
           lte(transactions.transactionDate, ytdEnd)
         )
       );
+    } else {
+      // For system dashboard, show all commissions
+      ytdQuery = ytdQuery.where(
+        and(
+          gte(transactions.transactionDate, ytdStart),
+          lte(transactions.transactionDate, ytdEnd)
+        )
+      );
+    }
+    
+    const ytdResult = await ytdQuery;
     
     // Calculate last year's earnings
     const lastYearStart = new Date(currentYear - 1, 0, 1);
