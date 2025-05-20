@@ -19,9 +19,9 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
   
-  // For demo, we'll use broker ID 10 (Michael Chang) 
-  // In a real app, this would come from the user context
-  const brokerId = 10;
+  // For the system admin dashboard, show all commissions by using ID 0
+  // In a real app with actual users, we would get this from user context
+  const brokerId = 0;
   
   // Fetch dashboard data
   const { data: dashboardData, isLoading } = useQuery({

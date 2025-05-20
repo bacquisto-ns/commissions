@@ -1146,7 +1146,7 @@ export const storage = {
     const currentMonth = new Date().getMonth();
     
     // For system-wide dashboard, don't filter by broker ID
-    const shouldFilterByBroker = brokerId !== 10; // ID 10 is used for system dashboard
+    const shouldFilterByBroker = brokerId !== 0; // ID 0 is used for system dashboard
     
     // Calculate YTD earnings - get all commissions for the current year
     const ytdStart = new Date(currentYear, 0, 1); // Jan 1 of current year
@@ -1185,20 +1185,34 @@ export const storage = {
     const lastYearStart = new Date(currentYear - 1, 0, 1);
     const lastYearEnd = new Date(currentYear - 1, 11, 31);
     
-    const lastYearResult = await db
+    // Build the query based on whether we need broker filtering
+    let lastYearQuery = db
       .select({ total: sql<string>`SUM(CAST(${commissions.amount} AS DECIMAL))` })
       .from(commissions)
       .innerJoin(
         transactions,
         eq(commissions.transactionId, transactions.id)
-      )
-      .where(
+      );
+      
+    if (shouldFilterByBroker) {
+      lastYearQuery = lastYearQuery.where(
         and(
           eq(commissions.brokerId, brokerId),
           gte(transactions.transactionDate, lastYearStart),
           lte(transactions.transactionDate, lastYearEnd)
         )
       );
+    } else {
+      // For system dashboard, show all commissions
+      lastYearQuery = lastYearQuery.where(
+        and(
+          gte(transactions.transactionDate, lastYearStart),
+          lte(transactions.transactionDate, lastYearEnd)
+        )
+      );
+    }
+    
+    const lastYearResult = await lastYearQuery;
     
     // Get pending commissions
     const pendingResult = await db
