@@ -74,6 +74,7 @@ export type SortDirection = 'asc' | 'desc';
 
 interface CommissionsTableProps {
   commissions: any[]; // Use 'any' to avoid type conflicts between different commission formats
+  brokers?: any[]; // Add brokers list to access broker data
   isLoading: boolean;
   showPagination?: boolean;
   currentPage?: number;
@@ -301,8 +302,14 @@ export default function CommissionsTable({
                     <div className="space-y-1">
                       {/* Display primary broker */}
                       <div>
-                        {commission.broker 
-                          ? `${commission.broker.firstName} ${commission.broker.lastName} (${commission.splitPercentage}%)`
+                        {commission.brokerId && brokers 
+                          ? (() => {
+                              // Find broker by ID from the brokers list
+                              const brokerData = brokers.find(b => b.id === commission.brokerId);
+                              return brokerData 
+                                ? `${brokerData.firstName} ${brokerData.lastName} (${commission.splitPercentage}%)`
+                                : `No Broker/Unassigned (${commission.splitPercentage}%)`;
+                            })()
                           : `No Broker/Unassigned (${commission.splitPercentage}%)`
                         }
                       </div>
@@ -316,14 +323,19 @@ export default function CommissionsTable({
                           {/* Display other brokers involved in this transaction */}
                           {commissions
                             .filter(c => c.id !== commission.id && c.transactionId === commission.transactionId)
-                            .map(c => (
-                              <div key={c.id}>
-                                {c.broker 
-                                  ? `+ ${c.broker.firstName} ${c.broker.lastName} (${c.splitPercentage}%)`
-                                  : `+ Unassigned (${c.splitPercentage}%)`
-                                }
-                              </div>
-                            ))
+                            .map(c => {
+                              // Find broker by ID from the brokers list
+                              const otherBrokerData = brokers?.find(b => b.id === c.brokerId);
+                              
+                              return (
+                                <div key={c.id}>
+                                  {otherBrokerData 
+                                    ? `+ ${otherBrokerData.firstName} ${otherBrokerData.lastName} (${c.splitPercentage}%)`
+                                    : `+ Unassigned (${c.splitPercentage}%)`
+                                  }
+                                </div>
+                              );
+                            })
                           }
                         </div>
                       )}
