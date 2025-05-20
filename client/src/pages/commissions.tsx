@@ -377,6 +377,7 @@ export default function Commissions() {
             <CardContent className="p-0">
               <CommissionsTable 
                 commissions={(commissionsData?.data || []).filter(commission => commission.status === "approved")}
+                brokers={brokers}
                 isLoading={isLoading}
                 showPagination={true}
                 currentPage={currentPage}
