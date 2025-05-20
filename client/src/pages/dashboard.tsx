@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import CommissionBreakdown from "../components/commission-breakdown";
 
 // Helper function to format currency
@@ -143,12 +143,7 @@ export default function Dashboard() {
                       >
                         <Cell fill="#0088FE" />
                       </Pie>
-                      <Legend
-                        layout="horizontal"
-                        align="center" 
-                        verticalAlign="bottom"
-                        formatter={(value) => `${value} (100.0%)`}
-                      />
+                      <Tooltip formatter={(value: any) => [`$${value}`, 'Amount']} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
