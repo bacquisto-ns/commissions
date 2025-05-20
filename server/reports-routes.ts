@@ -33,26 +33,94 @@ router.get('/:type/:id', authenticate, async (req, res) => {
         });
       }
       
-      // For demonstration purposes, using static data that matches the dashboard
+      // Get real commission statistics for the broker
+      const statistics = await storage.getCommissionStatistics(brokerId, {
+        startDate: new Date(startDate),
+        endDate: new Date(endDate)
+      });
+      
+      // Get broker commissions for detailed transaction data
+      const commissions = await storage.getBrokerCommissions(brokerId, {
+        limit: 100,
+        offset: 0
+      });
+      
+      // Format the commissions data for the report
+      const transactions = commissions.map(commission => {
+        return {
+          id: commission.id,
+          productType: commission.transaction.benefitProgram.programType.toUpperCase(),
+          employer: commission.transaction.benefitProgram.organization.name,
+          participants: commission.transaction.participantCount || 0,
+          rate: commission.transaction.rate || '0',
+          status: commission.status,
+          amount: commission.amount,
+          transactionDate: commission.transaction.transactionDate,
+          transactionType: commission.transaction.transactionType
+        };
+      });
+      
+      // Group transactions by product type for breakdown
+      const productBreakdown = transactions.reduce((acc, transaction) => {
+        const productType = transaction.productType;
+        if (!acc[productType]) {
+          acc[productType] = {
+            product: productType,
+            amount: 0,
+            count: 0
+          };
+        }
+        acc[productType].amount += parseFloat(transaction.amount.toString());
+        acc[productType].count += 1;
+        return acc;
+      }, {});
+      
+      // Calculate percentage for each product
+      const totalAmount = Object.values(productBreakdown).reduce((sum, item: any) => sum + item.amount, 0);
+      const commissionsByProduct = Object.values(productBreakdown).map((item: any) => ({
+        product: item.product,
+        amount: item.amount,
+        percentage: totalAmount > 0 ? Math.round((item.amount / totalAmount) * 100) : 0
+      }));
+      
+      // Calculate monthly breakdown
+      const now = new Date();
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(now.getMonth() - 5);
+      
+      const monthlyData = {};
+      for (let i = 0; i < 6; i++) {
+        const monthDate = new Date(sixMonthsAgo);
+        monthDate.setMonth(sixMonthsAgo.getMonth() + i);
+        const monthKey = monthDate.toLocaleString('default', { month: 'short' });
+        monthlyData[monthKey] = 0;
+      }
+      
+      transactions.forEach(transaction => {
+        const txDate = new Date(transaction.transactionDate);
+        const month = txDate.toLocaleString('default', { month: 'short' });
+        if (monthlyData[month] !== undefined) {
+          monthlyData[month] += parseFloat(transaction.amount.toString());
+        }
+      });
+      
+      const monthlyEarnings = Object.entries(monthlyData).map(([month, amount]) => ({
+        month,
+        amount: Number(amount)
+      }));
+      
+      // Format the final report data
       reportData = {
         brokerInfo,
+        commissions: transactions,
         statistics: {
-          totalCommission: "$50.00",
-          pendingCommission: "$11.00",
-          approvedCommission: "$39.00",
-          transactionCount: 1,
-          avgCommissionRate: "$0.75",
-          commissionsByProduct: [
-            { product: "COBRA", amount: 50, percentage: 100 }
-          ],
-          monthlyEarnings: [
-            { month: "Dec", amount: 0 },
-            { month: "Jan", amount: 0 },
-            { month: "Feb", amount: 0 },
-            { month: "Mar", amount: 0 },
-            { month: "Apr", amount: 0 },
-            { month: "May", amount: 50 }
-          ]
+          totalCommission: statistics.total || "$0.00",
+          pendingCommission: statistics.pendingAmount || "$0.00",
+          approvedCommission: statistics.approvedAmount || "$0.00",
+          transactionCount: transactions.length,
+          avgCommissionRate: statistics.avgRate || "$0.00",
+          commissionsByProduct,
+          monthlyEarnings
         }
       };
     } else if (type === 'agency') {
@@ -71,28 +139,123 @@ router.get('/:type/:id', authenticate, async (req, res) => {
       // Get brokers for this agency
       const brokers = await storage.getBrokersForAgency(agencyId);
       
-      // For demonstration purposes, using static data that matches the dashboard
+      // Get agency dashboard data that includes aggregated statistics
+      const dashboardData = await storage.getAgencyDashboardData(agencyId);
+      
+      // Collect all commissions for this agency's brokers
+      const allCommissions = [];
+      for (const broker of brokers) {
+        const brokerCommissions = await storage.getBrokerCommissions(broker.id, {
+          limit: 100,
+          offset: 0
+        });
+        allCommissions.push(...brokerCommissions);
+      }
+      
+      // Format the commissions data for the report
+      const transactions = allCommissions.map(commission => {
+        return {
+          id: commission.id,
+          brokerId: commission.brokerId,
+          brokerName: brokers.find(b => b.id === commission.brokerId) 
+            ? `${brokers.find(b => b.id === commission.brokerId).firstName} ${brokers.find(b => b.id === commission.brokerId).lastName}`
+            : 'Unassigned',
+          productType: commission.transaction.benefitProgram.programType.toUpperCase(),
+          employer: commission.transaction.benefitProgram.organization.name,
+          participants: commission.transaction.participantCount || 0,
+          rate: commission.transaction.rate || '0',
+          status: commission.status,
+          amount: commission.amount,
+          transactionDate: commission.transaction.transactionDate,
+          transactionType: commission.transaction.transactionType
+        };
+      });
+      
+      // Group transactions by product type for breakdown
+      const productBreakdown = transactions.reduce((acc, transaction) => {
+        const productType = transaction.productType;
+        if (!acc[productType]) {
+          acc[productType] = {
+            product: productType,
+            amount: 0,
+            count: 0
+          };
+        }
+        acc[productType].amount += parseFloat(transaction.amount.toString());
+        acc[productType].count += 1;
+        return acc;
+      }, {});
+      
+      // Calculate percentage for each product
+      const totalAmount = Object.values(productBreakdown).reduce((sum, item: any) => sum + item.amount, 0);
+      const commissionsByProduct = Object.values(productBreakdown).map((item: any) => ({
+        product: item.product,
+        amount: item.amount,
+        percentage: totalAmount > 0 ? Math.round((item.amount / totalAmount) * 100) : 0
+      }));
+      
+      // Calculate monthly breakdown
+      const now = new Date();
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(now.getMonth() - 5);
+      
+      const monthlyData = {};
+      for (let i = 0; i < 6; i++) {
+        const monthDate = new Date(sixMonthsAgo);
+        monthDate.setMonth(sixMonthsAgo.getMonth() + i);
+        const monthKey = monthDate.toLocaleString('default', { month: 'short' });
+        monthlyData[monthKey] = 0;
+      }
+      
+      transactions.forEach(transaction => {
+        const txDate = new Date(transaction.transactionDate);
+        const month = txDate.toLocaleString('default', { month: 'short' });
+        if (monthlyData[month] !== undefined) {
+          monthlyData[month] += parseFloat(transaction.amount.toString());
+        }
+      });
+      
+      const monthlyEarnings = Object.entries(monthlyData).map(([month, amount]) => ({
+        month,
+        amount: Number(amount)
+      }));
+      
+      // Generate broker performance metrics for the report
+      const brokerPerformance = brokers.map(broker => {
+        const brokerTransactions = transactions.filter(t => t.brokerId === broker.id);
+        const totalCommissions = brokerTransactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+        const pendingCommissions = brokerTransactions
+          .filter(t => t.status === 'pending')
+          .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+        
+        return {
+          brokerId: broker.id,
+          firstName: broker.firstName,
+          lastName: broker.lastName,
+          totalCommissions,
+          pendingCommissions,
+          percentageOfTotal: totalAmount > 0 ? Math.round((totalCommissions / totalAmount) * 100) : 0
+        };
+      }).sort((a, b) => b.totalCommissions - a.totalCommissions);
+      
       reportData = {
         agencyInfo,
         brokers,
+        commissions: transactions,
+        brokerPerformance,
         statistics: {
-          totalCommission: "$50.00",
-          pendingCommission: "$11.00",
-          approvedCommission: "$39.00",
-          transactionCount: 1,
+          totalCommission: dashboardData.totalYtd || "$0.00",
+          pendingCommission: dashboardData.totalPending || "$0.00",
+          approvedCommission: (parseFloat(dashboardData.totalYtd.replace('$', '').replace(',', '')) - 
+                              parseFloat(dashboardData.totalPending.replace('$', '').replace(',', ''))).toLocaleString('en-US', {
+                                style: 'currency',
+                                currency: 'USD'
+                              }),
+          transactionCount: dashboardData.totalTransactions || 0,
           brokerCount: brokers.length,
-          avgCommissionRate: "$0.75",
-          commissionsByProduct: [
-            { product: "COBRA", amount: 50, percentage: 100 }
-          ],
-          monthlyEarnings: [
-            { month: "Dec", amount: 0 },
-            { month: "Jan", amount: 0 },
-            { month: "Feb", amount: 0 },
-            { month: "Mar", amount: 0 },
-            { month: "Apr", amount: 0 },
-            { month: "May", amount: 50 }
-          ]
+          avgCommissionRate: dashboardData.avgCommissionRate || "$0.00",
+          commissionsByProduct,
+          monthlyEarnings
         }
       };
     } else {

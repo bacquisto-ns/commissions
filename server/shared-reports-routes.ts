@@ -117,30 +117,36 @@ router.post('/api/shared-reports', async (req: Request, res: Response) => {
       // Get the agency's brokers
       const brokers = await storage.getBrokersForAgency(Number(entityId));
       
-      // Get agency commissions (this would be the sum of all broker commissions)
-      // In a real implementation, we'd have a specific query for this
-      // For demo purposes, we'll use placeholder data
-      const transactions = brokers.slice(0, 3).flatMap(broker => {
-        return [
-          {
-            productType: 'COBRA',
-            employer: 'ABC Company',
-            participants: 50,
-            rate: '0.75',
-            status: 'Approved',
-            amount: '37.50',
-            broker: `${broker.firstName} ${broker.lastName}`
-          },
-          {
-            productType: 'FSA',
-            employer: 'XYZ Corporation',
-            participants: 25,
-            rate: '2.00',
-            status: 'Pending',
-            amount: '50.00',
-            broker: `${broker.firstName} ${broker.lastName}`
+      // Collect all commissions for this agency's brokers
+      const allCommissions = [];
+      for (const broker of brokers) {
+        try {
+          const brokerCommissions = await storage.getBrokerCommissions(broker.id, {
+            limit: 100,
+            offset: 0
+          });
+          if (brokerCommissions) {
+            allCommissions.push(...brokerCommissions);
           }
-        ];
+        } catch (error) {
+          console.error(`Error fetching commissions for broker ${broker.id}:`, error);
+        }
+      }
+      
+      // Format the commissions data for the report
+      const transactions = allCommissions.map(commission => {
+        const transaction = commission.transaction;
+        return {
+          productType: transaction.benefitProgram.programType.toUpperCase().replace('_', ' '),
+          employer: transaction.benefitProgram.organization.name,
+          participants: transaction.participantCount || 0,
+          rate: transaction.rate || transaction.commissionRate || '0.00',
+          status: commission.status,
+          amount: commission.amount,
+          broker: brokers.find(b => b.id === commission.brokerId)
+            ? `${brokers.find(b => b.id === commission.brokerId).firstName} ${brokers.find(b => b.id === commission.brokerId).lastName}`
+            : 'Unassigned'
+        };
       });
       
       // Assemble the final report data
