@@ -298,11 +298,35 @@ export default function CommissionsTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div>
-                      {commission.broker 
-                        ? `${commission.broker.firstName} ${commission.broker.lastName} (${commission.splitPercentage}%)`
-                        : `No Broker/Unassigned (${commission.splitPercentage}%)`
-                      }
+                    <div className="space-y-1">
+                      {/* Display primary broker */}
+                      <div>
+                        {commission.broker 
+                          ? `${commission.broker.firstName} ${commission.broker.lastName} (${commission.splitPercentage}%)`
+                          : `No Broker/Unassigned (${commission.splitPercentage}%)`
+                        }
+                      </div>
+                      
+                      {/* Check if there are other commissions with the same transactionId */}
+                      {commissions && commissions.some(c => 
+                        c.id !== commission.id && 
+                        c.transactionId === commission.transactionId
+                      ) && (
+                        <div className="text-xs text-muted-foreground">
+                          {/* Display other brokers involved in this transaction */}
+                          {commissions
+                            .filter(c => c.id !== commission.id && c.transactionId === commission.transactionId)
+                            .map(c => (
+                              <div key={c.id}>
+                                {c.broker 
+                                  ? `+ ${c.broker.firstName} ${c.broker.lastName} (${c.splitPercentage}%)`
+                                  : `+ Unassigned (${c.splitPercentage}%)`
+                                }
+                              </div>
+                            ))
+                          }
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
