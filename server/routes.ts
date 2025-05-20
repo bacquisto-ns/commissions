@@ -28,6 +28,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register import routes
   app.use(`${apiPrefix}/import`, importRoutes);
   
+  // Register reports routes
+  app.use(`${apiPrefix}/reports`, reportsRoutes);
+  
   // Create upload directory if it doesn't exist
   const uploadDir = path.join(process.cwd(), 'temp/uploads');
   if (!fs.existsSync(uploadDir)) {

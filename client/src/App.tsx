@@ -19,6 +19,7 @@ import ImportPage from "./pages/import";
 import EnhancedImport from "./pages/enhanced-import";
 import Reports from "./pages/reports";
 import AgencyReports from "./pages/agency-reports";
+import CommissionReports from "./pages/commission-reports";
 import Settings from "./pages/settings";
 import Login from "./pages/login";
 import NotFound from "./pages/not-found";
@@ -118,6 +119,7 @@ function RouterContent() {
       />
       
       <Route path="/reports" component={() => <ProtectedRoute component={Reports} />} />
+      <Route path="/commission-reports" component={() => <ProtectedRoute component={CommissionReports} />} />
       <Route 
         path="/agency-reports" 
         component={() => 
