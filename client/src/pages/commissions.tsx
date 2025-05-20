@@ -347,7 +347,7 @@ export default function Commissions() {
             </CardHeader>
             <CardContent className="p-0">
               <CommissionsTable 
-                commissions={(commissionsData?.data || [])}
+                commissions={(commissionsData?.data || []).filter(commission => commission.status === "pending")}
                 brokers={brokers}
                 isLoading={isLoading}
                 showPagination={true}
@@ -355,7 +355,7 @@ export default function Commissions() {
                 selectable={true}
                 selectedIds={selectedCommissions}
                 onSelectionChange={setSelectedCommissions}
-                totalItems={(commissionsData?.data || []).length}
+                totalItems={(commissionsData?.data || []).filter(commission => commission.status === "pending").length}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
                 sortField={sortField}
