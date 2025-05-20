@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Download, FileText, Share2, FileImage, Palette, Save } from "lucide-react";
-import { SketchPicker } from 'react-color';
+import { Loader2, Download, FileText, Share2, FileImage, Palette } from "lucide-react";
 import { format } from 'date-fns';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { ReportHeader, ReportMetricCard, getTableCellClasses, getStatusBadgeClasses } from '@/components/report-layouts';
+import { ReportTemplateSelector } from '@/components/report-templates';
 
 export default function CommissionReports() {
   const { toast } = useToast();
@@ -25,1011 +26,663 @@ export default function CommissionReports() {
   const [logoUrl, setLogoUrl] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#3b82f6");
   const [secondaryColor, setSecondaryColor] = useState("#10b981");
-  const [showColorPicker, setShowColorPicker] = useState<string | null>(null);
   
   // Report settings
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [reportType, setReportType] = useState("broker");
-  const [selectedBrokerId, setSelectedBrokerId] = useState<string>("");
-  const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
-  const [includeBreakdown, setIncludeBreakdown] = useState(true);
-  const [includeSummary, setIncludeSummary] = useState(true);
-  const [includeMonthlyChart, setIncludeMonthlyChart] = useState(true);
+  const [reportTimeframe, setReportTimeframe] = useState<string>("current_month");
+  const [startDate, setStartDate] = useState<string>(format(new Date(), 'yyyy-MM-01'));
+  const [endDate, setEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [reportType, setReportType] = useState<string>("broker");
+  const [reportFormat, setReportFormat] = useState<string>("detailed");
+  const [reportLayout, setReportLayout] = useState<string>("standard");
+  const [brokerId, setBrokerId] = useState<string>("");
+  const [agencyId, setAgencyId] = useState<string>("");
+  const [includeDetails, setIncludeDetails] = useState<boolean>(true);
+  const [includeCharts, setIncludeCharts] = useState<boolean>(true);
+  const [loadingReport, setLoadingReport] = useState<boolean>(false);
+  const [reportData, setReportData] = useState<any>({});
+  const [reportGenerated, setReportGenerated] = useState<boolean>(false);
+  const [sharingLink, setSharingLink] = useState<string>("");
+  const [isSharing, setIsSharing] = useState<boolean>(false);
   
-  // New theme and layout settings
-  const [reportLayout, setReportLayout] = useState("standard");
-  const [themeOption, setThemeOption] = useState("custom");
-  const [savedTemplates, setSavedTemplates] = useState<Array<{
-    id: string;
-    name: string;
-    primaryColor: string;
-    secondaryColor: string;
-    companyName: string;
-    logoUrl: string;
-    layout: string;
-  }>>(() => {
-    // Load saved templates from localStorage if available
-    const savedData = localStorage.getItem('reportTemplates');
-    return savedData ? JSON.parse(savedData) : [
-      {
-        id: "default-1",
-        name: "Corporate Blue",
-        primaryColor: "#1e40af",
-        secondaryColor: "#3b82f6",
-        companyName: "Your Company",
-        logoUrl: "",
-        layout: "standard"
-      },
-      {
-        id: "default-2",
-        name: "Modern Green",
-        primaryColor: "#047857",
-        secondaryColor: "#10b981",
-        companyName: "Your Company",
-        logoUrl: "",
-        layout: "compact"
-      }
-    ];
-  });
-  
-  // Fetch brokers and agencies for selection
-  const { data: brokers, isLoading: brokersLoading } = useQuery({
+  // Fetch brokers for the dropdown
+  const { data: brokersData, isLoading: loadingBrokers } = useQuery({
     queryKey: ['/api/brokers'],
   });
   
-  const { data: agencies, isLoading: agenciesLoading } = useQuery({
+  // Fetch agencies for the dropdown
+  const { data: agenciesData, isLoading: loadingAgencies } = useQuery({
     queryKey: ['/api/agencies'],
   });
   
-  // For the report data we'll use specific endpoints based on selection
-  const { data: reportData, isLoading: reportLoading } = useQuery({
-    queryKey: [`/api/reports/${reportType}`, selectedBrokerId || selectedAgencyId, startDate, endDate],
-    enabled: !!(
-      (reportType === 'broker' && selectedBrokerId) || 
-      (reportType === 'agency' && selectedAgencyId)
-    ) && !!(startDate && endDate),
-  });
-  
-  const handleColorChange = (color: any, type: 'primary' | 'secondary') => {
-    if (type === 'primary') {
-      setPrimaryColor(color.hex);
-    } else {
-      setSecondaryColor(color.hex);
+  // Handle generating the report
+  const generateReport = async () => {
+    setLoadingReport(true);
+    setReportGenerated(false);
+    setSharingLink("");
+    
+    try {
+      // Date range logic based on timeframe
+      let reportStartDate = startDate;
+      let reportEndDate = endDate;
+      
+      if (reportTimeframe === "current_month") {
+        const currentDate = new Date();
+        reportStartDate = format(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1), 'yyyy-MM-dd');
+        reportEndDate = format(currentDate, 'yyyy-MM-dd');
+      } else if (reportTimeframe === "previous_month") {
+        const currentDate = new Date();
+        reportStartDate = format(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1), 'yyyy-MM-dd');
+        reportEndDate = format(new Date(currentDate.getFullYear(), currentDate.getMonth(), 0), 'yyyy-MM-dd');
+      } else if (reportTimeframe === "year_to_date") {
+        const currentDate = new Date();
+        reportStartDate = format(new Date(currentDate.getFullYear(), 0, 1), 'yyyy-MM-dd');
+        reportEndDate = format(currentDate, 'yyyy-MM-dd');
+      } else if (reportTimeframe === "last_year") {
+        const currentDate = new Date();
+        reportStartDate = format(new Date(currentDate.getFullYear() - 1, 0, 1), 'yyyy-MM-dd');
+        reportEndDate = format(new Date(currentDate.getFullYear() - 1, 11, 31), 'yyyy-MM-dd');
+      }
+      
+      // Build the API endpoint based on report type
+      let url = `/api/reports/${reportType}?timeframe=${reportTimeframe}`;
+      
+      if (reportType === "broker" && brokerId) {
+        url += `&brokerId=${brokerId}`;
+      } else if (reportType === "agency" && agencyId) {
+        url += `&agencyId=${agencyId}`;
+      }
+      
+      if (reportTimeframe === "custom") {
+        url += `&startDate=${reportStartDate}&endDate=${reportEndDate}`;
+      }
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setReportData(data);
+        setReportGenerated(true);
+        toast({
+          title: "Report Generated",
+          description: "Your commission report has been generated successfully.",
+        });
+      } else {
+        throw new Error(data.message || "Failed to generate report");
+      }
+    } catch (error) {
+      console.error("Error generating report:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate the report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingReport(false);
     }
   };
   
-  // Load a saved template
-  const loadTemplate = (templateId: string) => {
-    const template = savedTemplates.find(t => t.id === templateId);
-    if (!template) return;
-    
-    setCompanyName(template.companyName);
-    setPrimaryColor(template.primaryColor);
-    setSecondaryColor(template.secondaryColor);
-    setLogoUrl(template.logoUrl);
-    setReportLayout(template.layout);
-    setThemeOption(templateId);
-  };
-  
-  // Save current template settings
-  const saveCurrentTemplate = () => {
-    const templateName = prompt("Enter a name for this template:", "My Template");
-    if (!templateName) return;
-    
-    const newTemplate = {
-      id: `template-${Date.now()}`,
-      name: templateName,
-      primaryColor,
-      secondaryColor,
-      companyName,
-      logoUrl,
-      layout: reportLayout
-    };
-    
-    const updatedTemplates = [...savedTemplates, newTemplate];
-    setSavedTemplates(updatedTemplates);
-    
-    // Save to localStorage
-    localStorage.setItem('reportTemplates', JSON.stringify(updatedTemplates));
-    
-    toast({
-      title: "Template saved",
-      description: `"${templateName}" has been saved and can be reused for future reports`
-    });
-  };
-  
-  const generatePDF = async () => {
+  // Handle downloading the report as PDF
+  const downloadAsPdf = async () => {
     if (!reportRef.current) return;
     
-    toast({
-      title: "Generating PDF",
-      description: "Please wait while we create your report...",
-    });
-    
     try {
+      toast({
+        title: "Preparing PDF",
+        description: "Please wait while we generate your PDF...",
+      });
+      
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
+        useCORS: true,
         logging: false,
-        useCORS: true
       });
       
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
+        unit: 'px',
+        format: [canvas.width, canvas.height]
       });
       
-      const imgWidth = 210;
-      const imgHeight = canvas.height * imgWidth / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
       pdf.save(`commission-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       
       toast({
-        title: "Success!",
-        description: "Your report has been generated and downloaded"
+        title: "PDF Downloaded",
+        description: "Your commission report has been downloaded as a PDF.",
       });
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error("Error downloading PDF:", error);
       toast({
         title: "Error",
-        description: "Failed to generate the PDF report",
-        variant: "destructive"
+        description: "Failed to download the report as PDF. Please try again.",
+        variant: "destructive",
       });
     }
   };
   
-  const copyShareableLink = async () => {
-    if (isGeneratingDisabled) return;
+  // Handle sharing the report (create a shareable link)
+  const shareReport = async () => {
+    if (!reportData || !reportGenerated) return;
     
-    toast({
-      title: "Generating shareable link",
-      description: "Please wait while we create your shareable report..."
-    });
+    setIsSharing(true);
     
     try {
-      // Call the API to create a shareable report
+      const reportToShare = {
+        reportData,
+        reportType,
+        reportTimeframe,
+        companyName,
+        logoUrl,
+        primaryColor,
+        secondaryColor,
+        reportLayout,
+        includeDetails,
+        includeCharts,
+        generatedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+      };
+      
       const response = await fetch('/api/shared-reports', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          reportType,
-          entityId: reportType === 'broker' ? selectedBrokerId : selectedAgencyId,
-          startDate,
-          endDate,
-          expireDays: 7 // Link will expire in 7 days
-        })
+        body: JSON.stringify(reportToShare),
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create shareable report link');
-      }
       
       const data = await response.json();
       
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to create shareable report link');
+      if (response.ok) {
+        const shareableUrl = `${window.location.origin}/shared-report/${data.id}`;
+        setSharingLink(shareableUrl);
+        
+        // Copy to clipboard
+        await navigator.clipboard.writeText(shareableUrl);
+        
+        toast({
+          title: "Report Shared",
+          description: "Shareable link has been copied to your clipboard!",
+        });
+      } else {
+        throw new Error(data.message || "Failed to share report");
       }
-      
-      // Copy the shareable link to the clipboard
-      navigator.clipboard.writeText(data.shareableLink);
-      
-      toast({
-        title: "Link copied!",
-        description: `Shareable report link has been copied to clipboard. It will expire on ${new Date(data.expiresAt).toLocaleDateString()}.`
-      });
     } catch (error) {
-      console.error('Error creating shareable link:', error);
+      console.error("Error sharing report:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to create shareable report link',
-        variant: "destructive"
+        description: "Failed to create a shareable link. Please try again.",
+        variant: "destructive",
       });
+    } finally {
+      setIsSharing(false);
     }
   };
   
-  const exportImage = async () => {
-    if (!reportRef.current) return;
-    
-    toast({
-      title: "Exporting Image",
-      description: "Please wait while we create your image...",
-    });
-    
-    try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        logging: false,
-        useCORS: true
-      });
-      
-      const link = document.createElement('a');
-      link.download = `commission-report-${format(new Date(), 'yyyy-MM-dd')}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      
-      toast({
-        title: "Success!",
-        description: "Your report image has been generated and downloaded"
-      });
-    } catch (error) {
-      console.error("Error exporting image:", error);
-      toast({
-        title: "Error",
-        description: "Failed to export the report as an image",
-        variant: "destructive"
-      });
+  // Get the report title based on type and entity
+  const getReportTitle = () => {
+    if (reportType === "broker") {
+      const broker = brokersData?.find((b: any) => b.id.toString() === brokerId);
+      return broker 
+        ? `Broker Commission Report: ${broker.firstName} ${broker.lastName}`
+        : "Broker Commission Report";
+    } else if (reportType === "agency") {
+      const agency = agenciesData?.find((a: any) => a.id.toString() === agencyId);
+      return agency 
+        ? `Agency Commission Report: ${agency.name}`
+        : "Agency Commission Report";
     }
+    return "Commission Report";
   };
   
-  const isGeneratingDisabled = 
-    (reportType === 'broker' && !selectedBrokerId) || 
-    (reportType === 'agency' && !selectedAgencyId) ||
-    !startDate || !endDate;
-  
-  if (brokersLoading || agenciesLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  // Get the report subtitle (date range)
+  const getReportSubtitle = () => {
+    if (reportTimeframe === "current_month") {
+      return `Current Month (${format(new Date(), 'MMMM yyyy')})`;
+    } else if (reportTimeframe === "previous_month") {
+      const prevMonth = new Date();
+      prevMonth.setMonth(prevMonth.getMonth() - 1);
+      return `Previous Month (${format(prevMonth, 'MMMM yyyy')})`;
+    } else if (reportTimeframe === "year_to_date") {
+      return `Year to Date (${format(new Date(), 'yyyy')})`;
+    } else if (reportTimeframe === "last_year") {
+      return `Last Year (${format(new Date(new Date().getFullYear() - 1, 0, 1), 'yyyy')})`;
+    } else if (reportTimeframe === "custom") {
+      return `${format(new Date(startDate), 'MMM d, yyyy')} - ${format(new Date(endDate), 'MMM d, yyyy')}`;
+    }
+    return "";
+  };
   
   return (
-    <div className="container mx-auto p-6">
+    <div className="container py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Commission Reports</h1>
-        <Button onClick={() => navigate('/commissions')}>
+        <h1 className="text-2xl font-bold">Commission Reports</h1>
+        <Button 
+          variant="outline" 
+          onClick={() => navigate("/commissions")}
+        >
           Back to Commissions
         </Button>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Report Settings</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="report-type">Report Type</Label>
-                <Select 
-                  value={reportType} 
-                  onValueChange={setReportType}
-                >
-                  <SelectTrigger id="report-type">
-                    <SelectValue placeholder="Select Report Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="broker">Broker Report</SelectItem>
-                    <SelectItem value="agency">Agency Report</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      <Tabs defaultValue="generate">
+        <TabsList className="w-full mb-6">
+          <TabsTrigger value="generate" className="flex-1">Generate Report</TabsTrigger>
+          {reportGenerated && (
+            <TabsTrigger value="preview" className="flex-1">Preview Report</TabsTrigger>
+          )}
+        </TabsList>
+        
+        <TabsContent value="generate" className="mt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="p-6 lg:col-span-2">
+              <h2 className="text-xl font-semibold mb-4">Report Settings</h2>
               
-              {reportType === 'broker' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
-                  <Label htmlFor="broker">Select Broker</Label>
-                  <Select 
-                    value={selectedBrokerId} 
-                    onValueChange={setSelectedBrokerId}
+                  <Label>Report Type</Label>
+                  <Select
+                    value={reportType}
+                    onValueChange={setReportType}
                   >
-                    <SelectTrigger id="broker">
-                      <SelectValue placeholder="Select Broker" />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select report type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(brokers || []).map((broker: any) => (
-                        <SelectItem key={broker.id} value={broker.id.toString()}>
-                          {broker.firstName} {broker.lastName}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="broker">Broker Report</SelectItem>
+                      <SelectItem value="agency">Agency Report</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              ) : (
+                
+                {reportType === "broker" && (
+                  <div>
+                    <Label>Select Broker</Label>
+                    <Select
+                      value={brokerId}
+                      onValueChange={setBrokerId}
+                    >
+                      <SelectTrigger disabled={loadingBrokers}>
+                        <SelectValue placeholder="Select broker" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brokersData?.map((broker: any) => (
+                          <SelectItem key={broker.id} value={broker.id.toString()}>
+                            {broker.firstName} {broker.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                {reportType === "agency" && (
+                  <div>
+                    <Label>Select Agency</Label>
+                    <Select
+                      value={agencyId}
+                      onValueChange={setAgencyId}
+                    >
+                      <SelectTrigger disabled={loadingAgencies}>
+                        <SelectValue placeholder="Select agency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {agenciesData?.map((agency: any) => (
+                          <SelectItem key={agency.id} value={agency.id.toString()}>
+                            {agency.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
-                  <Label htmlFor="agency">Select Agency</Label>
-                  <Select 
-                    value={selectedAgencyId} 
-                    onValueChange={setSelectedAgencyId}
+                  <Label>Time Period</Label>
+                  <Select
+                    value={reportTimeframe}
+                    onValueChange={setReportTimeframe}
                   >
-                    <SelectTrigger id="agency">
-                      <SelectValue placeholder="Select Agency" />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time period" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(agencies || []).map((agency: any) => (
-                        <SelectItem key={agency.id} value={agency.id.toString()}>
-                          {agency.name}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="current_month">Current Month</SelectItem>
+                      <SelectItem value="previous_month">Previous Month</SelectItem>
+                      <SelectItem value="year_to_date">Year to Date</SelectItem>
+                      <SelectItem value="last_year">Last Year</SelectItem>
+                      <SelectItem value="custom">Custom Range</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                
+                <div>
+                  <Label>Report Format</Label>
+                  <Select
+                    value={reportFormat}
+                    onValueChange={setReportFormat}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="detailed">Detailed (All Transactions)</SelectItem>
+                      <SelectItem value="summary">Summary Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {reportTimeframe === "custom" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <Label>Start Date</Label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>End Date</Label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
               
-              <div>
-                <Label htmlFor="start-date">Start Date</Label>
-                <Input 
-                  id="start-date" 
-                  type="date" 
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="includeDetails" 
+                    checked={includeDetails} 
+                    onCheckedChange={(checked) => setIncludeDetails(checked as boolean)}
+                  />
+                  <Label htmlFor="includeDetails">Include Transaction Details</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="includeCharts" 
+                    checked={includeCharts} 
+                    onCheckedChange={(checked) => setIncludeCharts(checked as boolean)}
+                  />
+                  <Label htmlFor="includeCharts">Include Charts & Visualizations</Label>
+                </div>
               </div>
               
-              <div>
-                <Label htmlFor="end-date">End Date</Label>
-                <Input 
-                  id="end-date" 
-                  type="date" 
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Report Components</Label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="include-summary" 
-                    checked={includeSummary}
-                    onCheckedChange={(checked) => setIncludeSummary(checked as boolean)}
-                  />
-                  <label
-                    htmlFor="include-summary"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Include Summary
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="include-breakdown" 
-                    checked={includeBreakdown}
-                    onCheckedChange={(checked) => setIncludeBreakdown(checked as boolean)}
-                  />
-                  <label
-                    htmlFor="include-breakdown"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Include Product Breakdown
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="include-monthly-chart" 
-                    checked={includeMonthlyChart}
-                    onCheckedChange={(checked) => setIncludeMonthlyChart(checked as boolean)}
-                  />
-                  <label
-                    htmlFor="include-monthly-chart"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Include Monthly Chart
-                  </label>
-                </div>
-              </div>
-            </div>
-          </Card>
-          
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Branding Settings</h2>
+              <Button 
+                onClick={generateReport} 
+                disabled={loadingReport || (reportType === "broker" && !brokerId) || (reportType === "agency" && !agencyId)}
+              >
+                {loadingReport && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Generate Report
+              </Button>
+            </Card>
             
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="company-name">Company Name</Label>
-                <Input 
-                  id="company-name" 
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Your Company"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="logo-url">Logo URL</Label>
-                <Input 
-                  id="logo-url" 
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="https://example.com/logo.png"
-                />
-              </div>
-              
-              <div>
-                <Label>Primary Color</Label>
-                <div className="flex items-center mt-1 space-x-2">
-                  <div 
-                    className="w-10 h-10 rounded cursor-pointer" 
-                    style={{ backgroundColor: primaryColor }}
-                    onClick={() => setShowColorPicker(showColorPicker === 'primary' ? null : 'primary')}
-                  />
-                  <Input 
-                    value={primaryColor}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="flex-grow"
-                  />
-                </div>
-                {showColorPicker === 'primary' && (
-                  <div className="absolute z-10 mt-1">
-                    <div 
-                      className="fixed inset-0" 
-                      onClick={() => setShowColorPicker(null)}
-                    />
-                    <SketchPicker 
-                      color={primaryColor}
-                      onChange={(color: any) => handleColorChange(color, 'primary')}
-                    />
-                  </div>
-                )}
-              </div>
-              
-              <div>
-                <Label>Secondary Color</Label>
-                <div className="flex items-center mt-1 space-x-2">
-                  <div 
-                    className="w-10 h-10 rounded cursor-pointer" 
-                    style={{ backgroundColor: secondaryColor }}
-                    onClick={() => setShowColorPicker(showColorPicker === 'secondary' ? null : 'secondary')}
-                  />
-                  <Input 
-                    value={secondaryColor}
-                    onChange={(e) => setSecondaryColor(e.target.value)}
-                    className="flex-grow"
-                  />
-                </div>
-                {showColorPicker === 'secondary' && (
-                  <div className="absolute z-10 mt-1">
-                    <div 
-                      className="fixed inset-0" 
-                      onClick={() => setShowColorPicker(null)}
-                    />
-                    <SketchPicker 
-                      color={secondaryColor}
-                      onChange={(color: any) => handleColorChange(color, 'secondary')}
-                    />
-                  </div>
-                )}
-              </div>
-              
-              <div>
-                <Label>Report Layout</Label>
-                <Select
-                  value={reportLayout}
-                  onValueChange={(value) => setReportLayout(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select layout" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="compact">Compact</SelectItem>
-                    <SelectItem value="visual">Visual</SelectItem>
-                    <SelectItem value="detailed">Detailed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Choose how your report content is displayed
-                </p>
-              </div>
-              
-              <div>
-                <Label>Saved Templates</Label>
-                <Select
-                  value={themeOption}
-                  onValueChange={(value) => {
-                    if (value === "custom") {
-                      setThemeOption("custom");
-                    } else {
-                      loadTemplate(value);
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select theme" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="custom">Custom</SelectItem>
-                    <SelectGroup>
-                      <SelectLabel>Saved Templates</SelectLabel>
-                      {savedTemplates.map(template => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Choose a saved template or customize your own
-                </p>
-              </div>
-              
-              <Button
-                type="button"
-                variant="outline"
-                onClick={saveCurrentTemplate}
-                className="w-full"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save Current Settings as Template
-              </Button>
-            </div>
-          </Card>
-          
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Export Options</h2>
-            
-            <div className="space-y-4">
-              <Button 
-                className="w-full"
-                onClick={generatePDF}
-                disabled={isGeneratingDisabled}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Download as PDF
-              </Button>
-              
-              <Button 
-                className="w-full"
-                onClick={exportImage}
-                disabled={isGeneratingDisabled}
-                variant="outline"
-              >
-                <FileImage className="mr-2 h-4 w-4" />
-                Export as Image
-              </Button>
-              
-              <Button 
-                className="w-full"
-                onClick={copyShareableLink}
-                disabled={isGeneratingDisabled}
-                variant="outline"
-              >
-                <Share2 className="mr-2 h-4 w-4" />
-                Create Shareable Link
-              </Button>
-            </div>
-          </Card>
-        </div>
+            <ReportTemplateSelector
+              primaryColor={primaryColor}
+              secondaryColor={secondaryColor}
+              companyName={companyName}
+              logoUrl={logoUrl}
+              layout={reportLayout}
+              onPrimaryColorChange={setPrimaryColor}
+              onSecondaryColorChange={setSecondaryColor}
+              onCompanyNameChange={setCompanyName}
+              onLogoUrlChange={setLogoUrl}
+              onLayoutChange={setReportLayout}
+            />
+          </div>
+        </TabsContent>
         
-        <div className="lg:col-span-2">
-          <Card className="p-6">
-            <Tabs defaultValue="preview">
-              <TabsList className="mb-4">
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-                <TabsTrigger value="template">Template</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="preview" className="pt-2">
-                <div className="bg-white rounded-lg border p-6" ref={reportRef}>
-                  {reportLoading ? (
-                    <div className="flex justify-center items-center py-20">
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                    </div>
-                  ) : isGeneratingDisabled ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
-                      <FileText className="h-12 w-12 mb-4" />
-                      <h3 className="text-lg font-medium">No Report Generated</h3>
-                      <p className="max-w-sm mt-2">
-                        Select report settings and date range to generate a preview
-                      </p>
-                    </div>
-                  ) : (
-                    <div className={reportLayout === 'visual' ? 'text-white' : ''} style={
-                      reportLayout === 'visual' 
-                        ? { background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`, padding: '1rem', borderRadius: '0.5rem' } 
-                        : {}
-                    }>
-                      {/* Branded Header */}
-                      <div 
-                        className={`flex justify-between items-center pb-6 ${reportLayout !== 'visual' ? 'border-b' : ''}`} 
-                        style={{ color: reportLayout === 'visual' ? 'white' : primaryColor }}
-                      >
-                        <div>
-                          <h2 
-                            className={`${reportLayout === 'detailed' ? 'text-3xl' : 'text-2xl'} font-bold`} 
-                            style={{ color: reportLayout === 'visual' ? 'white' : primaryColor }}
-                          >
-                            {companyName}
-                          </h2>
-                          <p className={`text-sm ${reportLayout === 'visual' ? 'text-white/80' : 'text-muted-foreground'}`}>
-                            Commission Report • {format(new Date(), 'MMMM d, yyyy')}
-                          </p>
-                          {reportLayout === 'detailed' && (
-                            <div className={`mt-2 text-sm ${reportLayout === 'visual' ? 'text-white/70' : 'text-muted-foreground'}`}>
-                              <p>Report Generated For: {reportType === 'broker' ? 'Broker' : 'Agency'}</p>
-                              <p>Period: {startDate} to {endDate}</p>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {logoUrl && (
-                          <img 
-                            src={logoUrl} 
-                            alt={`${companyName} logo`} 
-                            className={`${reportLayout === 'compact' ? 'h-10' : reportLayout === 'detailed' ? 'h-16' : 'h-12'} w-auto object-contain`}
-                          />
-                        )}
-                      </div>
-                      
-                      {/* Report Title */}
-                      <div className={`${reportLayout === 'compact' ? 'mt-4 mb-6' : 'mt-6 mb-8'} text-center`}>
-                        <h1 className={`${reportLayout === 'detailed' ? 'text-3xl' : 'text-2xl'} font-bold ${reportLayout === 'visual' ? 'text-white' : ''}`}>
-                          {reportType === 'broker' ? 'Broker' : 'Agency'} Commission Report
-                        </h1>
-                        <p className={`${reportLayout === 'visual' ? 'text-white/80' : 'text-muted-foreground'}`}>
-                          {startDate} to {endDate}
-                        </p>
-                        <p className={`font-medium mt-2 ${reportLayout === 'visual' ? 'text-white' : ''}`}>
-                          {reportType === 'broker' 
-                            ? `${(brokers || []).find((b: any) => b.id.toString() === selectedBrokerId)?.firstName || ''} ${(brokers || []).find((b: any) => b.id.toString() === selectedBrokerId)?.lastName || ''}`
-                            : (agencies || []).find((a: any) => a.id.toString() === selectedAgencyId)?.name
-                          }
-                        </p>
-                      </div>
-                      
-                      {/* Placeholder report content based on settings */}
-                      {includeSummary && (
-                        <div className={`${reportLayout === 'compact' ? 'mb-6' : 'mb-8'}`}>
-                          <h3 
-                            className={`${reportLayout === 'detailed' ? 'text-xl pb-2 border-b' : 'text-lg'} font-semibold mb-4 ${reportLayout === 'visual' ? 'text-white' : ''}`}
-                            style={reportLayout !== 'visual' ? { color: primaryColor } : {}}
-                          >
-                            Commission Summary
-                          </h3>
-                          
-                          {reportLayout === 'visual' ? (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
-                                <h4 className="font-medium text-white">Total Commissions</h4>
-                                <p className="text-2xl font-bold text-white">$50.00</p>
-                              </div>
-                              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
-                                <h4 className="font-medium text-white">Pending Approvals</h4>
-                                <p className="text-2xl font-bold text-white">1</p>
-                                <p className="text-sm mt-1 text-white/80">$11.00</p>
-                              </div>
-                              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
-                                <h4 className="font-medium text-white">Total Transactions</h4>
-                                <p className="text-2xl font-bold text-white">1</p>
-                                <p className="text-sm mt-1 text-white/80">Avg. $0.75/participant</p>
-                              </div>
-                            </div>
-                          ) : reportLayout === 'compact' ? (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                              <div className="border p-3 rounded" style={{ borderColor: `${primaryColor}40` }}>
-                                <h4 className="text-sm font-medium" style={{ color: primaryColor }}>Total Commissions</h4>
-                                <p className="text-xl font-bold">$50.00</p>
-                              </div>
-                              <div className="border p-3 rounded" style={{ borderColor: `${secondaryColor}40` }}>
-                                <h4 className="text-sm font-medium" style={{ color: secondaryColor }}>Pending Approvals</h4>
-                                <p className="text-xl font-bold">1 <span className="text-sm font-normal">($11.00)</span></p>
-                              </div>
-                              <div className="border p-3 rounded" style={{ borderColor: `${primaryColor}40` }}>
-                                <h4 className="text-sm font-medium" style={{ color: primaryColor }}>Total Transactions</h4>
-                                <p className="text-xl font-bold">1 <span className="text-sm font-normal">($0.75/part.)</span></p>
-                              </div>
-                            </div>
-                          ) : reportLayout === 'detailed' ? (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                              <div className="border p-5 rounded-lg shadow-sm">
-                                <h4 className="font-medium text-lg" style={{ color: primaryColor }}>Total Commissions</h4>
-                                <p className="text-3xl font-bold mt-2">$50.00</p>
-                                <p className="text-xs text-muted-foreground mt-3">All transactions in reporting period</p>
-                              </div>
-                              <div className="border p-5 rounded-lg shadow-sm">
-                                <h4 className="font-medium text-lg" style={{ color: secondaryColor }}>Pending Approvals</h4>
-                                <p className="text-3xl font-bold mt-2">1</p>
-                                <p className="text-xs text-muted-foreground mt-3">Total value: $11.00</p>
-                              </div>
-                              <div className="border p-5 rounded-lg shadow-sm">
-                                <h4 className="font-medium text-lg" style={{ color: primaryColor }}>Total Transactions</h4>
-                                <p className="text-3xl font-bold mt-2">1</p>
-                                <p className="text-xs text-muted-foreground mt-3">Average rate: $0.75/participant</p>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div className="bg-blue-50 p-4 rounded-lg" style={{ backgroundColor: `${primaryColor}10` }}>
-                                <h4 className="font-medium" style={{ color: primaryColor }}>Total Commissions</h4>
-                                <p className="text-2xl font-bold">$50.00</p>
-                              </div>
-                              <div className="bg-green-50 p-4 rounded-lg" style={{ backgroundColor: `${secondaryColor}10` }}>
-                                <h4 className="font-medium" style={{ color: secondaryColor }}>Pending Approvals</h4>
-                                <p className="text-2xl font-bold">1</p>
-                                <p className="text-sm mt-1" style={{ color: secondaryColor }}>$11.00</p>
-                              </div>
-                              <div className="bg-purple-50 p-4 rounded-lg" style={{ backgroundColor: `${primaryColor}10` }}>
-                                <h4 className="font-medium" style={{ color: primaryColor }}>Total Transactions</h4>
-                                <p className="text-2xl font-bold">1</p>
-                                <p className="text-sm mt-1" style={{ color: primaryColor }}>Avg. $0.75/participant</p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Transaction Details By Product Type */}
-                      {includeSummary && (
-                        <div className={`${reportLayout === 'compact' ? 'mb-6' : 'mb-8'}`}>
-                          <h3 
-                            className={`${reportLayout === 'detailed' ? 'text-xl pb-2 border-b' : 'text-lg'} font-semibold mb-4 ${reportLayout === 'visual' ? 'text-white' : ''}`}
-                            style={reportLayout !== 'visual' ? { color: primaryColor } : {}}
-                          >
-                            Transaction Details By Product
-                          </h3>
-                          <div className="overflow-x-auto">
-                            <table 
-                              className={`min-w-full ${
-                                reportLayout === 'visual' 
-                                  ? 'text-white' 
-                                  : reportLayout === 'compact' 
-                                    ? 'text-sm' 
-                                    : reportLayout === 'detailed' 
-                                      ? 'text-base border' 
-                                      : ''
-                              } ${reportLayout !== 'visual' ? 'divide-y divide-gray-200' : ''}`}
-                            >
-                              <thead 
-                                className={
-                                  reportLayout === 'visual' 
-                                    ? 'bg-white/10'
-                                    : reportLayout === 'detailed'
-                                      ? 'bg-slate-50 border-b'
-                                      : 'bg-gray-50'
-                                } 
-                                style={
-                                  reportLayout !== 'visual' && reportLayout !== 'detailed'
-                                    ? { backgroundColor: `${primaryColor}10` }
-                                    : {}
-                                }
-                              >
-                                <tr>
-                                  <th scope="col" className={`
-                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
-                                    text-left text-xs font-medium 
-                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
-                                    uppercase tracking-wider
-                                  `}>
-                                    Product Type
-                                  </th>
-                                  <th scope="col" className={`
-                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
-                                    text-left text-xs font-medium 
-                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
-                                    uppercase tracking-wider
-                                  `}>
-                                    Employer
-                                  </th>
-                                  <th scope="col" className={`
-                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
-                                    text-left text-xs font-medium 
-                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
-                                    uppercase tracking-wider
-                                  `}>
-                                    Participants
-                                  </th>
-                                  <th scope="col" className={`
-                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
-                                    text-left text-xs font-medium 
-                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
-                                    uppercase tracking-wider
-                                  `}>
-                                    Rate
-                                  </th>
-                                  <th scope="col" className={`
-                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
-                                    text-left text-xs font-medium 
-                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
-                                    uppercase tracking-wider
-                                  `}>
-                                    Status
-                                  </th>
-                                  <th scope="col" className={`
-                                    ${reportLayout === 'compact' ? 'px-3 py-2' : 'px-6 py-3'} 
-                                    text-left text-xs font-medium 
-                                    ${reportLayout === 'visual' ? 'text-white/90' : 'text-gray-500'} 
-                                    uppercase tracking-wider
-                                  `}>
-                                    Amount
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className={
-                                reportLayout === 'visual' 
-                                  ? 'divide-y divide-white/10' 
-                                  : 'bg-white divide-y divide-gray-200'
-                              }>
-                                {!reportLoading && reportData?.transactions ? (
-                                  reportData.transactions.map((transaction: any, index: number) => (
-                                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        {transaction.productType || 'COBRA'}
-                                      </td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        {transaction.employer || 'ABC Company'}
-                                      </td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        {transaction.participants || '50'}
-                                      </td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        ${transaction.rate || '0.75'}/participant
-                                      </td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                          {transaction.status || 'Approved'}
-                                        </span>
-                                      </td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: primaryColor }}>
-                                        ${transaction.amount || '37.50'}
-                                      </td>
-                                    </tr>
-                                  ))
-                                ) : (
-                                  <tr>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                      COBRA
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                      ABC Company
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                      50
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                      $0.75/participant
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Approved
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: primaryColor }}>
-                                      $37.50
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {includeBreakdown && (
-                        <div className="mb-8">
-                          <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
-                            Product Breakdown
-                          </h3>
-                          <div className="text-center mb-2">
-                            <h4 className="text-xl font-medium">COBRA</h4>
-                            <p className="text-sm text-muted-foreground">100.0% of total commissions</p>
-                          </div>
-                          <div className="flex justify-center my-4">
-                            <div className="w-40 h-40 rounded-full border-8 flex justify-center items-center" style={{ borderColor: primaryColor }}>
-                              <div className="text-center">
-                                <div className="text-xl font-bold" style={{ color: primaryColor }}>100%</div>
-                                <div className="text-sm">COBRA</div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-4 flex justify-center">
-                            <div className="text-center">
-                              <h4 className="text-base font-medium">COBRA</h4>
-                              <p className="text-xl font-semibold">$50.00</p>
-                              <p className="text-xs text-muted-foreground">100.0%</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {includeMonthlyChart && (
-                        <div>
-                          <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
-                            Monthly Earnings
-                          </h3>
-                          <div className="h-60 w-full">
-                            <div className="relative h-full flex items-end">
-                              {['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'].map((month, i) => (
-                                <div key={month} className="flex-1 flex flex-col items-center">
-                                  <div className="w-4/5 h-0 rounded-t" style={{ 
-                                    height: month === 'May' ? '80%' : '0%',
-                                    backgroundColor: primaryColor 
-                                  }}></div>
-                                  <div className="mt-2 text-xs text-center">{month}</div>
-                                </div>
-                              ))}
-                              {/* Y-axis values */}
-                              <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-muted-foreground">
-                                <div>60</div>
-                                <div>45</div>
-                                <div>30</div>
-                                <div>15</div>
-                                <div>0</div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Report Footer */}
-                      <div className="mt-8 pt-4 border-t text-center text-sm text-muted-foreground">
-                        <p>
-                          Generated on {format(new Date(), 'MMMM d, yyyy')} by {companyName}
-                        </p>
-                        <p className="mt-1">
-                          This report is confidential and intended only for authorized recipients.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="template" className="pt-2">
-                <div className="bg-muted p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-4">Template Settings</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Choose a template to use for your commission report. Customize headers, footers, and sections to include.
-                  </p>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Template Style</Label>
-                      <Select defaultValue="modern">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select template style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="modern">Modern</SelectItem>
-                          <SelectItem value="classic">Classic</SelectItem>
-                          <SelectItem value="minimal">Minimal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label>Paper Size</Label>
-                      <Select defaultValue="a4">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select paper size" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="a4">A4</SelectItem>
-                          <SelectItem value="letter">Letter</SelectItem>
-                          <SelectItem value="legal">Legal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label>Font Style</Label>
-                      <Select defaultValue="sans">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select font style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sans">Sans Serif</SelectItem>
-                          <SelectItem value="serif">Serif</SelectItem>
-                          <SelectItem value="mono">Monospace</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <Button className="w-full" variant="outline">
-                      <Palette className="mr-2 h-4 w-4" />
-                      Apply Template
+        <TabsContent value="preview" className="mt-0">
+          {reportGenerated ? (
+            <div className="space-y-6">
+              <Card className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold">Report Preview</h2>
+                  <div className="flex space-x-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={downloadAsPdf}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download PDF
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={shareReport}
+                      disabled={isSharing}
+                    >
+                      <Share2 className="mr-2 h-4 w-4" />
+                      {isSharing ? "Creating Link..." : "Share Report"}
                     </Button>
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
-          </Card>
-        </div>
-      </div>
+                
+                {sharingLink && (
+                  <div className="bg-muted p-3 rounded-md mb-6 flex items-center justify-between">
+                    <div className="text-sm font-medium truncate max-w-[500px]">
+                      {sharingLink}
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => navigator.clipboard.writeText(sharingLink)}
+                    >
+                      Copy Link
+                    </Button>
+                  </div>
+                )}
+                
+                <div 
+                  ref={reportRef} 
+                  className={`p-8 border rounded-md overflow-x-auto ${
+                    reportLayout === 'visual' ? 'bg-gradient-to-br from-[#2a2a72] to-[#009ffd] text-white' : 'bg-white'
+                  }`}
+                  style={
+                    reportLayout === 'detailed' 
+                      ? { borderColor: primaryColor, borderWidth: '2px' } 
+                      : {}
+                  }
+                >
+                  <ReportHeader
+                    companyName={companyName}
+                    logoUrl={logoUrl}
+                    primaryColor={primaryColor}
+                    reportTitle={getReportTitle()}
+                    subtitle={getReportSubtitle()}
+                    reportLayout={reportLayout}
+                  />
+                  
+                  {/* Report Summary Section */}
+                  <div className={`grid ${reportLayout === 'compact' ? 'grid-cols-4 gap-2' : 'grid-cols-1 md:grid-cols-3 gap-6'} mb-8`}>
+                    <ReportMetricCard
+                      title="Total Commission"
+                      value={`$${reportData.totalCommission || '0.00'}`}
+                      layout={reportLayout}
+                      primaryColor={primaryColor}
+                      secondaryColor={secondaryColor}
+                      isHighlighted={true}
+                    />
+                    
+                    <ReportMetricCard
+                      title="Transactions"
+                      value={reportData.transactionCount || 0}
+                      layout={reportLayout}
+                      primaryColor={primaryColor}
+                    />
+                    
+                    <ReportMetricCard
+                      title="Average Commission"
+                      value={`$${reportData.averageCommission || '0.00'}`}
+                      layout={reportLayout}
+                      primaryColor={primaryColor}
+                    />
+                  </div>
+                  
+                  {/* Transaction Details Table */}
+                  {includeDetails && reportData.transactions && reportData.transactions.length > 0 && (
+                    <div className="mb-8">
+                      <h3 
+                        className={`text-lg font-semibold mb-4 ${reportLayout === 'visual' ? 'text-white' : ''}`}
+                        style={reportLayout !== 'visual' ? { color: primaryColor } : {}}
+                      >
+                        Transaction Details
+                      </h3>
+                      
+                      <div className={`border ${reportLayout === 'visual' ? 'border-white/20' : 'border-gray-200'} rounded-md overflow-hidden`}>
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className={reportLayout === 'visual' ? 'bg-black/20' : 'bg-gray-50'}>
+                            <tr>
+                              <th className={getTableCellClasses(reportLayout, true)}>Product Type</th>
+                              <th className={getTableCellClasses(reportLayout, true)}>Employer</th>
+                              <th className={getTableCellClasses(reportLayout, true)}>Participants</th>
+                              <th className={getTableCellClasses(reportLayout, true)}>Rate</th>
+                              <th className={getTableCellClasses(reportLayout, true)}>Status</th>
+                              <th className={getTableCellClasses(reportLayout, true, true)}>Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody className={
+                            reportLayout === 'visual' 
+                              ? 'divide-y divide-white/10' 
+                              : 'divide-y divide-gray-200'
+                          }>
+                            {reportData.transactions && reportData.transactions.map((transaction: any, index: number) => (
+                              <tr 
+                                key={index} 
+                                className={
+                                  reportLayout === 'visual' 
+                                    ? 'text-white' 
+                                    : reportLayout === 'detailed'
+                                      ? index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
+                                      : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                }
+                              >
+                                <td className={getTableCellClasses(reportLayout)}>
+                                  {transaction.productType || 'COBRA'}
+                                </td>
+                                <td className={getTableCellClasses(reportLayout)}>
+                                  {transaction.employer || 'ABC Company'}
+                                </td>
+                                <td className={getTableCellClasses(reportLayout)}>
+                                  {transaction.participants || '50'}
+                                </td>
+                                <td className={getTableCellClasses(reportLayout)}>
+                                  ${transaction.rate || '0.75'}/participant
+                                </td>
+                                <td className={getTableCellClasses(reportLayout)}>
+                                  <span className={getStatusBadgeClasses(transaction.status || 'approved', reportLayout)}>
+                                    {transaction.status || 'Approved'}
+                                  </span>
+                                </td>
+                                <td className={getTableCellClasses(reportLayout, false, true)}
+                                  style={reportLayout === 'detailed' ? { color: primaryColor } : {}}
+                                >
+                                  ${transaction.amount || '37.50'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Product Breakdown */}
+                  {includeDetails && reportData.productBreakdown && (
+                    <div className="mb-8">
+                      <h3 
+                        className={`text-lg font-semibold mb-4 ${reportLayout === 'visual' ? 'text-white' : ''}`}
+                        style={reportLayout !== 'visual' ? { color: primaryColor } : {}}
+                      >
+                        Product Type Breakdown
+                      </h3>
+                      
+                      <div className={`border ${reportLayout === 'visual' ? 'border-white/20' : 'border-gray-200'} rounded-md overflow-hidden`}>
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className={reportLayout === 'visual' ? 'bg-black/20' : 'bg-gray-50'}>
+                            <tr>
+                              <th className={getTableCellClasses(reportLayout, true)}>Product Type</th>
+                              <th className={getTableCellClasses(reportLayout, true)}>Transactions</th>
+                              <th className={getTableCellClasses(reportLayout, true)}>Participants</th>
+                              <th className={getTableCellClasses(reportLayout, true, true)}>Commission</th>
+                              <th className={getTableCellClasses(reportLayout, true, true)}>Percentage</th>
+                            </tr>
+                          </thead>
+                          <tbody className={
+                            reportLayout === 'visual' 
+                              ? 'divide-y divide-white/10' 
+                              : 'divide-y divide-gray-200'
+                          }>
+                            {Object.entries(reportData.productBreakdown || {}).map(([product, data]: [string, any], index: number) => (
+                              <tr 
+                                key={product} 
+                                className={
+                                  reportLayout === 'visual' 
+                                    ? 'text-white' 
+                                    : reportLayout === 'detailed'
+                                      ? index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
+                                      : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                }
+                              >
+                                <td className={getTableCellClasses(reportLayout)}>
+                                  {product}
+                                </td>
+                                <td className={getTableCellClasses(reportLayout)}>
+                                  {data.count || 0}
+                                </td>
+                                <td className={getTableCellClasses(reportLayout)}>
+                                  {data.participants || 0}
+                                </td>
+                                <td className={getTableCellClasses(reportLayout, false, true)}
+                                  style={reportLayout === 'detailed' ? { color: primaryColor } : {}}
+                                >
+                                  ${data.commission || '0.00'}
+                                </td>
+                                <td className={getTableCellClasses(reportLayout, false, true)}>
+                                  {data.percentage || '0'}%
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Footer */}
+                  <div className={`mt-8 pt-4 text-xs ${reportLayout === 'visual' ? 'text-white/70 border-t border-white/20' : 'text-gray-500 border-t'}`}>
+                    <p>Report generated on {format(new Date(), 'MMMM d, yyyy')} at {format(new Date(), 'h:mm a')}</p>
+                    {reportLayout === 'detailed' && (
+                      <p className="mt-1">This report is valid for 7 days from the generation date.</p>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12">
+              <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">No Report Generated</h3>
+              <p className="text-muted-foreground mt-1">Please generate a report first</p>
+              <Button 
+                className="mt-4" 
+                variant="outline"
+                onClick={() => document.querySelector('[data-value="generate"]')?.click()}
+              >
+                Go to Report Settings
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

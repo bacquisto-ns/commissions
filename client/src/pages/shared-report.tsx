@@ -1,35 +1,39 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'wouter';
-import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
-import { Loader2, Download, FileImage } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, ChevronLeft, Download, FileText } from "lucide-react";
+import { format, parseISO } from 'date-fns';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { format } from 'date-fns';
+import { ReportHeader, ReportMetricCard, getTableCellClasses, getStatusBadgeClasses } from '@/components/report-layouts';
 
 export default function SharedReport() {
   const { id } = useParams();
-  const [reportData, setReportData] = useState<any>(null);
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [reportData, setReportData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const reportRef = useRef<HTMLDivElement>(null);
-
+  const [reportRef, setReportRef] = useState<HTMLDivElement | null>(null);
+  
+  // Fetch the shared report
   useEffect(() => {
     const fetchReport = async () => {
+      setLoading(true);
       try {
-        // In a real implementation, this would fetch the report data from the server
-        // using the ID from the URL
-        setLoading(true);
         const response = await fetch(`/api/shared-reports/${id}`);
-        
-        if (!response.ok) {
-          throw new Error('Report not found or has expired');
-        }
-        
         const data = await response.json();
-        setReportData(data);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load report');
+        
+        if (response.ok) {
+          setReportData(data);
+        } else {
+          setError(data.message || 'Failed to load the report');
+        }
+      } catch (err) {
+        setError('An error occurred while loading the report');
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -37,273 +41,340 @@ export default function SharedReport() {
     
     fetchReport();
   }, [id]);
-
-  const generatePDF = async () => {
-    if (!reportRef.current) return;
+  
+  // Handle downloading the report as PDF
+  const downloadAsPdf = async () => {
+    if (!reportRef) return;
     
     try {
-      const canvas = await html2canvas(reportRef.current, {
+      toast({
+        title: "Preparing PDF",
+        description: "Please wait while we generate your PDF...",
+      });
+      
+      const canvas = await html2canvas(reportRef, {
         scale: 2,
+        useCORS: true,
         logging: false,
-        useCORS: true
       });
       
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
+        unit: 'px',
+        format: [canvas.width, canvas.height]
       });
       
-      const imgWidth = 210;
-      const imgHeight = canvas.height * imgWidth / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
       pdf.save(`commission-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      
+      toast({
+        title: "PDF Downloaded",
+        description: "The commission report has been downloaded as a PDF.",
+      });
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error("Error downloading PDF:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download the report as PDF. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   
-  const exportImage = async () => {
-    if (!reportRef.current) return;
+  // Check if the report has expired
+  const isExpired = () => {
+    if (!reportData?.expiresAt) return true;
     
+    const expiryDate = new Date(reportData.expiresAt);
+    return expiryDate < new Date();
+  };
+  
+  // Format date string
+  const formatDate = (dateString: string) => {
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        logging: false,
-        useCORS: true
-      });
-      
-      const link = document.createElement('a');
-      link.download = `commission-report-${format(new Date(), 'yyyy-MM-dd')}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } catch (error) {
-      console.error("Error exporting image:", error);
+      return format(parseISO(dateString), 'MMMM d, yyyy');
+    } catch (e) {
+      return dateString;
     }
   };
-
+  
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading shared report...</span>
+      <div className="container flex flex-col items-center justify-center min-h-screen py-12">
+        <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+        <h3 className="text-lg font-medium">Loading Report...</h3>
+        <p className="text-muted-foreground mt-1">Please wait while we load the shared report</p>
       </div>
     );
   }
-
-  if (error) {
+  
+  if (error || !reportData) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
-        <p className="mb-8">{error}</p>
-        <Button variant="outline" onClick={() => window.location.href = '/'}>
-          Return to Home
+      <div className="container flex flex-col items-center justify-center min-h-screen py-12">
+        <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+        <h3 className="text-xl font-medium">Report Not Found</h3>
+        <p className="text-muted-foreground mt-1">The shared report you're looking for doesn't exist or has been removed</p>
+        <Button 
+          className="mt-6" 
+          variant="outline"
+          onClick={() => window.location.href = '/'}
+        >
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Go to Home
         </Button>
       </div>
     );
   }
-
-  // For demo purposes, use placeholder data if the reportData isn't available
-  const data = reportData || {
-    companyName: "Sample Agency",
-    primaryColor: "#3b82f6",
-    secondaryColor: "#10b981",
-    reportType: "broker",
-    entityName: "John Smith",
-    period: {
-      startDate: "2023-01-01",
-      endDate: "2023-12-31"
-    },
-    summary: {
-      totalCommissions: "$50.00",
-      pendingApprovals: {
-        count: 1,
-        amount: "$11.00"
-      },
-      transactions: {
-        count: 1,
-        avgRate: "$0.75/participant"
-      }
-    },
-    productBreakdown: {
-      topProduct: {
-        name: "COBRA",
-        percentage: 100
-      }
-    },
-    transactions: [
-      {
-        productType: "COBRA",
-        employer: "ABC Company",
-        participants: 50,
-        rate: "0.75",
-        status: "Approved",
-        amount: "37.50"
-      }
-    ]
+  
+  if (isExpired()) {
+    return (
+      <div className="container flex flex-col items-center justify-center min-h-screen py-12">
+        <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+        <h3 className="text-xl font-medium">Report Expired</h3>
+        <p className="text-muted-foreground mt-1">This shared report has expired and is no longer available</p>
+        <Button 
+          className="mt-6" 
+          variant="outline"
+          onClick={() => window.location.href = '/'}
+        >
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Go to Home
+        </Button>
+      </div>
+    );
+  }
+  
+  const {
+    reportData: data,
+    companyName,
+    logoUrl,
+    primaryColor,
+    secondaryColor,
+    reportLayout,
+    reportType,
+    includeDetails,
+    includeCharts,
+    reportTimeframe,
+    generatedAt
+  } = reportData;
+  
+  // Get the report title based on type and entity
+  const getReportTitle = () => {
+    if (reportType === "broker") {
+      return data?.brokerName 
+        ? `Broker Commission Report: ${data.brokerName}`
+        : "Broker Commission Report";
+    } else if (reportType === "agency") {
+      return data?.agencyName 
+        ? `Agency Commission Report: ${data.agencyName}`
+        : "Agency Commission Report";
+    }
+    return "Commission Report";
   };
-
-  const { 
-    companyName, 
-    primaryColor, 
-    secondaryColor, 
-    reportType, 
-    entityName, 
-    period, 
-    summary, 
-    productBreakdown,
-    transactions 
-  } = data;
-
+  
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Shared Commission Report</h1>
-        <div className="space-x-2">
+    <div className="container py-6">
+      <Card className="p-6 mb-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Shared Commission Report</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Generated on {formatDate(generatedAt || new Date().toISOString())}
+            </p>
+          </div>
           <Button 
-            onClick={generatePDF}
-            variant="outline"
+            variant="outline" 
+            size="sm" 
+            onClick={downloadAsPdf}
           >
             <Download className="mr-2 h-4 w-4" />
             Download PDF
           </Button>
-          <Button 
-            onClick={exportImage}
-            variant="outline"
-          >
-            <FileImage className="mr-2 h-4 w-4" />
-            Export Image
-          </Button>
         </div>
-      </div>
-      
-      <Card className="p-6">
-        <div ref={reportRef} className="min-h-[600px] bg-white rounded-lg p-8">
-          {/* Report Header */}
-          <div className="flex justify-between items-start mb-8 border-b pb-4" style={{ borderColor: primaryColor }}>
-            <div>
-              <h2 className="text-2xl font-bold" style={{ color: primaryColor }}>{companyName}</h2>
-              <p className="text-sm text-gray-500">
-                Commission Report: {period.startDate} to {period.endDate}
-              </p>
-              <p className="font-medium mt-2">
-                {entityName}
-              </p>
-            </div>
-            <div 
-              className="px-4 py-2 rounded-md text-white font-semibold text-sm"
-              style={{ backgroundColor: primaryColor }}
-            >
-              {reportType === 'broker' ? 'Broker Report' : 'Agency Report'}
-            </div>
+        
+        <div 
+          ref={setReportRef} 
+          className={`p-8 border rounded-md overflow-x-auto ${
+            reportLayout === 'visual' ? 'bg-gradient-to-br from-[#2a2a72] to-[#009ffd] text-white' : 'bg-white'
+          }`}
+          style={
+            reportLayout === 'detailed' 
+              ? { borderColor: primaryColor, borderWidth: '2px' } 
+              : {}
+          }
+        >
+          <ReportHeader
+            companyName={companyName || "Your Company"}
+            logoUrl={logoUrl || ""}
+            primaryColor={primaryColor || "#3b82f6"}
+            reportTitle={getReportTitle()}
+            subtitle={data?.timeframeName || ""}
+            reportLayout={reportLayout || "standard"}
+          />
+          
+          {/* Report Summary Section */}
+          <div className={`grid ${reportLayout === 'compact' ? 'grid-cols-4 gap-2' : 'grid-cols-1 md:grid-cols-3 gap-6'} mb-8`}>
+            <ReportMetricCard
+              title="Total Commission"
+              value={`$${data?.totalCommission || '0.00'}`}
+              layout={reportLayout || "standard"}
+              primaryColor={primaryColor || "#3b82f6"}
+              secondaryColor={secondaryColor || "#10b981"}
+              isHighlighted={true}
+            />
+            
+            <ReportMetricCard
+              title="Transactions"
+              value={data?.transactionCount || 0}
+              layout={reportLayout || "standard"}
+              primaryColor={primaryColor || "#3b82f6"}
+            />
+            
+            <ReportMetricCard
+              title="Average Commission"
+              value={`$${data?.averageCommission || '0.00'}`}
+              layout={reportLayout || "standard"}
+              primaryColor={primaryColor || "#3b82f6"}
+            />
           </div>
           
-          {/* Commission Summary */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
-              Commission Summary
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg" style={{ backgroundColor: `${primaryColor}10` }}>
-                <h4 className="font-medium" style={{ color: primaryColor }}>Total Commissions</h4>
-                <p className="text-2xl font-bold">{summary.totalCommissions}</p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg" style={{ backgroundColor: `${secondaryColor}10` }}>
-                <h4 className="font-medium" style={{ color: secondaryColor }}>Pending Approvals</h4>
-                <p className="text-2xl font-bold">{summary.pendingApprovals.count}</p>
-                <p className="text-sm mt-1" style={{ color: secondaryColor }}>{summary.pendingApprovals.amount}</p>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg" style={{ backgroundColor: `${primaryColor}10` }}>
-                <h4 className="font-medium" style={{ color: primaryColor }}>Total Transactions</h4>
-                <p className="text-2xl font-bold">{summary.transactions.count}</p>
-                <p className="text-sm mt-1" style={{ color: primaryColor }}>Avg. {summary.transactions.avgRate}</p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Transaction Details By Product Type */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
-              Transaction Details By Product
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50" style={{ backgroundColor: `${primaryColor}10` }}>
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Product Type
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Employer
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Participants
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Rate
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {transactions.map((transaction, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {transaction.productType}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {transaction.employer}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {transaction.participants}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        ${transaction.rate}/participant
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          {transaction.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: primaryColor }}>
-                        ${transaction.amount}
-                      </td>
+          {/* Transaction Details Table */}
+          {includeDetails && data?.transactions && data.transactions.length > 0 && (
+            <div className="mb-8">
+              <h3 
+                className={`text-lg font-semibold mb-4 ${reportLayout === 'visual' ? 'text-white' : ''}`}
+                style={reportLayout !== 'visual' ? { color: primaryColor } : {}}
+              >
+                Transaction Details
+              </h3>
+              
+              <div className={`border ${reportLayout === 'visual' ? 'border-white/20' : 'border-gray-200'} rounded-md overflow-hidden`}>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className={reportLayout === 'visual' ? 'bg-black/20' : 'bg-gray-50'}>
+                    <tr>
+                      <th className={getTableCellClasses(reportLayout || "standard", true)}>Product Type</th>
+                      <th className={getTableCellClasses(reportLayout || "standard", true)}>Employer</th>
+                      <th className={getTableCellClasses(reportLayout || "standard", true)}>Participants</th>
+                      <th className={getTableCellClasses(reportLayout || "standard", true)}>Rate</th>
+                      <th className={getTableCellClasses(reportLayout || "standard", true)}>Status</th>
+                      <th className={getTableCellClasses(reportLayout || "standard", true, true)}>Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className={
+                    reportLayout === 'visual' 
+                      ? 'divide-y divide-white/10' 
+                      : 'divide-y divide-gray-200'
+                  }>
+                    {data.transactions.map((transaction, index) => (
+                      <tr 
+                        key={index} 
+                        className={
+                          reportLayout === 'visual' 
+                            ? 'text-white' 
+                            : reportLayout === 'detailed'
+                              ? index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
+                              : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                        }
+                      >
+                        <td className={getTableCellClasses(reportLayout || "standard")}>
+                          {transaction.productType || 'COBRA'}
+                        </td>
+                        <td className={getTableCellClasses(reportLayout || "standard")}>
+                          {transaction.employer || 'ABC Company'}
+                        </td>
+                        <td className={getTableCellClasses(reportLayout || "standard")}>
+                          {transaction.participants || '50'}
+                        </td>
+                        <td className={getTableCellClasses(reportLayout || "standard")}>
+                          ${transaction.rate || '0.75'}/participant
+                        </td>
+                        <td className={getTableCellClasses(reportLayout || "standard")}>
+                          <span className={getStatusBadgeClasses(transaction.status || 'approved', reportLayout || "standard")}>
+                            {transaction.status || 'Approved'}
+                          </span>
+                        </td>
+                        <td className={getTableCellClasses(reportLayout || "standard", false, true)}
+                          style={reportLayout === 'detailed' ? { color: primaryColor } : {}}
+                        >
+                          ${transaction.amount || '37.50'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
           
           {/* Product Breakdown */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
-              Product Breakdown
-            </h3>
-            <div className="text-center mb-2">
-              <h4 className="text-xl font-medium">{productBreakdown.topProduct.name}</h4>
-              <p className="text-sm text-muted-foreground">{productBreakdown.topProduct.percentage}% of total commissions</p>
-            </div>
-            <div className="flex justify-center my-4">
-              <div className="w-40 h-40 rounded-full border-8 flex justify-center items-center" style={{ borderColor: primaryColor }}>
-                <div className="text-center">
-                  <div className="text-xl font-bold" style={{ color: primaryColor }}>{productBreakdown.topProduct.percentage}%</div>
-                  <div className="text-sm">{productBreakdown.topProduct.name}</div>
-                </div>
+          {includeDetails && data?.productBreakdown && (
+            <div className="mb-8">
+              <h3 
+                className={`text-lg font-semibold mb-4 ${reportLayout === 'visual' ? 'text-white' : ''}`}
+                style={reportLayout !== 'visual' ? { color: primaryColor } : {}}
+              >
+                Product Type Breakdown
+              </h3>
+              
+              <div className={`border ${reportLayout === 'visual' ? 'border-white/20' : 'border-gray-200'} rounded-md overflow-hidden`}>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className={reportLayout === 'visual' ? 'bg-black/20' : 'bg-gray-50'}>
+                    <tr>
+                      <th className={getTableCellClasses(reportLayout || "standard", true)}>Product Type</th>
+                      <th className={getTableCellClasses(reportLayout || "standard", true)}>Transactions</th>
+                      <th className={getTableCellClasses(reportLayout || "standard", true)}>Participants</th>
+                      <th className={getTableCellClasses(reportLayout || "standard", true, true)}>Commission</th>
+                      <th className={getTableCellClasses(reportLayout || "standard", true, true)}>Percentage</th>
+                    </tr>
+                  </thead>
+                  <tbody className={
+                    reportLayout === 'visual' 
+                      ? 'divide-y divide-white/10' 
+                      : 'divide-y divide-gray-200'
+                  }>
+                    {Object.entries(data.productBreakdown || {}).map(([product, data]: [string, any], index: number) => (
+                      <tr 
+                        key={product} 
+                        className={
+                          reportLayout === 'visual' 
+                            ? 'text-white' 
+                            : reportLayout === 'detailed'
+                              ? index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
+                              : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                        }
+                      >
+                        <td className={getTableCellClasses(reportLayout || "standard")}>
+                          {product}
+                        </td>
+                        <td className={getTableCellClasses(reportLayout || "standard")}>
+                          {data.count || 0}
+                        </td>
+                        <td className={getTableCellClasses(reportLayout || "standard")}>
+                          {data.participants || 0}
+                        </td>
+                        <td className={getTableCellClasses(reportLayout || "standard", false, true)}
+                          style={reportLayout === 'detailed' ? { color: primaryColor } : {}}
+                        >
+                          ${data.commission || '0.00'}
+                        </td>
+                        <td className={getTableCellClasses(reportLayout || "standard", false, true)}>
+                          {data.percentage || '0'}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
+          )}
           
-          {/* Footer with watermark */}
-          <div className="mt-16 pt-4 border-t text-center text-sm text-gray-500" style={{ borderColor: primaryColor }}>
-            <p>Generated on {format(new Date(), 'MMMM dd, yyyy')} • Powered by Commission Tracker</p>
+          {/* Footer */}
+          <div className={`mt-8 pt-4 text-xs ${reportLayout === 'visual' ? 'text-white/70 border-t border-white/20' : 'text-gray-500 border-t'}`}>
+            <p>Report generated on {formatDate(generatedAt || new Date().toISOString())}</p>
+            <p className="mt-1">
+              This shared report expires on {formatDate(reportData.expiresAt)}
+            </p>
           </div>
         </div>
       </Card>
