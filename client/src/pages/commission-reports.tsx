@@ -93,8 +93,7 @@ export default function CommissionReports() {
       
       toast({
         title: "Success!",
-        description: "Your report has been generated and downloaded",
-        variant: "success"
+        description: "Your report has been generated and downloaded"
       });
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -114,8 +113,7 @@ export default function CommissionReports() {
     
     toast({
       title: "Link copied!",
-      description: "Shareable report link has been copied to clipboard",
-      variant: "success"
+      description: "Shareable report link has been copied to clipboard"
     });
   };
   
@@ -141,8 +139,7 @@ export default function CommissionReports() {
       
       toast({
         title: "Success!",
-        description: "Your report image has been generated and downloaded",
-        variant: "success"
+        description: "Your report image has been generated and downloaded"
       });
     } catch (error) {
       console.error("Error exporting image:", error);
@@ -209,7 +206,7 @@ export default function CommissionReports() {
                       <SelectValue placeholder="Select Broker" />
                     </SelectTrigger>
                     <SelectContent>
-                      {brokers?.map((broker: any) => (
+                      {(brokers || []).map((broker: any) => (
                         <SelectItem key={broker.id} value={broker.id.toString()}>
                           {broker.firstName} {broker.lastName}
                         </SelectItem>
@@ -228,7 +225,7 @@ export default function CommissionReports() {
                       <SelectValue placeholder="Select Agency" />
                     </SelectTrigger>
                     <SelectContent>
-                      {agencies?.map((agency: any) => (
+                      {(agencies || []).map((agency: any) => (
                         <SelectItem key={agency.id} value={agency.id.toString()}>
                           {agency.name}
                         </SelectItem>
