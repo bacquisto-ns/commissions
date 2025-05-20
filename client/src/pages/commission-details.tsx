@@ -345,22 +345,10 @@ export default function CommissionDetails() {
                 </div>
               )}
               
-              {/* Additional commission splits - show other brokers */}
-              {transaction && transaction.id === 19 && (
-                <div className="flex items-center mb-3">
-                  <div className="flex-shrink-0 mr-3">
-                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
-                      <User className="h-5 w-5 text-gray-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="font-medium">Scott Hefner</p>
-                    <p className="text-sm text-muted-foreground">
-                      22% ({formatCurrency(11)})
-                    </p>
-                  </div>
-                </div>
-              )}
+              {/* 
+                Note: In a future enhancement, we would fetch and display all commission splits 
+                from the transaction, not just this broker's commission 
+              */}
             </div>
 
             {commission.notes && (
