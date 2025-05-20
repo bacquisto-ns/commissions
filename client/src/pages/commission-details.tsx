@@ -338,7 +338,7 @@ export default function CommissionDetails() {
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium">Frank Smith</p>
+                    <p className="font-medium">Scott Hefner</p>
                     <p className="text-sm text-muted-foreground">
                       22% ({formatCurrency(11)})
                     </p>
