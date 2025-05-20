@@ -105,16 +105,55 @@ export default function CommissionReports() {
     }
   };
   
-  const copyShareableLink = () => {
-    // In a real implementation, this would call the API to create a shareable link
-    // For now, we'll simulate it
-    const demoLink = `${window.location.origin}/shared-report/${Date.now()}`;
-    navigator.clipboard.writeText(demoLink);
+  const copyShareableLink = async () => {
+    if (isGeneratingDisabled) return;
     
     toast({
-      title: "Link copied!",
-      description: "Shareable report link has been copied to clipboard"
+      title: "Generating shareable link",
+      description: "Please wait while we create your shareable report..."
     });
+    
+    try {
+      // Call the API to create a shareable report
+      const response = await fetch('/api/shared-reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reportType,
+          entityId: reportType === 'broker' ? selectedBrokerId : selectedAgencyId,
+          startDate,
+          endDate,
+          expireDays: 7 // Link will expire in 7 days
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create shareable report link');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to create shareable report link');
+      }
+      
+      // Copy the shareable link to the clipboard
+      navigator.clipboard.writeText(data.shareableLink);
+      
+      toast({
+        title: "Link copied!",
+        description: `Shareable report link has been copied to clipboard. It will expire on ${new Date(data.expiresAt).toLocaleDateString()}.`
+      });
+    } catch (error) {
+      console.error('Error creating shareable link:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to create shareable report link',
+        variant: "destructive"
+      });
+    }
   };
   
   const exportImage = async () => {

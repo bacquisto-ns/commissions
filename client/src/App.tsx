@@ -20,6 +20,7 @@ import EnhancedImport from "./pages/enhanced-import";
 import Reports from "./pages/reports";
 import AgencyReports from "./pages/agency-reports";
 import CommissionReports from "./pages/commission-reports";
+import SharedReport from "./pages/shared-report";
 import Settings from "./pages/settings";
 import Login from "./pages/login";
 import NotFound from "./pages/not-found";
@@ -49,6 +50,7 @@ function RouterContent() {
     <Switch>
       {/* Public routes */}
       <Route path="/login" component={Login} />
+      <Route path="/shared-report/:id" component={SharedReport} />
       
       {/* Protected routes - accessible only when authenticated */}
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
