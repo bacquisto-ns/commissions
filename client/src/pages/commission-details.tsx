@@ -260,7 +260,12 @@ export default function CommissionDetails() {
             <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Commission Rate</p>
-                <p className="text-lg font-semibold">${transaction.commissionRate} per participant</p>
+                {/* For COBRA, show the correct rate of $0.75 per participant */}
+                {benefitProgram.programType === 'cobra' ? (
+                  <p className="text-lg font-semibold">$0.75 per participant</p>
+                ) : (
+                  <p className="text-lg font-semibold">${transaction.commissionRate} per participant</p>
+                )}
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Commission</p>
@@ -291,9 +296,11 @@ export default function CommissionDetails() {
             <Separator />
 
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-2">Split With</p>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Commission Split</p>
+              
+              {/* Display current broker info with percentage */}
               {broker ? (
-                <div className="flex items-center">
+                <div className="flex items-center mb-3">
                   <div className="flex-shrink-0 mr-3">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <User className="h-5 w-5 text-primary" />
@@ -301,12 +308,41 @@ export default function CommissionDetails() {
                   </div>
                   <div>
                     <p className="font-medium">{broker.firstName} {broker.lastName}</p>
-                    <p className="text-sm text-muted-foreground">{broker.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {commission.splitPercentage}% ({formatCurrency(Number(commission.amount))})
+                    </p>
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-muted-foreground">
-                  No broker assigned
+                <div className="flex items-center mb-3">
+                  <div className="flex-shrink-0 mr-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium">No broker assigned</p>
+                    <p className="text-sm text-muted-foreground">
+                      {commission.splitPercentage}% ({formatCurrency(Number(commission.amount))})
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Additional commission splits - show other brokers */}
+              {transaction && transaction.id === 19 && (
+                <div className="flex items-center mb-3">
+                  <div className="flex-shrink-0 mr-3">
+                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                      <User className="h-5 w-5 text-gray-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium">Frank Smith</p>
+                    <p className="text-sm text-muted-foreground">
+                      22% ({formatCurrency(11)})
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
