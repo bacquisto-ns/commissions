@@ -346,7 +346,7 @@ export default function CommissionReports() {
                     />
                     <SketchPicker 
                       color={primaryColor}
-                      onChange={(color) => handleColorChange(color, 'primary')}
+                      onChange={(color: any) => handleColorChange(color, 'primary')}
                     />
                   </div>
                 )}
@@ -374,7 +374,7 @@ export default function CommissionReports() {
                     />
                     <SketchPicker 
                       color={secondaryColor}
-                      onChange={(color) => handleColorChange(color, 'secondary')}
+                      onChange={(color: any) => handleColorChange(color, 'secondary')}
                     />
                   </div>
                 )}
@@ -470,8 +470,8 @@ export default function CommissionReports() {
                         </p>
                         <p className="font-medium mt-2">
                           {reportType === 'broker' 
-                            ? `${brokers?.find((b: any) => b.id.toString() === selectedBrokerId)?.firstName || ''} ${brokers?.find((b: any) => b.id.toString() === selectedBrokerId)?.lastName || ''}`
-                            : agencies?.find((a: any) => a.id.toString() === selectedAgencyId)?.name
+                            ? `${(brokers || []).find((b: any) => b.id.toString() === selectedBrokerId)?.firstName || ''} ${(brokers || []).find((b: any) => b.id.toString() === selectedBrokerId)?.lastName || ''}`
+                            : (agencies || []).find((a: any) => a.id.toString() === selectedAgencyId)?.name
                           }
                         </p>
                       </div>
