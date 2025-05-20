@@ -16,6 +16,7 @@ import { authenticate, authorizeAdmin, authorize } from "./middleware/auth";
 import authRoutes from "./auth-routes";
 import importRoutes from "./import-routes";
 import reportsRoutes from "./reports-routes";
+import sharedReportsRoutes from "./shared-reports-routes";
 import fs from "fs";
 import path from "path";
 
@@ -30,6 +31,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register reports routes
   app.use(`${apiPrefix}/reports`, reportsRoutes);
+  
+  // Register shared reports routes (publicly accessible)
+  app.use(sharedReportsRoutes);
   
   // Create upload directory if it doesn't exist
   const uploadDir = path.join(process.cwd(), 'temp/uploads');

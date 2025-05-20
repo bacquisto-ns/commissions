@@ -501,6 +501,92 @@ export default function CommissionReports() {
                         </div>
                       )}
                       
+                      {/* Transaction Details By Product Type */}
+                      {includeSummary && (
+                        <div className="mb-8">
+                          <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
+                            Transaction Details By Product
+                          </h3>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50" style={{ backgroundColor: `${primaryColor}10` }}>
+                                <tr>
+                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Product Type
+                                  </th>
+                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Employer
+                                  </th>
+                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Participants
+                                  </th>
+                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Rate
+                                  </th>
+                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
+                                  </th>
+                                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Amount
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {!reportLoading && reportData?.transactions ? (
+                                  reportData.transactions.map((transaction: any, index: number) => (
+                                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        {transaction.productType || 'COBRA'}
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        {transaction.employer || 'ABC Company'}
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        {transaction.participants || '50'}
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        ${transaction.rate || '0.75'}/participant
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                          {transaction.status || 'Approved'}
+                                        </span>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: primaryColor }}>
+                                        ${transaction.amount || '37.50'}
+                                      </td>
+                                    </tr>
+                                  ))
+                                ) : (
+                                  <tr>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                      COBRA
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                      ABC Company
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                      50
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                      $0.75/participant
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Approved
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: primaryColor }}>
+                                      $37.50
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                      
                       {includeBreakdown && (
                         <div className="mb-8">
                           <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
