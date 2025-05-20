@@ -15,6 +15,7 @@ import {
 import { authenticate, authorizeAdmin, authorize } from "./middleware/auth";
 import authRoutes from "./auth-routes";
 import importRoutes from "./import-routes";
+import reportsRoutes from "./reports-routes";
 import fs from "fs";
 import path from "path";
 
