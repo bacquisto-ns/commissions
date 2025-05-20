@@ -346,14 +346,14 @@ export default function Commissions() {
             </CardHeader>
             <CardContent className="p-0">
               <CommissionsTable 
-                commissions={(commissionsData?.data || []).filter(commission => commission.status === "pending")}
+                commissions={(commissionsData?.data || [])}
                 isLoading={isLoading}
                 showPagination={true}
                 currentPage={currentPage}
                 selectable={true}
                 selectedIds={selectedCommissions}
                 onSelectionChange={setSelectedCommissions}
-                totalItems={(commissionsData?.data || []).filter(commission => commission.status === "pending").length}
+                totalItems={(commissionsData?.data || []).length}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
                 sortField={sortField}
