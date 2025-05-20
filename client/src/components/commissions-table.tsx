@@ -22,8 +22,10 @@ import {
   ChevronUp,
   ArrowUpDown,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  HelpCircle
 } from "lucide-react";
+import { ProductCommissionTooltip, CommissionInfoTooltip } from "@/components/commission-calculation-tooltips";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -283,8 +285,11 @@ export default function CommissionsTable({
                       <div className="font-medium">
                         {commission.transaction.benefitProgram.organization.name}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {commission.transaction.benefitProgram.programName}
+                      <div className="text-sm text-muted-foreground flex items-center">
+                        {commission.transaction.benefitProgram.programName || commission.transaction.benefitProgram.programType}
+                        <ProductCommissionTooltip productType={commission.transaction.benefitProgram.programType}>
+                          <HelpCircle className="h-3.5 w-3.5 ml-1 cursor-help text-muted-foreground hover:text-primary" />
+                        </ProductCommissionTooltip>
                       </div>
                     </div>
                   </TableCell>

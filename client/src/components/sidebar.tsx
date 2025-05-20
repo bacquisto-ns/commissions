@@ -100,7 +100,7 @@ export default function Sidebar({ className }: SidebarProps) {
   const sidebarContent = (
     <>
       <div className="flex items-center h-16 flex-shrink-0 px-4 bg-primary">
-        <h1 className="text-xl font-semibold text-white">BrokerCommissions</h1>
+        <h1 className="text-xl font-semibold text-white">NueSynergy Commissions</h1>
       </div>
       <div className="flex flex-col flex-grow overflow-y-auto">
         <ScrollArea className="flex-1">
