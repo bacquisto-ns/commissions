@@ -1,0 +1,21 @@
+POST https://9ba5038b-db60-4f65-a9b8-b49cbdf252fc-00-1mksk205mu9tx.riker.replit.dev/api/commissions 201
+
+Request Data
+
+{"property":{"name":"City of Lansing","address":"","city":"","state":"","zipCode":"","propertyTypeGroup":"health"},"transaction":{"transactionType":"enrollment","transactionDate":"2025-05-20T13:16:01.520Z","notes":""},"productDetails":[{"productId":"cobra","productName":"COBRA","participantCount":"100","commissionRate":"2.00","transactionAmount":"50.00","useFixedAmount":true,"commissions":[{"brokerId":148,"splitPercentage":"100","notes":""},{"brokerId":0,"splitPercentage":"0","notes":""},{"brokerId":0,"splitPercentage":"0","notes":""},{"brokerId":0,"splitPercentage":"0","notes":""}]}]}
+
+Request Headers
+
+Content-Type: application/json
+
+Response Headers
+
+content-length: 1201
+content-type: application/json; charset=utf-8
+date: Tue, 20 May 2025 13:27:34 GMT
+etag: W/"4b1-V1gEXZ/x0euAkYVx0jYLa017xKg"
+replit-cluster: riker
+x-powered-by: Express
+x-robots-tag: none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex, none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+
+{"id":9,"transactionId":18,"brokerId":148,"splitPercentage":"100.00","amount":"50.00","status":"pending","notes":"","paymentDate":null,"createdAt":"2025-05-20T13:27:33.579Z","updatedAt":"2025-05-20T13:27:33.579Z","transaction":{"id":18,"benefitProgramId":15,"transactionType":"enrollment","transactionDate":"2025-05-20T13:16:01.520Z","participantCount":100,"commissionRate":"2","totalCommission":"50","notes":"","createdAt":"2025-05-20T13:27:33.579Z","benefitProgram":{"id":15,"organizationId":18,"programName":"City of Lansing","programType":"cobra","programGroup":"health","participantMinimum":0,"startDate":"2025-05-20T13:27:33.435Z","endDate":null,"notes":"","createdAt":"2025-05-20T13:27:33.579Z","organization":{"id":18,"name":"City of Lansing","address":"","city":"","state":"","zipCode":"","contactName":"Contact","contactEmail":"contact@example.com","contactPhone":"","createdAt":"2025-05-20T13:27:33.579Z"}}},"broker":{"id":148,"username":"mMuldoon@bukaty.com","password":"password123","firstName":"Mike","lastName":"Muldoon","email":"mMuldoon@bukaty.com","phoneNumber":"913.345.0440","agencyId":1,"active":true,"createdAt":"2025-05-19T18:49:58.583Z","updatedAt":"2025-05-19T18:49:58.583Z"}}
